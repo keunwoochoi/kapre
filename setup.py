@@ -6,5 +6,8 @@ setup(name='kapre',
       author='Keunwoo Choi',
       author_email='gnuchoi@gmail.com',
       licsnse='MIT',
-      packages=['dibrosa'],
+      packages=['kapre'],
+      install_requires=[
+        'keras', 'numpy', 'scipy',
+      ],
       zip_safe=False)
