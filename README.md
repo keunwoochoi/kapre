@@ -1,7 +1,5 @@
 # kapre
-Keras audio PREprocessing
-
-Written by Keunwoo Choi
+Keras Audio PREprocessing layers and utilities 
 
 # Install
 ```bash
@@ -45,5 +43,16 @@ model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src_shape,
 # Then add your model
 # model.add(some convolution layers...)
 ```
+
+# More info
+Please read docstrings at this moment.
+
+# Plan
+
+[v] `TimeFrequency`: Spectrogram, Mel-spectrogram
+[v] `Utils`: AmplitudeToDB, Normalization2D
+[ ] `DataAugmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
+[ ] `Filterbank`: Parameteric Filter bank
+[ ] `Decompose`: Harmonic-Percussive separation
 
 
