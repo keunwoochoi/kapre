@@ -1,5 +1,5 @@
 # kapre
-Keras Audio PREprocessing layers and utilities 
+Keras Audio PREprocessors
 
 # Installation
 ```bash
