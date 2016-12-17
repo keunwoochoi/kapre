@@ -34,14 +34,17 @@ model.add(Normalization2D(str_axis='freq')) # or 'time', 'channel', 'batch', 'da
 ```python
 from keras.models import Sequential
 from kapre.TimeFrequency import Melspectrogram
+from kapre.Utils import Normalization2D
 
 # 6 channels (!), maybe 1-sec audio signal
 input_shape = (6, 44100) 
 sr = 44100
 model = Sequential()
-# A "amplitude mel-spectrogram in decibel scale" layer
+# A mel-spectrogram layer with
+# no decibel conversion for some reasons and (return_decibel=False)
+# amplitude, not power (power=1.0)
 model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src_shape, 
-                         return_decibel=True, power=1.0, trainable=False,
+                         return_decibel=False, power=1.0, trainable=False,
                          name='trainable_stft'))
 # If you wanna normalise it per-channel
 model.add(Normalization2D(str_axis='channel')) # or 'freq', 'time', 'batch', 'data_sample'
