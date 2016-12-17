@@ -304,10 +304,16 @@ class Melspectrogram(Spectrogram):
         power_spectrogram = super(Melspectrogram, self).call(x, mask)
         # now,  th: (batch_sample, n_ch, n_freq, n_time)
         #       tf: (batch_sample, n_freq, n_time, n_ch)
-        power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 1, 3, 2])
-        # make it a dot-product-able shape
-        output = K.dot(power_spectrogram, self.freq2mel) # TODO: 
-        output = K.permute_dimensions(output, [0, 1, 3, 2])
+        if self.dim_ordering == 'th':
+            power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 1, 3, 2])
+        else:
+            power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 3, 2, 1])
+        # now, whatever dim_ordering, (batch_sample, n_ch, n_time, n_freq)
+        output = K.dot(power_spectrogram, self.freq2mel) 
+        if self.dim_ordering == 'th':
+            output = K.permute_dimensions(output, [0, 1, 3, 2])
+        else:
+            output = K.permute_dimensions(output, [0, 3, 2, 1])
         if self.power != 2.0:
             output = K.pow(K.sqrt(output), self.power)
         if self.return_decibel_melgram:
