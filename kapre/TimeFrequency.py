@@ -1,445 +1,324 @@
-''''''
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
-import scipy.signal
-from keras.models import Sequential
-from keras.layers.convolutional import Convolution1D
-from keras.layers import Input, Lambda, merge, Permute, Reshape
-from keras.models import Model
 from keras import backend as K
+from keras.engine import Layer
+from keras.utils.np_utils import conv_output_length
+from . import backend
 
 
-def Spectrogram(n_dft, input_shape, trainable=False, n_hop=None, 
-                border_mode='same', logamplitude=True):
-    '''A keras model for Spectrogram using STFT
+class Spectrogram(Layer):
+    '''Returns spectrogram(s) in 2D image format.
 
-    # Parameters
-    
-        n_dft : int > 0 and power of 2 [scalar]
-            number of dft components.
+    # Arguments
+        * n_dft: integer > 0 (scalar), power of 2. 
+            number of DFT points
 
-        input_shape : tuple (length=2),
-            Input shape of raw audio input.
-            It should (num_audio_samples, n_ch), e.g. (441000, 1), (16000, 2)
+        * n_hop: integer > 0 (scalar), hop length
 
-        trainable : boolean
-            If it is `True`, the STFT kernels (=weights of two 1d conv layer)
-            is set as `trainable`, therefore they are initiated with STFT 
-            kernels but then updated.
+        * border_mode: string, `'same'` or `'valid'`
 
-        n_hop : int > 0 [scalar]
-            number of audio samples between successive frames.
-    
-        border_mode : 'valid' or 'same'.
-            if 'valid' the edges of input signal are ignored.
+        * power: float (scalar), `2.0` if power-spectrogram,
+            `1.0` if amplitude spectrogram
 
-        logamplitude : boolean
-            whether logamplitude to stft or not
+        * return_decibel: bool, returns decibel, 
+            i.e. log10(amplitude spectrogram) if `True`
+
+        * trainable: bool, set if the kernels are trainable
+
+        * dim_ordering: string, `'th'` or `'tf'`.
+            The returned spectrogram follows this dim_ordering convention.
+            If `'default'`, follows the current Keras session's setting.
+
+    # Input shape
+        * 2D array, `(audio_channel, audio_length)`.
+            E.g., `(1, 44100)` for mono signal,
+                `(2, 44100)` for stereo signal.
+            It supports multichannel signal input.
 
     # Returns
+        * abs(Spectrogram) in a shape of 2D data, i.e.,
+            `(None, n_channel, n_freq, n_time)` if `'th'`,
+            `(None, n_freq, n_time, n_channel)` if `'tf'`,
 
-        A keras model that has output shape of 
-            (None, n_ch, n_freq, n_frame) (if `img_dim_ordering() == 'th'`) or
-            (None, n_freq, n_frame, n_ch) (if `img_dim_ordering() == 'tf'`).
+    # Example
+        ```python
+            # dim_ordering == 'th'
+            from kapre.TimeFrequency import Spectrogram
+            src = np.random.random((2, 44100))
+            sr = 44100
+            model = Sequential()
+            model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
+                      return_decibel=True, power=2.0, trainable=False,
+                      name='static_stft'))
+            model.summary(line_length=80, positions=[.33, .65, .8, 1.])
 
+            # ________________________________________________________________________________
+            # Layer (type)              Output Shape              Param #     Connected to    
+            # ================================================================================
+            # static_stft (Spectrogram) (None, 2, 257, 173)       0           spectrogram_inpu
+            # ================================================================================
+            # Total params: 0
+            # ________________________________________________________________________________
+        ```
+        ```python
+            model = Sequential()
+            model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
+                      return_decibel=True, power=2.0, trainable=True,
+                      name='trainable_stft'))
+            model.summary(line_length=80, positions=[.33, .6, .8, 1.])
+
+            # ________________________________________________________________________________
+            # Layer (type)              Output Shape          Param #         Connected to    
+            # ================================================================================
+            # trainable_stft (Spectrogr (None, 2, 257, 173)   263168          spectrogram_inpu
+            # ================================================================================
+            # Total params: 263168
+            # ________________________________________________________________________________
+            print(model.layers[0].trainable_weights)
+            # [<TensorType(float32, 4D)>, <TensorType(float32, 4D)>]          
+        ```
     '''
-    model = get_spectrogram_model(n_dft, input_shape=input_shape,
-                                    trainable=trainable,
-                                    n_hop=n_hop, 
-                                    border_mode=border_mode,
-                                    logamplitude=logamplitude)
+    def __init__(self, n_dft, n_hop=None, border_mode='same', 
+                 power=1.0, return_decibel=False,
+                 trainable=False, dim_ordering='default', **kwargs):
+        assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
+            ('n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft)
+        assert isinstance(trainable, bool)
+        assert isinstance(return_decibel, bool)
+        assert border_mode in ('same', 'valid')
+        if n_hop is None:
+            n_hop = n_dft / 2
 
-    model.trainable = trainable
-    return model
+        if dim_ordering == 'default':
+            self.dim_ordering = K.image_dim_ordering()
+        self.dim_ordering in ('th', 'tf')
+
+        self.n_dft = n_dft
+        self.n_filter = (n_dft / 2) + 1
+        self.trainable = trainable
+        self.n_hop = n_hop
+        self.border_mode = 'same'
+        self.power = float(power)
+        self.return_decibel_spectrogram = return_decibel
+        super(Spectrogram, self).__init__(trainable=trainable, **kwargs)
+
+    def build(self, input_shape):
+        '''input_shape: (n_ch, length)'''
+        self.n_ch = input_shape[1]
+        self.len_src = input_shape[2]
+        self.is_mono = (self.n_ch == 1)
+        if self.dim_ordering == 'th':
+            self.ch_axis_idx = 1
+        else:
+            self.ch_axis_idx = 3
+        assert self.len_src >= self.n_dft, 'Hey! The input is too short!'
+
+        self.n_frame = conv_output_length(self.len_src,
+                                    self.n_dft,
+                                    self.border_mode,
+                                    self.n_hop)
+
+        dft_real_kernels, dft_imag_kernels = backend.get_stft_kernels(self.n_dft)
+        self.dft_real_kernels = K.variable(dft_real_kernels)
+        self.dft_imag_kernels = K.variable(dft_imag_kernels)
+        # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
+        if self.trainable:
+            self.trainable_weights = [self.dft_real_kernels, 
+                                      self.dft_imag_kernels]
+
+        self.built = True
+
+    def get_output_shape_for(self, input_shape):
+        if self.dim_ordering == 'th':
+            return (input_shape[0], self.n_ch, self.n_filter, self.n_frame)
+        else:
+            return (input_shape[0], self.n_filter, self.n_frame, self.n_ch)
+
+    def call(self, x, mask=None):
+        '''computes spectrorgram ** power.'''
+        output = self._spectrogram_mono(x[:, 0:1, :])
+        if self.is_mono is False:
+            for ch_idx in range(1, self.n_ch):
+                output = K.concatenate((output, 
+                           self._spectrogram_mono(x[:, ch_idx:ch_idx+1, :])),
+                           axis=self.ch_axis_idx)
+        if self.power != 2.0:
+            output = K.pow(K.sqrt(output), self.power)
+        if self.return_decibel_spectrogram:
+            output = backend.amplitude_to_decibel(output)
+        return output
+
+    def get_config(self):
+        config = {'n_dft': self.n_dft,
+                  'n_filter': self.n_filter,
+                  'trainable': trainable,
+                  'n_hop': self.n_hop,
+                  'border_mode': self.border_mode,
+                  'power': self.power,
+                  'return_decibel_spectrogram': self.return_decibel_spectrogram}
+        base_config = super(Spectrogram, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def _spectrogram_mono(self, x):
+        '''x.shape : (None, 1, len_src),
+        returns 2D batch of a mono power-spectrogram'''
+        x = K.permute_dimensions(x, [0, 2, 1])
+        x = K.expand_dims(x, 3)  # add a dummy dimension (channel axis)
+        subsample = (self.n_hop, 1)
+        output_real = K.conv2d(x, self.dft_real_kernels,
+                               strides=subsample,
+                               border_mode=self.border_mode,
+                               dim_ordering='tf')
+        output_imag = K.conv2d(x, self.dft_imag_kernels,
+                               strides=subsample,
+                               border_mode=self.border_mode,
+                               dim_ordering='tf')
+        output = output_real ** 2 + output_imag ** 2
+        # now shape is (batch_sample, n_frame, 1, freq)
+        if self.dim_ordering == 'tf':
+            output = K.permute_dimensions(output, [0, 3, 1, 2])
+        else:
+            output = K.permute_dimensions(output, [0, 2, 3, 1])
+        return output
 
 
+class Melspectrogram(Spectrogram):
+    '''Returns mel-spectrogram(s) in 2D image format.
 
-def Melspectrogram(n_dft, input_shape, trainable, n_hop=None, 
-                   border_mode='same', logamplitude=True, sr=22050, 
-                   n_mels=128, fmin=0.0, fmax=None, name='melgram'):
-    '''Return a Mel-spectrogram keras layer
+    # Arguments
+        * n_dft: integer > 0 (scalar), power of 2. 
+            number of DFT points
 
-    # Parameters
+        * n_hop: integer > 0 (scalar), hop length
 
-        n_dft : int > 0 and power of 2 [scalar]
-            number of dft components.
+        * border_mode: string, `'same'` or `'valid'`
 
-        input_shape : tuple (length=2),
-            Input shape of raw audio input.
-            It should (num_audio_samples, 1), e.g. (441000, 1)
+        * sr: integer > 0 (scalar), sampling rate
 
-        trainable : boolean
-            If it is `True`, the STFT kernels (=weights of two 1d conv layer)
-            AND hz->mel filter banks are set as `trainable`, 
-            therefore they are updated. 
-        
-        n_hop : int > 0 [scalar]
-            number of audio samples between successive frames.
+        * n_mels: integer > 0 (scalar), number of mel bands
+
+        * fmin: float > 0 (scalar), minimum frequency to include in melgram
+
+        * fmax: float > fmin (scalar), maximum frequency to include in melgram
+
+        * power: float (scalar), `2.0` if power-spectrogram,
+            `1.0` if amplitude spectrogram
+
+        * return_decibel: bool, returns decibel, 
+            i.e. log10(amplitude spectrogram) if `True`
+
+        * trainable: bool, set if the kernels are trainable
+
+        * dim_ordering: string, `'th'` or `'tf'`.
+            The returned spectrogram follows this dim_ordering convention.
+            If `'default'`, follows the current Keras session's setting.
+
+    # Input shape
+        * 2D array, `(audio_channel, audio_length)`.
+            E.g., `(1, 44100)` for mono signal,
+                `(2, 44100)` for stereo signal.
+            It supports multichannel signal input.
+
+    # Returns
+        * abs(mel-spectrogram) in a shape of 2D data, i.e.,
+            `(None, n_channel, n_mels, n_time)` if `'th'`,
+            `(None, n_mels, n_time, n_channel)` if `'tf'`,
+
+    # Example
+        ```python
+            dim_ordering == 'th'
+            from kapre.TimeFrequency import Melspectrogram
+            src = np.random.random((2, 44100))
+            sr = 44100
+            model = Sequential()
+            model.summary()
+            # ________________________________________________________________________________
+            # Layer (type)              Output Shape          Param #         Connected to    
+            # ================================================================================
+            # static_melgram (Melspectr (None, 2, 128, 173)   0               melspectrogram_i
+            # ================================================================================
+            # Total params: 0
+            # ________________________________________________________________________________
+        ```
+        ```python
+            model = Sequential()
+            model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src.shape,
+                                     sr=sr, n_mels=128, fmin=0.0, fmax=16000,
+                                     power=2.0, return_decibel=True,
+                                     trainable=True,
+                                     name='trainable_melgram'))
+            model.summary(line_length=80, positions=[.33, .6, .8, 1.])
+            # ________________________________________________________________________________
+            # Layer (type)              Output Shape          Param #         Connected to    
+            # ================================================================================
+            # trainable_melgram (Melspe (None, 2, 128, 173)   296064          melspectrogram_i
+            # ================================================================================
+            # Total params: 296064
+            # ________________________________________________________________________________
+            print(model.layers[0].trainable_weights)
+            # [<TensorType(float32, 4D)>, <TensorType(float32, 4D)>, <TensorType(float32, matrix)>]
+            # real kernels, imaginary kernels, and freq-to-mel matrix
             
-        border_mode : 'valid' or 'same'.
-            if 'valid' the edges of input signal are ignored.
-
-        logamplitude : boolean
-            whether logamplitude to stft or not
-
-        sr : int > 0 [scalar]
-            sampling rate (used to compute mel-frequency filterbanks)
-
-        n_mels : int > 0 [scalar]
-            number of mel-bins
-
-        fmin : float > 0 [scalar]
-            minimum frequency of mel-filterbanks
-
-        fmax : float > fmin [scalar]
-            maximum frequency of mel-filterbanks
-
-        name : string
-            name of the model
-
-    # Returns
-        A Keras model that compute mel-spectrogram.
-        The output shape follows general 2d-representations,
-        i.e., (None, n_ch, height, width) for `theano` or etc.
-    '''
-    if input_shape is None:
-        raise RuntimeError('specify input shape')
-
-    Melgram = Sequential()
-    # Prepare STFT.
-    stft_model = get_spectrogram_model(n_dft, 
-                                        n_hop=n_hop, 
-                                        border_mode=border_mode, 
-                                        input_shape=input_shape,
-                                        logamplitude=False) 
-    # output: 2d shape, either (None, 1, freq, time) or..
-    stft_model.trainable = trainable
-    Melgram.add(stft_model)
-
-    # build a Mel filter
-    mel_basis = _mel(sr, n_dft, n_mels, fmin, fmax)  # (128, 1025) (mel_bin, n_freq)
-    mel_basis = np.fliplr(mel_basis)  # to make it from low-f to high-freq
-    n_freq = mel_basis.shape[1]
-
-    if K.image_dim_ordering() == 'th':
-        mel_basis = mel_basis[:, np.newaxis, :, np.newaxis] 
-        # print('th', mel_basis.shape)
-    else:
-        mel_basis = np.transpose(mel_basis, (1, 0))
-        mel_basis = mel_basis[:, np.newaxis, np.newaxis, :] 
-        # print('tf', mel_basis.shape)
-    
-    stft2mel = Convolution2D(n_mels, n_freq, 1, border_mode='valid', bias=False,
-                            name='stft2mel', weights=[mel_basis])
-    stft2mel.trainable = trainable
-
-    Melgram.add(stft2mel)  # output: (None, 128, 1, 375) if theano.
-    if logamplitude:
-        Melgram.add(Logam_layer())
-    # i.e. 128ch == 128 mel-bin, for 375 time-step, therefore,
-    if K.image_dim_ordering() == 'th':
-        Melgram.add(Permute((2, 1, 3), name='ch_freq_time'))
-    else:
-        Melgram.add(Permute((3, 2, 1), name='ch_freq_time'))
-    # output dot product of them
-    return Melgram
-
-
-def _get_stft_kernels(n_dft, keras_ver='new'):
-    '''Return dft kernels for real/imagnary parts assuming
-        the input signal is real.
-    An asymmetric hann window is used (scipy.signal.hann).
-
-    Parameters
-    ----------
-    n_dft : int > 0 and power of 2 [scalar]
-        Number of dft components.
-
-    keras_ver : string, 'new' or 'old'
-        It determines the reshaping strategy.
-
-    Returns
-    -------
-    dft_real_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
-    dft_imag_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
-
-    * nb_filter = n_dft/2 + 1
-    * n_win = n_dft
-
-    '''
-    assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
-        ('n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft)
-
-    nb_filter = n_dft / 2 + 1
-
-    # prepare DFT filters
-    timesteps = range(n_dft)
-    w_ks = [(2 * np.pi * k) / float(n_dft) for k in xrange(n_dft)]
-    dft_real_kernels = np.array([[np.cos(w_k * n) for n in timesteps]
-                                  for w_k in w_ks])
-    dft_imag_kernels = np.array([[np.sin(w_k * n) for n in timesteps]
-                                  for w_k in w_ks])
-
-    # windowing DFT filters
-    dft_window = scipy.signal.hann(n_dft, sym=False)
-    dft_window = dft_window.reshape((1, -1))
-    dft_real_kernels = np.multiply(dft_real_kernels, dft_window)
-    dft_imag_kernels = np.multiply(dft_imag_kernels, dft_window)
-
-    if keras_ver == 'old':  # 1.0.6: reshape filter e.g. (5, 8) -> (5, 1, 8, 1)
-        dft_real_kernels = dft_real_kernels[:nb_filter]
-        dft_imag_kernels = dft_imag_kernels[:nb_filter]
-        dft_real_kernels = dft_real_kernels[:, np.newaxis, :, np.newaxis]
-        dft_imag_kernels = dft_imag_kernels[:, np.newaxis, :, np.newaxis]
-    else:
-        dft_real_kernels = dft_real_kernels[:nb_filter].transpose()
-        dft_imag_kernels = dft_imag_kernels[:nb_filter].transpose()
-        dft_real_kernels = dft_real_kernels[:, np.newaxis, np.newaxis, :]
-        dft_imag_kernels = dft_imag_kernels[:, np.newaxis, np.newaxis, :]
-
-    return dft_real_kernels, dft_imag_kernels
-
-
-def Logam_layer(name='log_amplitude'):
-# TODO: replace it with Utils.AmplitudeToDB    
-    '''Return a keras layer for log-amplitude.
-    The computation is simplified from librosa.logamplitude by
-        not having parameters such as ref_power, amin, tob_db.
-
-    Parameters
-    ----------
-    name : string
-        Name of the logamplitude layer
-
-    Returns
-    -------
-    a Keras layer : Keras's Lambda layer for log-amplitude-ing.
-    '''
-    def logam(x):
-        log_spec = 10 * K.log(K.maximum(x, 1e-10))/K.log(10)
-        log_spec = log_spec - K.max(log_spec)  # [-?, 0]
-        log_spec = K.maximum(log_spec, -80.0)  # [-80, 0]
-        return log_spec
-
-    def logam_shape(shapes):
-        '''shapes: shape of input(s) of the layer'''
-        # print('output shape of logam:', shapes)
-        return shapes
-
-    return Lambda(lambda x: logam(x), name=name,
-        output_shape=logam_shape)
-
-
-def get_spectrogram_model(n_dft, input_shape, trainable=False, 
-                            n_hop=None, border_mode='same', 
-                            logamplitude=True):
-    '''Returns two tensors, x as input, stft_magnitude as result.
-        x(input) and STFT_magnitude(tensor) (#freq, #time shape)
-
-    It assumes mono input.
-    
-    These tensors can be use to build a Keras model 
-        using Functional API, 
-        `e.g., model = keras.models.Model(x, STFT_magnitude)`
-        to build a model that does STFT.
-    
-    It uses two `Convolution1D` to compute real/imaginary parts of
-        STFT and sum(real**2, imag**2). 
-
-    Parameters
-    ----------
-    n_dft : int > 0 and power of 2 [scalar]
-        number of dft components.
-
-    input_shape : tuple (length=2),
-        Input shape of raw audio input.
-        It should (num_audio_samples, 1), e.g. (441000, 1)
-
-    trainable : boolean
-        If it is `True`, the STFT kernels (=weights of two 1d conv layer)
-        is set as `trainable`, therefore they are initiated with STFT 
-        kernels but then updated. 
-
-    n_hop : int > 0 [scalar]
-        number of samples between successive frames.
-    
-    border_mode : 'valid' or 'same'.
-        if 'valid' the edges of input signal are ignored.
-
-    logamplitude : boolean
-        whether logamplitude to stft or not
-
-
-    this is then used in Keras - Functional model API
-    STFT_real and STFT_imag is set as non_trainable
-
-    Returns
-    -------
-    x : input tensor
-
-    STFT_magnitude : STFT magnitude, either in shape:
-        (None, 1, n_freq, n_frame) or (None, n_freq, n_frame, 1)
-    '''
-
-    assert trainable in (True, False)
-
-    if n_hop is None:
-        n_hop = n_dft / 2
-
-    n_channel = input_shape[1]
-    # get DFT kernels  
-    dft_real_kernels, dft_imag_kernels = _get_stft_kernels(n_dft)
-    nb_filter = n_dft / 2 + 1
-
-    # layers - one for the real, one for the imaginary
-    x = Input(shape=input_shape, name='audio_input', dtype='float32')
-
-    STFT_real = Convolution1D(nb_filter, n_dft,
-                              subsample_length=n_hop,
-                              border_mode=border_mode,
-                              weights=[dft_real_kernels],
-                              bias=False,
-                              name='dft_real',
-                              input_shape=input_shape)(x)
-
-    STFT_imag = Convolution1D(nb_filter, n_dft,
-                              subsample_length=n_hop,
-                              border_mode=border_mode,
-                              weights=[dft_imag_kernels],
-                              bias=False,
-                              name='dft_imag',
-                              input_shape=input_shape)(x)
-    
-    STFT_real.trainable = trainable
-    STFT_imag.trainable = trainable
-    
-    STFT_real = Lambda(lambda x: x ** 2, name='real_pow')(STFT_real)
-    STFT_imag = Lambda(lambda x: x ** 2, name='imag_pow')(STFT_imag)
-
-    STFT_magnitude = merge([STFT_real, STFT_imag], mode='sum', name='sum')
-
-    if logamplitude:
-        STFT_magnitude = Logam_layer()(STFT_magnitude)
-    
-    STFT_magnitude = Permute((2, 1))(STFT_magnitude)  # (sample, freq, time)
-    model_conv1d = Model(input=x, output=STFT_magnitude, name='stft_conv1d')
-    model_stft = Sequential(name='stft_model')
-    model_stft.add(model_conv1d)
-    
-
-    if K.image_dim_ordering() == 'th':
-        model_stft.add(Reshape((1, ) + model_conv1d.output_shape[1:]))
-    else:
-        model_stft.add(Reshape(model_conv1d.output_shape[1:] + (1, )))
-
-    return model_stft
-
-
-def _mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
-    """Compute the center frequencies of mel bands.
-    `htk` is removed.
-    copied from Librosa
-    """
-    def _mel_to_hz(mels):
-        """Convert mel bin numbers to frequencies
-        copied from Librosa
-        """
-        mels = np.atleast_1d(mels)
-
-        # Fill in the linear scale
-        f_min = 0.0
-        f_sp = 200.0 / 3
-        freqs = f_min + f_sp * mels
-
-        # And now the nonlfinear scale
-        min_log_hz = 1000.0                         # beginning of log region
-        min_log_mel = (min_log_hz - f_min) / f_sp   # same (Mels)
-        logstep = np.log(6.4) / 27.0                # step size for log region
-        log_t = (mels >= min_log_mel)
-
-        freqs[log_t] = min_log_hz \
-                       * np.exp(logstep * (mels[log_t] - min_log_mel))
-
-        return freqs
-
-    def _hz_to_mel(frequencies):
-        """Convert Hz to Mels
-        copied from Librosa
-        """
-        frequencies = np.atleast_1d(frequencies)
-
-        # Fill in the linear part
-        f_min = 0.0
-        f_sp = 200.0 / 3
-
-        mels = (frequencies - f_min) / f_sp
-
-        # Fill in the log-scale part
-        min_log_hz = 1000.0                         # beginning of log region
-        min_log_mel = (min_log_hz - f_min) / f_sp   # same (Mels)
-        logstep = np.log(6.4) / 27.0                # step size for log region
-
-        log_t = (frequencies >= min_log_hz)
-        mels[log_t] = min_log_mel \
-                      + np.log(frequencies[log_t] / min_log_hz) / logstep
-
-        return mels
-
-    ''' mel_frequencies body starts '''
-    # 'Center freqs' of mel bands - uniformly spaced between limits
-    min_mel = _hz_to_mel(fmin)
-    max_mel = _hz_to_mel(fmax)
-
-    mels = np.linspace(min_mel, max_mel, n_mels)
-
-    return _mel_to_hz(mels)
-
-
-def _dft_frequencies(sr=22050, n_dft=2048):
-    '''Alternative implementation of `np.fft.fftfreqs` (said Librosa)
-    copied from Librosa
-
-    '''
-    return np.linspace(0,
-                       float(sr) / 2,
-                       int(1 + n_dft//2),
-                       endpoint=True)
-
-
-def _mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
-    ''' create a filterbank matrix to combine stft bins into mel-frequency bins
-    use Slaney
-    copied from Librosa, librosa.filters.mel
-    
-    n_mels: numbre of mel bands
-    fmin : lowest frequency [Hz]
-    fmax : highest frequency [Hz]
-        If `None`, use `sr / 2.0`
-    '''
-    if fmax is None:
-        fmax = float(sr) / 2
-
-    # init
-    n_mels = int(n_mels)
-    weights = np.zeros((n_mels, int(1 + n_dft // 2)))
-
-    # center freqs of each FFT bin
-    dftfreqs = _dft_frequencies(sr=sr, n_dft=n_dft)
-
-    # centre freqs of mel bands
-    freqs = _mel_frequencies(n_mels + 2,
-                             fmin=fmin,
-                             fmax=fmax)
-    # Slaney-style mel is scaled to be approx constant energy per channel
-    enorm = 2.0 / (freqs[2:n_mels+2] - freqs[:n_mels])
-
-    for i in range(n_mels):
-        # lower and upper slopes qfor all bins
-        lower = (dftfreqs - freqs[i]) / (freqs[i + 1] - freqs[i])
-        upper = (freqs[i + 2] - dftfreqs) / (freqs[i + 2] - freqs[i + 1])
-
-        # .. then intersect them with each other and zero
-        weights[i] = np.maximum(0, np.minimum(lower, upper)) * enorm[i]
-
-    return weights
+        ```
+    '''    
+    def __init__(self, n_dft, n_hop=None, border_mode='same',
+                 sr=22050, n_mels=128, fmin=0.0, fmax=None, 
+                 power=1.0, return_decibel=False,
+                 trainable=False, dim_ordering='default', **kwargs):
+        super(Melspectrogram, self).__init__(n_dft, n_hop, border_mode,
+                                             2.0, False,
+                                             trainable, dim_ordering, **kwargs)
+        assert sr > 0
+        assert fmin >= 0.0
+        if fmax is None:
+            fmax = float(sr) / 2
+        assert fmax > fmin
+        assert isinstance(return_decibel, bool)
+
+        self.sr = int(sr)
+        self.n_mels = n_mels
+        self.fmin = fmin
+        self.fmax = fmax
+        self.return_decibel_melgram = return_decibel
+
+    def build(self, input_shape):
+        super(Melspectrogram, self).build(input_shape)
+        self.built = False
+        # compute freq2mel matrix
+        mel_basis = backend.mel(self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax)  # (128, 1025) (mel_bin, n_freq)
+        mel_basis = np.transpose(mel_basis)
+        
+        self.freq2mel = K.variable(mel_basis)
+        if self.trainable:
+            self.trainable_weights.append(self.freq2mel)
+        self.built = True
+
+    def get_output_shape_for(self, input_shape):
+        if self.dim_ordering == 'th':
+            return (input_shape[0], self.n_ch, self.n_mels, self.n_frame)
+        else:
+            return (input_shape[0], self.n_mels, self.n_frame, self.n_ch)
+
+    def call(self, x, mask=None):
+        power_spectrogram = super(Melspectrogram, self).call(x, mask)
+        # now,  th: (batch_sample, n_ch, n_freq, n_time)
+        #       tf: (batch_sample, n_freq, n_time, n_ch)
+        power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 1, 3, 2])
+        # make it a dot-product-able shape
+        output = K.dot(power_spectrogram, self.freq2mel) # TODO: 
+        output = K.permute_dimensions(output, [0, 1, 3, 2])
+        if self.power != 2.0:
+            output = K.pow(K.sqrt(output), self.power)
+        if self.return_decibel_melgram:
+            output = backend.amplitude_to_decibel(output)
+        return output
+
+    def get_config(self):
+        config = {'sr': self.sr,
+                  'n_mels': self.n_mels,
+                  'fmin': self.fmin,
+                  'fmax': self.fmax,
+                  'return_decibel_melgram': self.return_decibel_melgram}
+        base_config = super(Melspectrogram, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
