@@ -49,14 +49,10 @@ Please read docstrings at this moment.
 
 # Plan
 
-[v] `TimeFrequency`: Spectrogram, Mel-spectrogram
-
-[v] `Utils`: AmplitudeToDB, Normalization2D
-
-[ ] `DataAugmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
-
-[ ] `Filterbank`: Parameteric Filter bank
-
-[ ] `Decompose`: Harmonic-Percussive separation
+  [v] `TimeFrequency`: Spectrogram, Mel-spectrogram
+  [v] `Utils`: AmplitudeToDB, Normalization2D
+  [ ] `DataAugmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
+  [ ] `Filterbank`: Parameteric Filter bank
+  [ ] `Decompose`: Harmonic-Percussive separation
 
 
