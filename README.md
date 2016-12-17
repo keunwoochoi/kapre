@@ -14,6 +14,7 @@ $ python setup.py install
 ```python
 from keras.models import Sequential
 from kapre.TimeFrequency import Spectrogram
+from kapre.Utils import Normalization2D
 
 # stereo channel, maybe 1-sec audio signal
 input_shape = (2, 44100) 
@@ -23,8 +24,10 @@ model = Sequential()
 model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src_shape, 
                       return_decibel=True, power=2.0, trainable=False,
                       name='trainable_stft'))
+# If you wanna normalise it per-frequency
+model.add(Normalization2D(str_axis='freq')) # or 'time', 'channel', 'batch', 'data_sample'
 # Then add your model
-# model.add(some convolution layers...)
+# E.g., model.add(some convolution layers...)
 ```
 
 ## Mel-spectrogram
@@ -40,8 +43,10 @@ model = Sequential()
 model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src_shape, 
                          return_decibel=True, power=1.0, trainable=False,
                          name='trainable_stft'))
+# If you wanna normalise it per-channel
+model.add(Normalization2D(str_axis='channel')) # or 'freq', 'time', 'batch', 'data_sample'
 # Then add your model
-# model.add(some convolution layers...)
+# E.g., model.add(some convolution layers...)
 ```
 
 # More info
