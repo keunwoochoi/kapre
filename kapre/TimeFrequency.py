@@ -152,7 +152,7 @@ class Spectrogram(Layer):
     def get_config(self):
         config = {'n_dft': self.n_dft,
                   'n_filter': self.n_filter,
-                  'trainable': trainable,
+                  'trainable': self.trainable,
                   'n_hop': self.n_hop,
                   'border_mode': self.border_mode,
                   'power': self.power,
