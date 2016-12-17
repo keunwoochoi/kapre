@@ -1,7 +1,7 @@
 # kapre
 Keras Audio PREprocessing layers and utilities 
 
-# Install
+# Installation
 ```bash
 $ git clone https://github.com/keunwoochoi/kapre.git
 cd kapre
@@ -10,7 +10,7 @@ $ python setup.py install
 
 # Usage
 
-## STFT
+## Spectrogram
 ```python
 from keras.models import Sequential
 from kapre.TimeFrequency import Spectrogram
@@ -63,4 +63,6 @@ Please read docstrings at this moment.
   - [ ] `Filterbank`: Parameteric Filter bank
   - [ ] `Decompose`: Harmonic-Percussive separation
 
+# Copyright, Citation,...
 
+I don't know yet...
