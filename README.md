@@ -5,7 +5,7 @@ Keras Audio PREprocessing layers and utilities
 ```bash
 $ git clone https://github.com/keunwoochoi/kapre.git
 cd kapre
-$ pip install .
+$ python setup.py install
 ```
 
 # Usage
