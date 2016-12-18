@@ -81,7 +81,7 @@ class Spectrogram(Layer):
     '''
     def __init__(self, n_dft, n_hop=None, border_mode='same', 
                  power=1.0, return_decibel=False,
-                 trainable=False, dim_ordering='default', **kwargs):
+                 trainable_kernel=False, dim_ordering='default', **kwargs):
         assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
             ('n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft)
         assert isinstance(trainable, bool)
@@ -96,7 +96,7 @@ class Spectrogram(Layer):
 
         self.n_dft = n_dft
         self.n_filter = (n_dft / 2) + 1
-        self.trainable = trainable
+        self.trainable_kernel = trainable_kernel
         self.n_hop = n_hop
         self.border_mode = 'same'
         self.power = float(power)
@@ -123,9 +123,12 @@ class Spectrogram(Layer):
         self.dft_real_kernels = K.variable(dft_real_kernels)
         self.dft_imag_kernels = K.variable(dft_imag_kernels)
         # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
-        if self.trainable:
-            self.trainable_weights = [self.dft_real_kernels, 
-                                      self.dft_imag_kernels]
+        if self.trainable_kernel:
+            self.trainable_weights.append(self.dft_real_kernels) 
+            self.trainable_weights.append(self.dft_imag_kernels])
+        else:
+            self.non_trainable_weights.append(self.dft_real_kernels) 
+            self.non_trainable_weights.append(self.dft_imag_kernels])
 
         self.built = True
 
@@ -265,10 +268,10 @@ class Melspectrogram(Spectrogram):
     def __init__(self, n_dft, n_hop=None, border_mode='same',
                  sr=22050, n_mels=128, fmin=0.0, fmax=None, 
                  power=1.0, return_decibel=False,
-                 trainable=False, dim_ordering='default', **kwargs):
+                 trainable_fb=False, trainable_kernel=False, dim_ordering='default', **kwargs):
         super(Melspectrogram, self).__init__(n_dft, n_hop, border_mode,
                                              2.0, False,
-                                             trainable, dim_ordering, **kwargs)
+                                             trainable_kernel, dim_ordering, **kwargs)
         assert sr > 0
         assert fmin >= 0.0
         if fmax is None:
@@ -281,6 +284,7 @@ class Melspectrogram(Spectrogram):
         self.fmin = fmin
         self.fmax = fmax
         self.return_decibel_melgram = return_decibel
+        self.trainable_fb = trainable_fb
 
     def build(self, input_shape):
         super(Melspectrogram, self).build(input_shape)
@@ -290,8 +294,10 @@ class Melspectrogram(Spectrogram):
         mel_basis = np.transpose(mel_basis)
         
         self.freq2mel = K.variable(mel_basis)
-        if self.trainable:
+        if self.trainable_fb:
             self.trainable_weights.append(self.freq2mel)
+        else:
+            self.non_trainable_weights.append(self.freq2mel)
         self.built = True
 
     def get_output_shape_for(self, input_shape):
