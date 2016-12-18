@@ -84,7 +84,7 @@ class Spectrogram(Layer):
                  trainable_kernel=False, dim_ordering='default', **kwargs):
         assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
             ('n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft)
-        assert isinstance(trainable, bool)
+        assert isinstance(trainable_kernel, bool)
         assert isinstance(return_decibel, bool)
         assert border_mode in ('same', 'valid')
         if n_hop is None:
@@ -101,7 +101,7 @@ class Spectrogram(Layer):
         self.border_mode = 'same'
         self.power = float(power)
         self.return_decibel_spectrogram = return_decibel
-        super(Spectrogram, self).__init__(trainable=trainable, **kwargs)
+        super(Spectrogram, self).__init__(**kwargs)
 
     def build(self, input_shape):
         '''input_shape: (n_ch, length)'''
@@ -155,7 +155,7 @@ class Spectrogram(Layer):
     def get_config(self):
         config = {'n_dft': self.n_dft,
                   'n_filter': self.n_filter,
-                  'trainable': self.trainable,
+                  'trainable_kernel': self.trainable_kernel,
                   'n_hop': self.n_hop,
                   'border_mode': self.border_mode,
                   'power': self.power,
@@ -331,6 +331,7 @@ class Melspectrogram(Spectrogram):
                   'n_mels': self.n_mels,
                   'fmin': self.fmin,
                   'fmax': self.fmax,
+                  'trainable_fb': self.trainable_fb,
                   'return_decibel_melgram': self.return_decibel_melgram}
         base_config = super(Melspectrogram, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
