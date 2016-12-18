@@ -125,10 +125,10 @@ class Spectrogram(Layer):
         # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
         if self.trainable_kernel:
             self.trainable_weights.append(self.dft_real_kernels) 
-            self.trainable_weights.append(self.dft_imag_kernels])
+            self.trainable_weights.append(self.dft_imag_kernels)
         else:
             self.non_trainable_weights.append(self.dft_real_kernels) 
-            self.non_trainable_weights.append(self.dft_imag_kernels])
+            self.non_trainable_weights.append(self.dft_imag_kernels)
 
         self.built = True
 
