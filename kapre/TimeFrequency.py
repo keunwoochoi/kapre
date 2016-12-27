@@ -49,7 +49,7 @@ class Spectrogram(Layer):
             sr = 44100
             model = Sequential()
             model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel=True, power=2.0, trainable=False,
+                      return_decibel=True, power=2.0, trainable_kernel=False,
                       name='static_stft'))
             model.summary(line_length=80, positions=[.33, .65, .8, 1.])
 
@@ -64,7 +64,7 @@ class Spectrogram(Layer):
         ```python
             model = Sequential()
             model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel=True, power=2.0, trainable=True,
+                      return_decibel=True, power=2.0, trainable_kernel=True,
                       name='trainable_stft'))
             model.summary(line_length=80, positions=[.33, .6, .8, 1.])
 
@@ -235,6 +235,10 @@ class Melspectrogram(Spectrogram):
             src = np.random.random((2, 44100))
             sr = 44100
             model = Sequential()
+            model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src.shape,
+                                     sr=sr, n_mels=128, fmin=0.0, fmax=16000,
+                                     power=2.0, return_decibel=False,
+                                     name='trainable_melgram'))
             model.summary()
             # ________________________________________________________________________________
             # Layer (type)              Output Shape          Param #         Connected to    
@@ -249,7 +253,7 @@ class Melspectrogram(Spectrogram):
             model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src.shape,
                                      sr=sr, n_mels=128, fmin=0.0, fmax=16000,
                                      power=2.0, return_decibel=True,
-                                     trainable=True,
+                                     trainable_kernel=True, trainable_fb=True,
                                      name='trainable_melgram'))
             model.summary(line_length=80, positions=[.33, .6, .8, 1.])
             # ________________________________________________________________________________
