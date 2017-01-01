@@ -60,7 +60,7 @@ model.add(Normalization2D(str_axis='channel')) # or 'freq', 'time', 'batch', 'da
 
 Use `custom_objects` keyword argument as below.
 
-```
+```python
 import keras
 import kapre
 
