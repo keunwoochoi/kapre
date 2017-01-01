@@ -22,7 +22,7 @@ sr = 44100
 model = Sequential()
 # A "power-spectrogram in decibel scale" layer
 model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src_shape,
-                      border_mode='same', power=2.0,
+                      border_mode='same', power_spectrogram=2.0,
                       return_decibel=True, trainable_kernel=False,
                       name='trainable_stft'))
 # If you wanna normalise it per-frequency
@@ -54,6 +54,24 @@ model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src_shape,
 model.add(Normalization2D(str_axis='channel')) # or 'freq', 'time', 'batch', 'data_sample'
 # Then add your model
 # E.g., model.add(some convolution layers...)
+```
+
+## When you wanna save/load model w these layers
+
+Use `custom_objects` keyword argument as below.
+
+```
+import keras
+import kapre
+
+model = keras.models.Sequential()
+model.add(kapre.TimeFrequency.Melspectrogram(512, input_shape=(1, 44100)))
+model.summary()
+model.save('temp_model.h5')
+
+model2 = keras.models.load_model('temp_model.h5', 
+  custom_objects={'Melspectrogram':kapre.TimeFrequency.Melspectrogram})
+model2.summary()
 ```
 
 # More info
