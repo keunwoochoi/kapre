@@ -3,9 +3,7 @@ Keras Audio PREprocessors
 
 # Installation
 ```bash
-$ git clone https://github.com/keunwoochoi/kapre.git
-cd kapre
-$ python setup.py install
+% pip install kapre
 ```
 
 # Usage
@@ -81,14 +79,17 @@ Please read docstrings at this moment.
 
   - [x] `TimeFrequency`: Spectrogram, Mel-spectrogram
   - [x] `Utils`: AmplitudeToDB, Normalization2D, A-weighting
+  - [ ] `TimeFrequency`: FFT-based STFT
+  - [ ] `Utils`: A-weighting
   - [ ] `DataAugmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
   - [ ] `Filterbank`: Parameteric Filter bank
   - [ ] `Decompose`: Harmonic-Percussive separation
   - [ ] `InverseSpectrogram`
   - [ ] `TimeFrequency`: Harmonic/Spiral representations, chromagram
 
-
 # Citation
+Citation is required if you used `kapre` in your paper.
+
 ```
 @article{choi2016kapre,
   title={kapre: Keras Audio PREprocessors},
