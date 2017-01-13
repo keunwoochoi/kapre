@@ -11,8 +11,8 @@ Keras Audio PREprocessors
 ## Spectrogram
 ```python
 from keras.models import Sequential
-from kapre.TimeFrequency import Spectrogram
-from kapre.Utils import Normalization2D
+from kapre.time_frequency import Spectrogram
+from kapre.utils import Normalization2D
 
 # input: stereo channel, 1-sec audio signal
 input_shape = (2, 44100) 
@@ -32,8 +32,8 @@ model.add(Normalization2D(str_axis='freq')) # or 'time', 'channel', 'batch', 'da
 ## Mel-spectrogram
 ```python
 from keras.models import Sequential
-from kapre.TimeFrequency import Melspectrogram
-from kapre.Utils import Normalization2D
+from kapre.time_frequency import Melspectrogram
+from kapre.utils import Normalization2D
 
 # 6 channels (!), maybe 1-sec audio signal
 input_shape = (6, 44100) 
@@ -63,7 +63,7 @@ import keras
 import kapre
 
 model = keras.models.Sequential()
-model.add(kapre.TimeFrequency.Melspectrogram(512, input_shape=(1, 44100)))
+model.add(kapre.time_frequency.Melspectrogram(512, input_shape=(1, 44100)))
 model.summary()
 model.save('temp_model.h5')
 
@@ -77,12 +77,13 @@ Please read docstrings at this moment.
 
 # Plan
 
-  - [x] `TimeFrequency`: Spectrogram, Mel-spectrogram
-  - [x] `Utils`: AmplitudeToDB, Normalization2D, A-weighting
-  - [ ] `TimeFrequency`: FFT-based STFT
-  - [ ] `Utils`: A-weighting
-  - [ ] `DataAugmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
-  - [ ] `Filterbank`: Parameteric Filter bank
+  - [x] `time_frequency`: Spectrogram, Mel-spectrogram
+  - [x] `utils`: AmplitudeToDB, Normalization2D, A-weighting
+  - [ ] `filterbank`: filterbanks
+  - [ ] `time_frequency`: FFT-based STFT
+  - [ ] `utils`: A-weighting
+  - [ ] `data_augmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
+  - [ ] `filterbank`: Parameteric Filter bank
   - [ ] `Decompose`: Harmonic-Percussive separation
   - [ ] `InverseSpectrogram`
   - [ ] `TimeFrequency`: Harmonic/Spiral representations, chromagram
