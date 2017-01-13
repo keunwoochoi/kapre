@@ -1,9 +1,15 @@
 # TODO: backend for keras/numpy: split!
 from keras import backend as K
 import numpy as np
-from librosa.time_frequency import fft_frequencies, mel_frequencies
+from librosa.core.time_frequency import fft_frequencies, mel_frequencies
+import librosa
 
+
+TOL = 1e-5
 EPS = 1e-7
+
+def tolerance():
+    return TOL
 
 def eps():
     return EPS
@@ -18,19 +24,19 @@ def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
 
     dynamic_range: dynamic_range in decibel
     """
-    assert isinstance(ref_power, float)
-        
-    log_spec = 10 * K.log(K.maximum(x, amin)) / K.log(10)
+    log_spec = 10 * K.log(K.maximum(x, amin)) / np.log(10)
     log_spec = log_spec - K.max(log_spec)  # [-?, 0]
     log_spec = K.maximum(log_spec, -1 * dynamic_range)  # [-80, 0]
     return log_spec
 
 
-def log_frequencies(n_bins=128, fmin=0.0, fmax=11025.0):
+def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
     """Compute the center frequencies of bands
+    TODO: ...do I use it?
     """
-    fmin = np.max(fmin, eps())
-    return np.logspace(np.log10(fmin), np.log10(fmax), num=n_bins)
+    if fmin is None:
+        fmin = librosa.core.time_frequency.note_to_hz('C1')
+    return np.logspace(np.log2(fmin), np.log2(fmax), num=n_bins, base=2)
 
 
 def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
@@ -237,7 +243,7 @@ def _hann(M, sym=True):
 
 # Filterbanks
 def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None):
-    return mel(sr, (n_freq - 1 ) * 2, n_mels=128, fmin=0.0, fmax=None):
+    return mel(sr, (n_freq - 1 ) * 2, n_mels=128, fmin=0.0, fmax=None)
 
 def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
                  fmin=None, spread=0.125):  # pragma: no cover
@@ -275,7 +281,7 @@ def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
     '''
 
     if fmin is None:
-        fmin = librosa.time_frequency.note_to_hz('C1')
+        fmin = librosa.core.time_frequency.note_to_hz('C1')
 
     # What's the shape parameter for our log-normal filters?
     sigma = float(spread) / bins_per_octave

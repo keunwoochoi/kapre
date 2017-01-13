@@ -90,9 +90,12 @@ class Spectrogram(Layer):
         if n_hop is None:
             n_hop = n_dft / 2
 
+        assert dim_ordering in ('default', 'th', 'tf')
+
         if dim_ordering == 'default':
             self.dim_ordering = K.image_dim_ordering()
-        self.dim_ordering in ('th', 'tf')
+        else:
+            self.dim_ordering = dim_ordering
 
         self.n_dft = n_dft
         self.n_filter = (n_dft / 2) + 1
@@ -148,7 +151,7 @@ class Spectrogram(Layer):
                            self._spectrogram_mono(x[:, ch_idx:ch_idx+1, :])),
                            axis=self.ch_axis_idx)
         if self.power_spectrogram != 2.0:
-            output = K.pow(K.sqrt(output), self.power)
+            output = K.pow(K.sqrt(output), self.power_spectrogram)
         if self.return_decibel_spectrogram:
             output = backend.amplitude_to_decibel(output)
         return output
