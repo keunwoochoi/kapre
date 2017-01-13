@@ -1,19 +1,39 @@
+# TODO: backend for keras/numpy: split!
 from keras import backend as K
 import numpy as np
+from librosa.time_frequency import fft_frequencies, mel_frequencies
+
+EPS = 1e-7
+
+def eps():
+    return EPS
 
 
-def amplitude_to_decibel(x, ref_power=1.0, amin=1e-10, top_db=80.0):
-    assert isinstance(ref_power, float) or ref_power == 'max'
+def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
+    """Convert (linear) amplitude to decibel (log10(x)).
+
+    x: Keras tensor or variable. 
+
+    amin: minimum amplitude. amplitude smaller than `amin` is set to this.
+
+    dynamic_range: dynamic_range in decibel
+    """
+    assert isinstance(ref_power, float)
         
     log_spec = 10 * K.log(K.maximum(x, amin)) / K.log(10)
-    # if ref_power == 'max':
     log_spec = log_spec - K.max(log_spec)  # [-?, 0]
-    # else:
-    #     log_spec = log_spec - ref_power
-    log_spec = K.maximum(log_spec, -1 * top_db)  # [-80, 0]
+    log_spec = K.maximum(log_spec, -1 * dynamic_range)  # [-80, 0]
     return log_spec
 
-def mel_frequencies(n_melss=128, fmin=0.0, fmax=11025.0):
+
+def log_frequencies(n_bins=128, fmin=0.0, fmax=11025.0):
+    """Compute the center frequencies of bands
+    """
+    fmin = np.max(fmin, eps())
+    return np.logspace(np.log10(fmin), np.log10(fmax), num=n_bins)
+
+
+def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
     """Compute the center frequencies of mel bands.
     `htk` is removed.
     
@@ -70,7 +90,7 @@ def mel_frequencies(n_melss=128, fmin=0.0, fmax=11025.0):
     min_mels = _hz_to_mel(fmin)
     max_mel = _hz_to_mel(fmax)
 
-    mels = np.linspace(min_mels, max_mel, n_melss)
+    mels = np.linspace(min_mels, max_mel, n_mels)
 
     return _mel_to_hz(mels)
 
@@ -86,12 +106,12 @@ def _dft_frequencies(sr=22050, n_dft=2048):
                        endpoint=True)
 
 
-def mel(sr, n_dft, n_melss=128, fmin=0.0, fmax=None):
+def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
     ''' create a filterbank matrix to combine stft bins into mel-frequency bins
     use Slaney
     Keunwoo: copied from Librosa, librosa.filters.mel
     
-    n_melss: numbre of mel bands
+    n_mels: numbre of mel bands
     fmin : lowest frequency [Hz]
     fmax : highest frequency [Hz]
         If `None`, use `sr / 2.0`
@@ -100,20 +120,20 @@ def mel(sr, n_dft, n_melss=128, fmin=0.0, fmax=None):
         fmax = float(sr) / 2
 
     # init
-    n_melss = int(n_melss)
-    weights = np.zeros((n_melss, int(1 + n_dft // 2)))
+    n_mels = int(n_mels)
+    weights = np.zeros((n_mels, int(1 + n_dft // 2)))
 
     # center freqs of each FFT bin
     dftfreqs = _dft_frequencies(sr=sr, n_dft=n_dft)
 
     # centre freqs of mel bands
-    freqs = mel_frequencies(n_melss + 2,
+    freqs = mel_frequencies(n_mels + 2,
                              fmin=fmin,
                              fmax=fmax)
     # Slaney-style mel is scaled to be approx constant energy per channel
-    enorm = 2.0 / (freqs[2:n_melss+2] - freqs[:n_melss])
+    enorm = 2.0 / (freqs[2:n_mels+2] - freqs[:n_mels])
 
-    for i in range(n_melss):
+    for i in range(n_mels):
         # lower and upper slopes qfor all bins
         lower = (dftfreqs - freqs[i]) / (freqs[i + 1] - freqs[i])
         upper = (freqs[i + 2] - dftfreqs) / (freqs[i + 2] - freqs[i + 1])
@@ -214,4 +234,69 @@ def _hann(M, sym=True):
     if not sym and not odd:
         w = w[:-1]
     return w
+
+# Filterbanks
+def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None):
+    return mel(sr, (n_freq - 1 ) * 2, n_mels=128, fmin=0.0, fmax=None):
+
+def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
+                 fmin=None, spread=0.125):  # pragma: no cover
+    '''Approximate a constant-Q filter bank for a fixed-window STFT.
+
+    Each filter is a log-normal window centered at the corresponding frequency.
+
+    Note: `logfrequency` in librosa 0.4 (deprecated), so copy-and-pasted, 
+        `tuning` was removed, `n_freq` instead of `n_fft`. 
+
+    Parameters
+    ----------
+    sr : number > 0 [scalar]
+        audio sampling rate
+
+    n_freq : int > 0 [scalar]
+        number of frequency bins
+
+    n_bins : int > 0 [scalar]
+        Number of bins.  Defaults to 84 (7 octaves).
+
+    bins_per_octave : int > 0 [scalar]
+        Number of bins per octave. Defaults to 12 (semitones).
+
+    fmin : float > 0 [scalar]
+        Minimum frequency bin. Defaults to `C1 ~= 32.70`
+
+    spread : float > 0 [scalar]
+        Spread of each filter, as a fraction of a bin.
+
+    Returns
+    -------
+    C : np.ndarray [shape=(n_bins, 1 + n_fft/2)]
+        log-frequency filter bank.
+    '''
+
+    if fmin is None:
+        fmin = librosa.time_frequency.note_to_hz('C1')
+
+    # What's the shape parameter for our log-normal filters?
+    sigma = float(spread) / bins_per_octave
+
+    # Construct the output matrix
+    basis = np.zeros((n_bins, n_freq))
+
+    # Get log frequencies of bins
+    log_freqs = np.log2(fft_frequencies(sr, (n_freq - 1) * 2)[1:])
+
+    for i in range(n_bins):
+        # What's the center (median) frequency of this filter?
+        c_freq = fmin * (2.0**(float(i) / bins_per_octave))
+
+        # Place a log-normal window around c_freq
+        basis[i, 1:] = np.exp(-0.5 * ((log_freqs - np.log2(c_freq)) / sigma)**2
+                              - np.log2(sigma) - log_freqs)
+
+    # Normalize the filters
+    basis = librosa.util.normalize(basis, norm=1, axis=1)
+
+    return basis
+
 
