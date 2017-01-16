@@ -5,6 +5,12 @@ from librosa.core.time_frequency import fft_frequencies, mel_frequencies
 import librosa
 
 
+if K._backend == 'theano':
+    from theano import tensor as T
+else:
+    import tensorflow as tf
+
+
 TOL = 1e-5
 EPS = 1e-7
 
@@ -16,7 +22,7 @@ def eps():
 
 
 def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
-    """Convert (linear) amplitude to decibel (log10(x)).
+    """[K] Convert (linear) amplitude to decibel (log10(x)).
 
     x: Keras tensor or variable. 
 
@@ -31,7 +37,7 @@ def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
 
 
 def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
-    """Compute the center frequencies of bands
+    """[np] Compute the center frequencies of bands
     TODO: ...do I use it?
     """
     if fmin is None:
@@ -40,7 +46,7 @@ def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
 
 
 def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
-    """Compute the center frequencies of mel bands.
+    """[np] Compute the center frequencies of mel bands.
     `htk` is removed.
     
     Keunwoo: copied from Librosa
@@ -102,7 +108,7 @@ def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
 
 
 def _dft_frequencies(sr=22050, n_dft=2048):
-    '''Alternative implementation of `np.fft.fftfreqs` (said Librosa)
+    '''[np] Alternative implementation of `np.fft.fftfreqs` (said Librosa)
     copied from Librosa
 
     '''
@@ -113,7 +119,7 @@ def _dft_frequencies(sr=22050, n_dft=2048):
 
 
 def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
-    ''' create a filterbank matrix to combine stft bins into mel-frequency bins
+    '''[np] create a filterbank matrix to combine stft bins into mel-frequency bins
     use Slaney
     Keunwoo: copied from Librosa, librosa.filters.mel
     
@@ -150,7 +156,7 @@ def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
     return weights
 
 def get_stft_kernels(n_dft, keras_ver='new'):
-    '''Return dft kernels for real/imagnary parts assuming
+    '''[np] Return dft kernels for real/imagnary parts assuming
         the input . is real.
     An asymmetric hann window is used (scipy.signal.hann).
 
@@ -206,7 +212,7 @@ def get_stft_kernels(n_dft, keras_ver='new'):
 
 
 def _hann(M, sym=True):
-    '''
+    '''[np] 
     Return a Hann window.
     copied and pasted from scipy.signal.hann,
     https://github.com/scipy/scipy/blob/v0.14.0/scipy/signal/windows.py#L615
@@ -243,11 +249,12 @@ def _hann(M, sym=True):
 
 # Filterbanks
 def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None):
+    '''[np] '''
     return mel(sr, (n_freq - 1 ) * 2, n_mels=128, fmin=0.0, fmax=None)
 
 def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
                  fmin=None, spread=0.125):  # pragma: no cover
-    '''Approximate a constant-Q filter bank for a fixed-window STFT.
+    '''[np] Approximate a constant-Q filter bank for a fixed-window STFT.
 
     Each filter is a log-normal window centered at the corresponding frequency.
 
@@ -304,5 +311,18 @@ def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
     basis = librosa.util.normalize(basis, norm=1, axis=1)
 
     return basis
+
+
+def rfft(x):
+    '''x: batch of data (TODO: check it out)'''
+    if K._backend == 'theano':
+        return T.fft.rfft(x)
+    else:
+        return tf.fft(x)
+
+
+
+
+
 
 

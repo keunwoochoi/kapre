@@ -3,7 +3,7 @@ Keras Audio PREprocessors
 
 # Installation
 ```bash
-% pip install kapre
+$ pip install kapre
 ```
 
 # Usage
@@ -79,7 +79,7 @@ Please read docstrings at this moment.
 
   - [x] `time_frequency`: Spectrogram, Mel-spectrogram
   - [x] `utils`: AmplitudeToDB, Normalization2D, A-weighting
-  - [ ] `filterbank`: filterbanks
+  - [x] `filterbank`: filterbanks
   - [ ] `time_frequency`: FFT-based STFT
   - [ ] `utils`: A-weighting
   - [ ] `data_augmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
