@@ -4,6 +4,7 @@ import numpy as np
 from keras.engine import Layer
 from keras import backend as K
 from . import backend
+from . import backend_keras
 
 
 class AmplitudeToDB(Layer):
@@ -29,7 +30,7 @@ class AmplitudeToDB(Layer):
         super(AmplitudeToDB, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
-        return backend.amplitude_to_decibel(x, self.ref_power, self.amin, self.top_db)
+        return backend_keras.amplitude_to_decibel(x, self.ref_power, self.amin, self.top_db)
 
     def get_config(self):
         config = {'ref_power': self.ref_power,

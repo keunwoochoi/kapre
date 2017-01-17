@@ -1,14 +1,7 @@
-# TODO: backend for keras/numpy: split!
 from keras import backend as K
 import numpy as np
 from librosa.core.time_frequency import fft_frequencies, mel_frequencies
 import librosa
-
-
-if K._backend == 'theano':
-    from theano import tensor as T
-else:
-    import tensorflow as tf
 
 
 TOL = 1e-5
@@ -19,22 +12,6 @@ def tolerance():
 
 def eps():
     return EPS
-
-
-def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
-    """[K] Convert (linear) amplitude to decibel (log10(x)).
-
-    x: Keras tensor or variable. 
-
-    amin: minimum amplitude. amplitude smaller than `amin` is set to this.
-
-    dynamic_range: dynamic_range in decibel
-    """
-    log_spec = 10 * K.log(K.maximum(x, amin)) / np.log(10)
-    log_spec = log_spec - K.max(log_spec)  # [-?, 0]
-    log_spec = K.maximum(log_spec, -1 * dynamic_range)  # [-80, 0]
-    return log_spec
-
 
 def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
     """[np] Compute the center frequencies of bands
@@ -311,15 +288,6 @@ def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
     basis = librosa.util.normalize(basis, norm=1, axis=1)
 
     return basis
-
-
-def rfft(x):
-    '''x: batch of data (TODO: check it out)'''
-    if K._backend == 'theano':
-        return T.fft.rfft(x)
-    else:
-        return tf.fft(x)
-
 
 
 
