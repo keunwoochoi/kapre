@@ -1,10 +1,16 @@
 # kapre
-Keras Audio PREprocessors
+Keras Audio Preprocessors
 
 # Installation
 ```bash
 $ pip install kapre
 ```
+
+# Status
+* In [`dev` branch](https://github.com/keunwoochoi/kapre/tree/dev), a FFT-based `Stft` layer is added.
+* In [`dev-aug` branch](https://github.com/keunwoochoi/kapre/tree/dev-aug), a additive white noise layer is added.
+
+They will be merged into master at some point.
 
 # Layers
 
