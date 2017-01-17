@@ -12,5 +12,6 @@ setup(name='kapre',
         'numpy >= 1.8.0',
         'librosa'
       ],
+      download_url = 'https://github.com/keunwoo/kapre/tarball/0.0.1',
       keywords='audio music deep learning keras',
       zip_safe=False)
