@@ -1,12 +1,12 @@
 # kapre
 Keras Audio Preprocessors
 
-# Installation
+## Installation
 ```bash
 $ pip install kapre
 ```
 
-# Status
+## Status
 * In [`dev` branch](https://github.com/keunwoochoi/kapre/tree/dev), a FFT-based `Stft` layer is added.
 * In [`dev-aug` branch](https://github.com/keunwoochoi/kapre/tree/dev-aug), a additive white noise layer is added.
 
@@ -19,9 +19,9 @@ They will be merged into master at some point.
 * `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
 
 
-# Usage
+## Usage
 
-## Spectrogram
+### Spectrogram
 ```python
 from keras.models import Sequential
 from kapre.time_frequency import Spectrogram
@@ -42,7 +42,7 @@ model.add(Normalization2D(str_axis='freq')) # or 'time', 'channel', 'batch', 'da
 # E.g., model.add(some convolution layers...)
 ```
 
-## Mel-spectrogram
+### Mel-spectrogram
 ```python
 from keras.models import Sequential
 from kapre.time_frequency import Melspectrogram
@@ -85,7 +85,7 @@ model2 = keras.models.load_model('temp_model.h5',
 model2.summary()
 ```
 
-# More info
+# Documentation
 Please read docstrings at this moment.
 
 # Plan
@@ -93,9 +93,10 @@ Please read docstrings at this moment.
   - [x] `time_frequency`: Spectrogram, Mel-spectrogram
   - [x] `utils`: AmplitudeToDB, Normalization2D, A-weighting
   - [x] `filterbank`: filterbanks
-  - [ ] `time_frequency`: FFT-based STFT
+  - [ ] `time_frequency`: FFT-based STFT (developing...)
+  - [ ] `data_augmentation`: Random-gain Gaussian noise (developing...)
+  - [ ] `data_augmentation`: random cropping 1D/2D, Dynamic Range Compression1D
   - [ ] `utils`: A-weighting
-  - [ ] `data_augmentation`: Random-gain Gaussian noise, random cropping 1D/2D, Dynamic Range Compression1D
   - [ ] `filterbank`: Parameteric Filter bank
   - [ ] `Decompose`: Harmonic-Percussive separation
   - [ ] `InverseSpectrogram`
