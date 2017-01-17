@@ -6,6 +6,9 @@ from keras.engine import Layer
 from keras.utils.np_utils import conv_output_length
 from . import backend
 
+from theano import tensor as T
+from theano.tensor import fft
+
 
 class Stft(Layer):
     '''Returns spectrogram(s) in 2D image format.
@@ -16,15 +19,11 @@ class Stft(Layer):
 
         * n_hop: integer > 0 (scalar), hop length
 
-        * border_mode: string, `'same'` or `'valid'`
-
         * power: float (scalar), `2.0` if power-spectrogram,
             `1.0` if amplitude spectrogram
 
         * return_decibel_spectrogram: bool, returns decibel, 
             i.e. log10(amplitude spectrogram) if `True`
-
-        * trainable_kernel: bool, set if the kernels are trainable
 
         * dim_ordering: string, `'th'` or `'tf'`.
             The returned spectrogram follows this dim_ordering convention.
@@ -96,15 +95,14 @@ class Stft(Layer):
         else:
             self.dim_ordering = dim_ordering
 
-        self.n_dft = n_dft
-        self.n_filter = (n_dft / 2) + 1
-        self.trainable_kernel = trainable_kernel
+        self.n_fft = n_fft
+        self.n_freq = (n_fft / 2) + 1
         self.n_hop = n_hop
-        self.border_mode = 'same'
-        self.power_spectrogram = float(power_spectrogram)
-        self.return_decibel_spectrogram = return_decibel_spectrogram
+        # self.border_mode = 'same'
+        self.power_stft = float(power_stft)
+        self.return_decibel_stft = return_decibel_stft
         self.dim_ordering = dim_ordering
-        super(Spectrogram, self).__init__(**kwargs)
+        super(Stft, self).__init__(**kwargs)
 
     def build(self, input_shape):
         '''input_shape: (n_ch, length)'''
@@ -115,77 +113,43 @@ class Stft(Layer):
             self.ch_axis_idx = 1
         else:
             self.ch_axis_idx = 3
-        assert self.len_src >= self.n_dft, 'Hey! The input is too short!'
-
+        assert self.len_src >= self.n_fft, 'Hey! The input is too short!'
         self.n_frame = conv_output_length(self.len_src,
-                                    self.n_dft,
-                                    self.border_mode,
+                                    self.n_fft,
+                                    'valid',
                                     self.n_hop)
-
-        dft_real_kernels, dft_imag_kernels = backend.get_stft_kernels(self.n_dft)
-        self.dft_real_kernels = K.variable(dft_real_kernels)
-        self.dft_imag_kernels = K.variable(dft_imag_kernels)
-        # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
-        if self.trainable_kernel:
-            self.trainable_weights.append(self.dft_real_kernels) 
-            self.trainable_weights.append(self.dft_imag_kernels)
-        else:
-            self.non_trainable_weights.append(self.dft_real_kernels) 
-            self.non_trainable_weights.append(self.dft_imag_kernels)
-
+        self.fft_window = backend._hann(self.n_fft, sym=False)
         self.built = True
 
     def get_output_shape_for(self, input_shape):
         if self.dim_ordering == 'th':
-            return (input_shape[0], self.n_ch, self.n_filter, self.n_frame)
+            return (input_shape[0], self.n_ch, self.n_freq, self.n_frame)
         else:
-            return (input_shape[0], self.n_filter, self.n_frame, self.n_ch)
+            return (input_shape[0], self.n_freq, self.n_frame, self.n_ch)
 
     def call(self, x, mask=None):
-        '''computes spectrorgram ** power.'''
-        output = self._spectrogram_mono(x[:, 0:1, :])
-        if self.is_mono is False:
-            for ch_idx in range(1, self.n_ch):
-                output = K.concatenate((output, 
-                           self._spectrogram_mono(x[:, ch_idx:ch_idx+1, :])),
-                           axis=self.ch_axis_idx)
-        if self.power_spectrogram != 2.0:
-            output = K.pow(K.sqrt(output), self.power_spectrogram)
-        if self.return_decibel_spectrogram:
+        '''computes stft ** power.'''
+        for fr_idx in range(self.n_frame):    
+            X_frame_power = K.sum(K.square(fft.rfft(
+                                        self.fft_window * x[:, :, fr_idx * self.n_hop :
+                                                           fr_idx * self.n_hop + self.n_fft]
+                                    )), axis=3, keepdims=True)
+            if fr_idx == 0:
+                output = X_frame_power
+            else:
+                output = T.concatenate([output, X_frame_power], axis=3)
+
+        if self.power_stft != 2.0:
+            output = K.pow(output, self.power_stft/2.0)
+        if self.return_decibel_stft:
             output = backend.amplitude_to_decibel(output)
         return output
 
     def get_config(self):
-        config = {'n_dft': self.n_dft,
+        config = {'n_fft': self.n_fft,
                   'n_hop': self.n_hop,
-                  'border_mode': self.border_mode,
-                  'power_spectrogram': self.power_spectrogram,
-                  'return_decibel_spectrogram': self.return_decibel_spectrogram,
-                  'trainable_kernel': self.trainable_kernel,
+                  'power_stft': self.power_stft,
+                  'return_decibel_stft': self.return_decibel_stft,
                   'dim_ordering':self.dim_ordering}
         base_config = super(Spectrogram, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
-    def _spectrogram_mono(self, x):
-        '''x.shape : (None, 1, len_src),
-        returns 2D batch of a mono power-spectrogram'''
-        x = K.permute_dimensions(x, [0, 2, 1])
-        x = K.expand_dims(x, 3)  # add a dummy dimension (channel axis)
-        subsample = (self.n_hop, 1)
-        output_real = K.conv2d(x, self.dft_real_kernels,
-                               strides=subsample,
-                               border_mode=self.border_mode,
-                               dim_ordering='tf')
-        output_imag = K.conv2d(x, self.dft_imag_kernels,
-                               strides=subsample,
-                               border_mode=self.border_mode,
-                               dim_ordering='tf')
-        output = output_real ** 2 + output_imag ** 2
-        # now shape is (batch_sample, n_frame, 1, freq)
-        if self.dim_ordering == 'tf':
-            output = K.permute_dimensions(output, [0, 3, 1, 2])
-        else:
-            output = K.permute_dimensions(output, [0, 2, 3, 1])
-        return output
-
-
