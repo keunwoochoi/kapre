@@ -1,6 +1,6 @@
 from setuptools import setup
 setup(name='kapre',
-      version='0.0.1',
+      version='0.0.2',
       description='KAPRE: Keras Audio Preprocessors. It provides keras layers for audio pre-processing for deep learning',
       url='http://github.com/keunwoo/kapre/',
       author='Keunwoo Choi',
