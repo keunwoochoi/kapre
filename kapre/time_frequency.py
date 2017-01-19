@@ -91,7 +91,6 @@ class Spectrogram(Layer):
             n_hop = n_dft / 2
 
         assert dim_ordering in ('default', 'th', 'tf')
-        pdb.set_trace()
         if dim_ordering == 'default':
             self.dim_ordering = K.image_dim_ordering()
         else:
