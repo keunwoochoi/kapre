@@ -32,8 +32,8 @@ class Filterbank(Layer):
         trainable_fb: bool
     
     '''
-    def __init__(self, n_fbs, sr=None, init='mel', fmin=0., fmax=None,
-                 bins_per_octave=12, trainable_fb, **kwargs):
+    def __init__(self, n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
+                 bins_per_octave=12, **kwargs):
         ''' TODO: is sr necessary? is fmax necessary? init with None?  '''
         self.supports_masking = True
         self.n_fbs = n_fbs
@@ -63,11 +63,11 @@ class Filterbank(Layer):
                                      n_mels=self.n_fbs,
                                      fmin=self.fmin,
                                      fmax=self.fmax)
-        else self.init == 'log':
+        elif self.init == 'log':
             self.filterbank = backend.filterbank_log(sr=sr,
                                      n_freq=self.n_freq,
                                      n_bins=self.n_fbs,
-                                     bins_per_octave = self.bins_per_octave
+                                     bins_per_octave = self.bins_per_octave,
                                      fmin=self.fmin)
 
         if self.trainable_fb == True:
