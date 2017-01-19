@@ -4,7 +4,7 @@ import numpy as np
 from keras import backend as K
 from keras.engine import Layer
 from keras.utils.np_utils import conv_output_length
-from . import backend
+from . import backend, backend_keras
 
 
 class Spectrogram(Layer):
@@ -103,7 +103,6 @@ class Spectrogram(Layer):
         self.border_mode = 'same'
         self.power_spectrogram = float(power_spectrogram)
         self.return_decibel_spectrogram = return_decibel_spectrogram
-        self.dim_ordering = dim_ordering
         super(Spectrogram, self).__init__(**kwargs)
 
     def build(self, input_shape):
@@ -152,7 +151,7 @@ class Spectrogram(Layer):
         if self.power_spectrogram != 2.0:
             output = K.pow(K.sqrt(output), self.power_spectrogram)
         if self.return_decibel_spectrogram:
-            output = backend.amplitude_to_decibel(output)
+            output = backend_keras.amplitude_to_decibel(output)
         return output
 
     def get_config(self):
@@ -326,7 +325,7 @@ class Melspectrogram(Spectrogram):
         if self.power_melgram != 2.0:
             output = K.pow(K.sqrt(output), self.power_melgram)
         if self.return_decibel_melgram:
-            output = backend.amplitude_to_decibel(output)
+            output = backend_keras.amplitude_to_decibel(output)
         return output
 
     def get_config(self):
