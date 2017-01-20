@@ -122,8 +122,8 @@ class Spectrogram(Layer):
                                     self.n_hop)
 
         dft_real_kernels, dft_imag_kernels = backend.get_stft_kernels(self.n_dft)
-        self.dft_real_kernels = K.variable(dft_real_kernels)
-        self.dft_imag_kernels = K.variable(dft_imag_kernels)
+        self.dft_real_kernels = K.variable(dft_real_kernels, dtype=K.floatx())
+        self.dft_imag_kernels = K.variable(dft_imag_kernels, dtype=K.floatx())
         # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
         if self.trainable_kernel:
             self.trainable_weights.append(self.dft_real_kernels) 
@@ -295,7 +295,7 @@ class Melspectrogram(Spectrogram):
         mel_basis = backend.mel(self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax)  # (128, 1025) (mel_bin, n_freq)
         mel_basis = np.transpose(mel_basis)
         
-        self.freq2mel = K.variable(mel_basis)
+        self.freq2mel = K.variable(mel_basis, dtype=K.floatx())
         if self.trainable_fb:
             self.trainable_weights.append(self.freq2mel)
         else:
