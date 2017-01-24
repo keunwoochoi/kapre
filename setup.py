@@ -1,12 +1,7 @@
 from setuptools import setup
 
-def grep(attrname):
-    pattern = r"{0}\W*=\W*'([^']+)'".format(attrname)
-    strval, = re.findall(pattern, file_text)
-    return strval
-
 setup(name='kapre',
-      version=grep('__version__'),
+      version='0.0.3',
       description='KAPRE: Keras Audio Preprocessors. A set of Keras layers for audio pre-processing easier deep learning',
       url='http://github.com/keunwoo/kapre/',
       author='Keunwoo Choi',
