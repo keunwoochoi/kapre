@@ -2,11 +2,13 @@
 Keras Audio Preprocessors
 
 ## Installation
-```bash
-$ pip install kapre
 ```
-
-They will be merged into master at some point.
+$ git clone https://github.com/keunwoochoi/kapre.git
+$ cd kapre
+$ python setup.py install
+```
+(Kapre is on pip, but pip version is not always up-to-date. 
+So please use git version until it becomes more stable.)
 
 # Layers
 
@@ -15,34 +17,15 @@ They will be merged into master at some point.
 * `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
 
 
-## Usage
+## Usage Example
 
-### Spectrogram
-```python
-from keras.models import Sequential
-from kapre.time_frequency import Spectrogram
-from kapre.utils import Normalization2D
-
-# input: stereo channel, 1-sec audio signal
-input_shape = (2, 44100) 
-sr = 44100
-model = Sequential()
-# A "power-spectrogram in decibel scale" layer
-model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src_shape,
-                      border_mode='same', power_spectrogram=2.0,
-                      return_decibel=True, trainable_kernel=False,
-                      name='trainable_stft'))
-# If you wanna normalise it per-frequency
-model.add(Normalization2D(str_axis='freq')) # or 'time', 'channel', 'batch', 'data_sample'
-# Then add your model
-# E.g., model.add(some convolution layers...)
-```
 
 ### Mel-spectrogram
 ```python
 from keras.models import Sequential
 from kapre.time_frequency import Melspectrogram
 from kapre.utils import Normalization2D
+from kapre.augmentation import AdditiveNoise
 
 # 6 channels (!), maybe 1-sec audio signal
 input_shape = (6, 44100) 
@@ -57,8 +40,10 @@ model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src_shape,
                          return_decibel=False, trainable_fb=False,
                          trainable_kernel=False
                          name='trainable_stft'))
-# If you wanna normalise it per-channel
-model.add(Normalization2D(str_axis='channel')) # or 'freq', 'time', 'batch', 'data_sample'
+# Maybe some additive white noise.
+model.add(AdditiveNoise(power=0.2))
+# If you wanna normalise it per-frequency
+model.add(Normalization2D(str_axis='freq')) # or 'channel', 'time', 'batch', 'data_sample'
 # Then add your model
 # E.g., model.add(some convolution layers...)
 ```
@@ -89,9 +74,9 @@ Please read docstrings at this moment.
   - [x] `time_frequency`: Spectrogram, Mel-spectrogram
   - [x] `utils`: AmplitudeToDB, Normalization2D, A-weighting
   - [x] `filterbank`: filterbanks
-  - [ ] `time_frequency`: FFT-based STFT (developing...)
-  - [ ] `data_augmentation`: Random-gain Gaussian noise (developing...)
-  - [ ] `data_augmentation`: random cropping 1D/2D, Dynamic Range Compression1D
+  - [x] `stft`: FFT-based STFT (Done for theano-backend only)
+  - [x] `data_augmentation`: (Random-gain) Gaussian noise (developing...)
+  - [ ] `data_augmentation`: Random cropping 1D/2D, Dynamic Range Compression1D
   - [ ] `utils`: A-weighting
   - [ ] `filterbank`: Parameteric Filter bank
   - [ ] `Decompose`: Harmonic-Percussive separation

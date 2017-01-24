@@ -11,23 +11,30 @@ from theano.tensor import fft
 
 
 class Stft(Layer):
-    '''Returns spectrogram(s) in 2D image format.
+    '''Returns STFT in 2D image format. It uses Fast Fourier transform (FFT)
+    Now only support for theano.
     
     # Arguments
-        * n_dft: integer > 0 (scalar), power of 2. 
+        * `n_fft`: integer > 0 (scalar), power of 2. 
             number of DFT points
+            Default: `512`
 
-        * n_hop: integer > 0 (scalar), hop length
+        * `n_hop`: integer > 0 (scalar), hop length.
+            If `None`, `n_fft / 2` is used.
+            Default: `None`
 
-        * power: float (scalar), `2.0` if power-spectrogram,
+        * `power_stft`: float (scalar), `2.0` if power-spectrogram,
             `1.0` if amplitude spectrogram
+            Default: `2.0`
 
-        * return_decibel_spectrogram: bool, returns decibel, 
+        * `return_decibel_stft`: bool, returns decibel, 
             i.e. log10(amplitude spectrogram) if `True`
+            Default: `False`
 
-        * dim_ordering: string, `'th'` or `'tf'`.
+        * `dim_ordering`: string, `'th'` or `'tf'`.
             The returned spectrogram follows this dim_ordering convention.
             If `'default'`, follows the current Keras session's setting.
+            Default: `'default'`
 
     # Input shape
         * 2D array, `(audio_channel, audio_length)`.
@@ -142,7 +149,7 @@ class Stft(Layer):
         if self.power_stft != 2.0:
             output = K.pow(output, self.power_stft/2.0)
         if self.return_decibel_stft:
-            output = backend.amplitude_to_decibel(output)
+            output = backend_keras.amplitude_to_decibel(output)
         return output
 
     def get_config(self):
