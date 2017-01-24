@@ -50,40 +50,38 @@ class Stft(Layer):
 
     # Example
         ```python
-            # dim_ordering == 'th'
-            from kapre.TimeFrequency import Spectrogram
-            src = np.random.random((2, 44100))
-            sr = 44100
-            model = Sequential()
-            model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel=True, power_spectrogram=2.0, trainable_kernel=False,
-                      name='static_stft'))
-            model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+        import keras
+        import kapre
+        from keras.models import Sequential
+        from kapre.stft import Stft
+        import numpy as np
 
-            # ________________________________________________________________________________
-            # Layer (type)              Output Shape              Param #     Connected to    
-            # ================================================================================
-            # static_stft (Spectrogram) (None, 2, 257, 173)       0           spectrogram_inpu
-            # ================================================================================
-            # Total params: 0
-            # ________________________________________________________________________________
-        ```
-        ```python
-            model = Sequential()
-            model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel=True, power=2.0, trainable_kernel=True,
-                      name='trainable_stft'))
-            model.summary(line_length=80, positions=[.33, .6, .8, 1.])
+        print('Keras version: {}'.format(keras.__version__))
+        print('Keras backend: {}'.format(keras.backend._backend))
+        print('Keras image dim ordering: {}'.format(keras.backend.image_dim_ordering()))
+        print('Kapre version: {}'.format(kapre.__version__))
 
-            # ________________________________________________________________________________
-            # Layer (type)              Output Shape          Param #         Connected to    
-            # ================================================================================
-            # trainable_stft (Spectrogr (None, 2, 257, 173)   263168          spectrogram_inpu
-            # ================================================================================
-            # Total params: 263168
-            # ________________________________________________________________________________
-            print(model.layers[0].trainable_weights)
-            # [<TensorType(float32, 4D)>, <TensorType(float32, 4D)>]          
+        src = np.random.random((2, 44100))
+        sr = 44100
+        model = Sequential()
+        model.add(Stft(n_fft=256, n_hop=64, return_decibel_stft=True,
+                      input_shape=src.shape))
+        model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+
+        # Keras version: 1.2.1
+        # Keras backend: theano
+        # Keras image dim ordering: th
+        # Kapre version: 0.0.3
+        # ________________________________________________________________________________
+        # Layer (type)              Output Shape              Param #     Connected to    
+        # ================================================================================
+        # stft_4 (Stft)             (None, 129, 686, 2)       0           stft_input_4[0][
+        # ================================================================================
+        # Total params: 0
+        # Trainable params: 0
+        # Non-trainable params: 0
+        # ________________________________________________________________________________
+
         ```
     '''
     def __init__(self, n_fft=512, n_hop=None,

@@ -53,61 +53,69 @@ class Spectrogram(Layer):
 
     # Example
         ```python
-            # dim_ordering == 'th'
-            import keras
-            from keras.models import Sequential
-            from kapre.time_frequency import Spectrogram
-            import numpy as np
+        import keras
+        import kapre
+        from keras.models import Sequential
+        from kapre.time_frequency import Spectrogram
+        import numpy as np
 
-            print('Keras version: ', keras.__version__)
-            print('Keras backend: ', keras.backend._backend)
-            print('Keras image dim ordering: ', keras.backend.image_dim_ordering())
-            src = np.random.random((2, 44100))
-            sr = 44100
-            model = Sequential()
-            model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel_spectrogram=True, power_spectrogram=2.0, 
-                      trainable_kernel=False, name='static_stft'))
-            model.summary(line_length=80, positions=[.33, .65, .8, 1.])
-            # ('Keras version: ', '1.2.1')
-            # ('Keras backend: ', u'theano')
-            # ('Keras image dim ordering: ', 'th')
-            # ________________________________________________________________________________
-            # Layer (type)              Output Shape              Param #     Connected to    
-            # ================================================================================
-            # static_stft (Spectrogram) (None, 2, 257, 173)       263168      spectrogram_inpu
-            # ================================================================================
-            # Total params: 263,168
-            # Trainable params: 0
-            # Non-trainable params: 263,168
+        print('Keras version: {}'.format(keras.__version__))
+        print('Keras backend: {}'.format(keras.backend._backend))
+        print('Keras image dim ordering: {}'.format(keras.backend.image_dim_ordering()))
+        print('Kapre version: {}'.format(kapre.__version__))
+
+        src = np.random.random((2, 44100))
+        sr = 44100
+        model = Sequential()
+        model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
+                  return_decibel_spectrogram=True, power_spectrogram=2.0, 
+                  trainable_kernel=False, name='static_stft'))
+        model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+        # Keras version: 1.2.1
+        # Keras backend: theano
+        # Keras image dim ordering: th
+        # Kapre version: 0.0.3
+        # ________________________________________________________________________________
+        # Layer (type)              Output Shape              Param #     Connected to    
+        # ================================================================================
+        # static_stft (Spectrogram) (None, 2, 257, 173)       263168      spectrogram_inpu
+        # ================================================================================
+        # Total params: 263,168
+        # Trainable params: 0
+        # Non-trainable params: 263,168
         ```
         ```python
-            import keras
-            from keras.models import Sequential
-            from kapre.time_frequency import Spectrogram
-            import numpy as np
+        import keras
+        import kapre
+        from keras.models import Sequential
+        from kapre.time_frequency import Spectrogram
+        import numpy as np
 
-            print('Keras version: ', keras.__version__)
-            print('Keras backend: ', keras.backend._backend)
-            print('Keras image dim ordering: ', keras.backend.image_dim_ordering())
-            src = np.random.random((2, 44100))
-            sr = 44100
-            model = Sequential()
-            model.add(Spectrogram(n_dft=2048, n_hop=1024, input_shape=src.shape, 
-                      return_decibel_spectrogram=True, power_spectrogram=2.0, 
-                      trainable_kernel=True, name='trainable_stft'))
-            model.summary(line_length=80, positions=[.33, .65, .8, 1.])
-            # ('Keras version: ', '1.2.1')
-            # ('Keras backend: ', u'theano')
-            # ('Keras image dim ordering: ', 'th')
-            # ________________________________________________________________________________
-            # Layer (type)              Output Shape              Param #     Connected to    
-            # ================================================================================
-            # trainable_stft (Spectrogr (None, 2, 1025, 44)       4198400     spectrogram_inpu
-            # ================================================================================
-            # Total params: 4,198,400
-            # Trainable params: 4,198,400
-            # Non-trainable params: 0
+        print('Keras version: {}'.format(keras.__version__))
+        print('Keras backend: {}'.format(keras.backend._backend))
+        print('Keras image dim ordering: {}'.format(keras.backend.image_dim_ordering()))
+        print('Kapre version: {}'.format(kapre.__version__))
+
+        src = np.random.random((2, 44100))
+        sr = 44100
+        model = Sequential()
+        model.add(Spectrogram(n_dft=2048, n_hop=1024, input_shape=src.shape, 
+                  return_decibel_spectrogram=True, power_spectrogram=2.0, 
+                  trainable_kernel=True, name='trainable_stft'))
+        model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+
+        # Keras version: 1.2.1
+        # Keras backend: theano
+        # Keras image dim ordering: th
+        # Kapre version: 0.0.3
+        # ________________________________________________________________________________
+        # Layer (type)              Output Shape              Param #     Connected to    
+        # ================================================================================
+        # trainable_stft (Spectrogr (None, 2, 1025, 44)       4198400     spectrogram_inpu
+        # ================================================================================
+        # Total params: 4,198,400
+        # Trainable params: 4,198,400
+        # Non-trainable params: 0
         ```
     '''
     def __init__(self, n_dft=512, n_hop=None, border_mode='same', 
@@ -265,34 +273,39 @@ class Melspectrogram(Spectrogram):
 
     # Example
         ```python
-            import keras
-            from keras.models import Sequential
-            from kapre.time_frequency import Melspectrogram
-            import numpy as np
+        import keras
+        import kapre
+        from keras.models import Sequential
+        from kapre.time_frequency import Melspectrogram
+        import numpy as np
 
-            print('Keras version: ', keras.__version__)
-            print('Keras backend: ', keras.backend._backend)
-            print('Keras image dim ordering: ', keras.backend.image_dim_ordering())
-            src = np.random.random((2, 44100))
-            sr = 44100
-            model = Sequential()
-            model.add(Melspectrogram(sr=16000, n_mels=128, 
-                      n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel_spectrogram=True,
-                      trainable_kernel=True, name='melgram'))
-            model.summary(line_length=80, positions=[.33, .65, .8, 1.])
-            # ('Keras version: ', '1.2.1')
-            # ('Keras backend: ', u'theano')
-            # ('Keras image dim ordering: ', 'th')
-            # ________________________________________________________________________________
-            # Layer (type)              Output Shape              Param #     Connected to    
-            # ================================================================================
-            # melgram (Melspectrogram)  (None, 2, 128, 173)       296064      melspectrogram_i
-            # ================================================================================
-            # Total params: 296,064
-            # Trainable params: 263,168
-            # Non-trainable params: 32,896
-            # ________________________________________________________________________________
+        print('Keras version: {}'.format(keras.__version__))
+        print('Keras backend: {}'.format(keras.backend._backend))
+        print('Keras image dim ordering: {}'.format(keras.backend.image_dim_ordering()))
+        print('Kapre version: {}'.format(kapre.__version__))
+
+        src = np.random.random((2, 44100))
+        sr = 44100
+        model = Sequential()
+        model.add(Melspectrogram(sr=16000, n_mels=128, 
+                  n_dft=512, n_hop=256, input_shape=src.shape, 
+                  return_decibel_spectrogram=True,
+                  trainable_kernel=True, name='melgram'))
+        model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+
+        # Keras version: 1.2.1
+        # Keras backend: theano
+        # Keras image dim ordering: th
+        # Kapre version: 0.0.3
+        # ________________________________________________________________________________
+        # Layer (type)              Output Shape              Param #     Connected to    
+        # ================================================================================
+        # melgram (Melspectrogram)  (None, 2, 128, 173)       296064      melspectrogram_i
+        # ================================================================================
+        # Total params: 296,064
+        # Trainable params: 263,168
+        # Non-trainable params: 32,896
+        # ________________________________________________________________________________
         ```
     '''    
     def __init__(self,
