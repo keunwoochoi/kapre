@@ -1,3 +1,11 @@
+''' Some backend computation with numpy.
+Similar computation with keras is on `backend_keras.py`.
+
+* Don't forget to use K.float()! Otherwise numpy uses float64. 
+* Some functions are copied-and-pasted from librosa (to reduce dependency), but
+    later I realised it'd be better to just use it. 
+    TODO: remove copied code and use librosa.
+'''
 from keras import backend as K
 import numpy as np
 from librosa.core.time_frequency import fft_frequencies, mel_frequencies
@@ -18,8 +26,8 @@ def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
     TODO: ...do I use it?
     """
     if fmin is None:
-        fmin = librosa.core.time_frequency.note_to_hz('C1')
-    return np.logspace(np.log2(fmin), np.log2(fmax), num=n_bins, base=2)
+        fmin = librosa.core.time_frequency.note_to_hz('C1').astype(K.floatx())
+    return np.logspace(np.log2(fmin), np.log2(fmax), num=n_bins, base=2).astype(K.floatx())
 
 
 def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
@@ -81,7 +89,7 @@ def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
 
     mels = np.linspace(min_mels, max_mel, n_mels)
 
-    return _mel_to_hz(mels)
+    return _mel_to_hz(mels).astype(K.floatx())
 
 
 def _dft_frequencies(sr=22050, n_dft=2048):
@@ -92,7 +100,7 @@ def _dft_frequencies(sr=22050, n_dft=2048):
     return np.linspace(0,
                        float(sr) / 2,
                        int(1 + n_dft//2),
-                       endpoint=True)
+                       endpoint=True).astype(K.floatx())
 
 
 def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
@@ -130,7 +138,7 @@ def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
         # .. then intersect them with each other and zero
         weights[i] = np.maximum(0, np.minimum(lower, upper)) * enorm[i]
 
-    return weights
+    return weights.astype(K.floatx())
 
 def get_stft_kernels(n_dft, keras_ver='new'):
     '''[np] Return dft kernels for real/imagnary parts assuming
@@ -185,7 +193,7 @@ def get_stft_kernels(n_dft, keras_ver='new'):
         dft_real_kernels = dft_real_kernels[:, np.newaxis, np.newaxis, :]
         dft_imag_kernels = dft_imag_kernels[:, np.newaxis, np.newaxis, :]
 
-    return dft_real_kernels.astype(dtype), dft_imag_kernels.astype(dtype)
+    return dft_real_kernels.astype(K.floatx()), dft_imag_kernels.astype(K.floatx())
 
 
 def _hann(M, sym=True):
@@ -222,12 +230,12 @@ def _hann(M, sym=True):
     w = 0.5 - 0.5 * np.cos(2.0 * np.pi * n / (M - 1))
     if not sym and not odd:
         w = w[:-1]
-    return w
+    return w.astype(K.floatx())
 
 # Filterbanks
 def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None):
     '''[np] '''
-    return mel(sr, (n_freq - 1 ) * 2, n_mels=128, fmin=0.0, fmax=None)
+    return mel(sr, (n_freq - 1 ) * 2, n_mels=128, fmin=0.0, fmax=None).astype(K.floatx())
 
 def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
                  fmin=None, spread=0.125):  # pragma: no cover
@@ -287,10 +295,4 @@ def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
     # Normalize the filters
     basis = librosa.util.normalize(basis, norm=1, axis=1)
 
-    return basis
-
-
-
-
-
-
+    return basis.astype(K.floatx())

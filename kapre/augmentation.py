@@ -9,22 +9,57 @@ class AdditiveNoise(Layer):
     """Add noise to input
 
     # Arguments
-        power: float (scalar), the power of noise. std if it's white noise.
-            default: 0.1
+        * `power`: float (scalar), the power of noise. std if it's white noise.
+            Default: `0.1`
 
-        random_gain: bool, if the gain would be random.
-            If true, uniform(low=0.0, high=power) is multiplied.
+        * `random_gain`: bool, if the gain would be random.
+            If true, gain is sampled from uniform(low=0.0, high=power) and applied.
+            Default: `False`
 
-        noise_type; str, now only support 'white'.
+        * `noise_type`; string, now only support 'white'.
+            Default: `white`
 
     # Input shapes
-        doesn't matter.
+        Any shape
 
     # Returns
-        input + generated noise.
+        input + generated noise in the same shape as input.
 
     # Examples
+        ```python
+        import keras
+        from keras.models import Sequential
+        from kapre.time_frequency import Melspectrogram
+        from kapre.augmentation import AdditiveNoise
+        import numpy as np
 
+        print('Keras version: ', keras.__version__)
+        print('Keras backend: ', keras.backend._backend)
+        print('Keras image dim ordering: ', keras.backend.image_dim_ordering())
+        src = np.random.random((2, 44100))
+        sr = 44100
+        model = Sequential()
+        model.add(Melspectrogram(sr=16000, n_mels=128, 
+                  n_dft=512, n_hop=256, input_shape=src.shape, 
+                  return_decibel_spectrogram=True,
+                  trainable_kernel=False, name='melgram'))
+        model.add(AdditiveNoise(power=0.2))
+        model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+        ```
+        # Couldn't import dot_parser, loading of dot files will not be possible.
+        # ('Keras version: ', '1.2.1')
+        # ('Keras backend: ', u'theano')
+        # ('Keras image dim ordering: ', 'th')
+        # ________________________________________________________________________________
+        # Layer (type)              Output Shape              Param #     Connected to    
+        # ================================================================================
+        # melgram (Melspectrogram)  (None, 2, 128, 173)       296064      melspectrogram_i
+        # ________________________________________________________________________________
+        # additivenoise_1 (Additive (None, 2, 128, 173)       0           melgram[0][0]   
+        # ================================================================================
+        # Total params: 296,064
+        # Trainable params: 0
+        # Non-trainable params: 296,064
     """
     def __init__(self, power=0.1, random_gain=False, noise_type='white', **kwargs):
         self.supports_masking = True

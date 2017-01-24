@@ -11,24 +11,34 @@ class Spectrogram(Layer):
     '''Returns spectrogram(s) in 2D image format.
     
     # Arguments
-        * n_dft: integer > 0 (scalar), power of 2. 
-            number of DFT points
+        * `n_dft`: integer > 0 (scalar), power of 2. 
+            number of DFT points. 
+            Default: 512
 
-        * n_hop: integer > 0 (scalar), hop length
+        * `n_hop`: integer > 0 (scalar), hop length. 
+            If `None`, `n_dft` / 2 is used.
+            Default: `None`
 
-        * border_mode: string, `'same'` or `'valid'`
+        * `border_mode`: string, `'same'` or `'valid'`. 
+            Default: `'same'`
 
-        * power: float (scalar), `2.0` if power-spectrogram,
-            `1.0` if amplitude spectrogram
+        * `power_spectrogram`: float (scalar), `2.0` to get power-spectrogram,
+            `1.0` to get amplitude-spectrogram.
+            Default: `2.0`
 
-        * return_decibel_spectrogram: bool, returns decibel, 
-            i.e. log10(amplitude spectrogram) if `True`
+        * `return_decibel_spectrogram`: bool, returns decibel, 
+            i.e. log10(amplitude spectrogram) if `True`. 
+            Default: `False`
 
-        * trainable_kernel: bool, set if the kernels are trainable
+        * `trainable_kernel`: bool, set if the kernels are trainable.
+            If `True`, Kernels are initialised with DFT kernels and then trained.
+            Default: `False`
 
-        * dim_ordering: string, `'th'` or `'tf'`.
+        * `dim_ordering`: string, `'th'` or `'tf'`.
             The returned spectrogram follows this dim_ordering convention.
             If `'default'`, follows the current Keras session's setting.
+            Setting is in `./keras/keras.json`.
+            `Default`: `'default'`
 
     # Input shape
         * 2D array, `(audio_channel, audio_length)`.
@@ -44,39 +54,60 @@ class Spectrogram(Layer):
     # Example
         ```python
             # dim_ordering == 'th'
-            from kapre.TimeFrequency import Spectrogram
+            import keras
+            from keras.models import Sequential
+            from kapre.time_frequency import Spectrogram
+            import numpy as np
+
+            print('Keras version: ', keras.__version__)
+            print('Keras backend: ', keras.backend._backend)
+            print('Keras image dim ordering: ', keras.backend.image_dim_ordering())
             src = np.random.random((2, 44100))
             sr = 44100
             model = Sequential()
             model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel=True, power_spectrogram=2.0, trainable_kernel=False,
-                      name='static_stft'))
+                      return_decibel_spectrogram=True, power_spectrogram=2.0, 
+                      trainable_kernel=False, name='static_stft'))
             model.summary(line_length=80, positions=[.33, .65, .8, 1.])
-
+            # ('Keras version: ', '1.2.1')
+            # ('Keras backend: ', u'theano')
+            # ('Keras image dim ordering: ', 'th')
             # ________________________________________________________________________________
             # Layer (type)              Output Shape              Param #     Connected to    
             # ================================================================================
-            # static_stft (Spectrogram) (None, 2, 257, 173)       0           spectrogram_inpu
+            # static_stft (Spectrogram) (None, 2, 257, 173)       263168      spectrogram_inpu
             # ================================================================================
-            # Total params: 0
-            # ________________________________________________________________________________
+            # Total params: 263,168
+            # Trainable params: 0
+            # Non-trainable params: 263,168
         ```
         ```python
-            model = Sequential()
-            model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                      return_decibel=True, power=2.0, trainable_kernel=True,
-                      name='trainable_stft'))
-            model.summary(line_length=80, positions=[.33, .6, .8, 1.])
+            import keras
+            from keras.models import Sequential
+            from kapre.time_frequency import Spectrogram
+            import numpy as np
 
+            print('Keras version: ', keras.__version__)
+            print('Keras backend: ', keras.backend._backend)
+            print('Keras image dim ordering: ', keras.backend.image_dim_ordering())
+            src = np.random.random((2, 44100))
+            sr = 44100
+            model = Sequential()
+            model.add(Spectrogram(n_dft=2048, n_hop=1024, input_shape=src.shape, 
+                      return_decibel_spectrogram=True, power_spectrogram=2.0, 
+                      trainable_kernel=True, name='trainable_stft'))
+            model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+            # ('Keras version: ', '1.2.1')
+            # ('Keras backend: ', u'theano')
+            # ('Keras image dim ordering: ', 'th')
             # ________________________________________________________________________________
-            # Layer (type)              Output Shape          Param #         Connected to    
+            # Layer (type)              Output Shape              Param #     Connected to    
             # ================================================================================
-            # trainable_stft (Spectrogr (None, 2, 257, 173)   263168          spectrogram_inpu
+            # trainable_stft (Spectrogr (None, 2, 1025, 44)       4198400     spectrogram_inpu
             # ================================================================================
-            # Total params: 263168
-            # ________________________________________________________________________________
-            print(model.layers[0].trainable_weights)
-            # [<TensorType(float32, 4D)>, <TensorType(float32, 4D)>]          
+            # Total params: 4,198,400
+            # Trainable params: 4,198,400
+            # Non-trainable params: 0
         ```
     '''
     def __init__(self, n_dft=512, n_hop=None, border_mode='same', 
@@ -193,25 +224,33 @@ class Melspectrogram(Spectrogram):
         `Spectrogram` as **kwargs.
 
     # Arguments
-        * sr: integer > 0 (scalar), sampling rate
+        * `sr`: integer > 0 (scalar), sampling rate.
+            Default: `22050`
 
-        * n_mels: integer > 0 (scalar), number of mel bands
+        * `n_mels`: integer > 0 (scalar), number of mel bands.
+            Default: `128`
 
-        * fmin: float > 0 (scalar), minimum frequency to include in melgram
+        * `fmin`: float > 0 (scalar), minimum frequency to include in melgram.
+            Default: `0.0`
 
-        * fmax: float > fmin (scalar), maximum frequency to include in melgram
+        * `fmax`: float > fmin (scalar), maximum frequency to include in melgram.
+            If `None`, it is inferred as `sr / 2`.
+            Default: `None`
 
-        * power_melgram: float (scalar), `2.0` if power-spectrogram,
-            `1.0` if amplitude spectrogram
+        * `power_melgram`: float (scalar), `2.0` if power-spectrogram,
+            `1.0` if amplitude spectrogram.
+            Default: `1.0`
 
-        * return_decibel_melgram: bool, returns decibel, 
+        * `return_decibel_melgram`: bool, returns decibel, 
             i.e. log10(amplitude spectrogram) if `True`
+            Default: `False`
 
-        * trainable_fb: bool, set if the melgram filterbank are trainable
+        * `trainable_fb`: bool, set if the melgram filterbank are trainable.
+            If `True`, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
+            Default: `False`
 
-        * dim_ordering: string, `'th'` or `'tf'`.
-            The returned spectrogram follows this dim_ordering convention.
-            If `'default'`, follows the current Keras session's setting.
+        * `**kwargs`: `Spectrogram` keywords arguments such as `n_dft`, `n_hop`,
+            `border_mode`, `trainable_kernel`, `dim_ordering`. 
 
     # Input shape
         * 2D array, `(audio_channel, audio_length)`.
@@ -225,45 +264,35 @@ class Melspectrogram(Spectrogram):
             `(None, n_mels, n_time, n_channel)` if `'tf'`,
 
     # Example
-        (TO BE MODIFIED)
         ```python
-            dim_ordering == 'th'
-            from kapre.TimeFrequency import Melspectrogram
+            import keras
+            from keras.models import Sequential
+            from kapre.time_frequency import Melspectrogram
+            import numpy as np
+
+            print('Keras version: ', keras.__version__)
+            print('Keras backend: ', keras.backend._backend)
+            print('Keras image dim ordering: ', keras.backend.image_dim_ordering())
             src = np.random.random((2, 44100))
             sr = 44100
             model = Sequential()
-            model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src.shape,
-                                     sr=sr, n_mels=128, fmin=0.0, fmax=16000,
-                                     power=2.0, return_decibel=False,
-                                     name='trainable_melgram'))
-            model.summary()
+            model.add(Melspectrogram(sr=16000, n_mels=128, 
+                      n_dft=512, n_hop=256, input_shape=src.shape, 
+                      return_decibel_spectrogram=True,
+                      trainable_kernel=True, name='melgram'))
+            model.summary(line_length=80, positions=[.33, .65, .8, 1.])
+            # ('Keras version: ', '1.2.1')
+            # ('Keras backend: ', u'theano')
+            # ('Keras image dim ordering: ', 'th')
             # ________________________________________________________________________________
-            # Layer (type)              Output Shape          Param #         Connected to    
+            # Layer (type)              Output Shape              Param #     Connected to    
             # ================================================================================
-            # static_melgram (Melspectr (None, 2, 128, 173)   0               melspectrogram_i
+            # melgram (Melspectrogram)  (None, 2, 128, 173)       296064      melspectrogram_i
             # ================================================================================
-            # Total params: 0
+            # Total params: 296,064
+            # Trainable params: 263,168
+            # Non-trainable params: 32,896
             # ________________________________________________________________________________
-        ```
-        ```python
-            model = Sequential()
-            model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src.shape,
-                                     sr=sr, n_mels=128, fmin=0.0, fmax=16000,
-                                     power=2.0, return_decibel=True,
-                                     trainable_kernel=True, trainable_fb=True,
-                                     name='trainable_melgram'))
-            model.summary(line_length=80, positions=[.33, .6, .8, 1.])
-            # ________________________________________________________________________________
-            # Layer (type)              Output Shape          Param #         Connected to    
-            # ================================================================================
-            # trainable_melgram (Melspe (None, 2, 128, 173)   296064          melspectrogram_i
-            # ================================================================================
-            # Total params: 296064
-            # ________________________________________________________________________________
-            print(model.layers[0].trainable_weights)
-            # [<TensorType(float32, 4D)>, <TensorType(float32, 4D)>, <TensorType(float32, matrix)>]
-            # real kernels, imaginary kernels, and freq-to-mel matrix
-            
         ```
     '''    
     def __init__(self,
@@ -279,6 +308,9 @@ class Melspectrogram(Spectrogram):
             fmax = float(sr) / 2
         assert fmax > fmin
         assert isinstance(return_decibel_melgram, bool)
+        if 'power_spectrogram' in kwargs:
+            assert kwargs['power_spectrogram'] == 2.0, \
+                'In Melspectrogram, power_spectrogram should be set as 2.0.'
 
         self.sr = int(sr)
         self.n_mels = n_mels
@@ -291,7 +323,7 @@ class Melspectrogram(Spectrogram):
     def build(self, input_shape):
         super(Melspectrogram, self).build(input_shape)
         self.built = False
-        # compute freq2mel matrix
+        # compute freq2mel matrix --> 
         mel_basis = backend.mel(self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax)  # (128, 1025) (mel_bin, n_freq)
         mel_basis = np.transpose(mel_basis)
         
