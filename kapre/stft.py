@@ -5,6 +5,7 @@ from keras import backend as K
 from keras.engine import Layer
 from keras.utils.np_utils import conv_output_length
 from . import backend
+from . import backend_keras
 
 from theano import tensor as T
 from theano.tensor import fft
