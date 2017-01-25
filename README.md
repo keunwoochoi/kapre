@@ -13,6 +13,7 @@ So please use git version until it becomes more stable.)
 # Layers
 
 * `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+* `Stft` in [stft.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/stft.py)
 * `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
 * `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
 * `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
@@ -43,7 +44,7 @@ model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src_shape,
 model.add(AdditiveNoise(power=0.2))
 # If you wanna normalise it per-frequency
 model.add(Normalization2D(str_axis='freq')) # or 'channel', 'time', 'batch', 'data_sample'
-# After this, it's just keras workflow. For eaxmple..
+# After this, it's just a usual keras workflow. For example..
 # Add some layers, e.g., model.add(some convolution layers..)
 # Compile the model
 model.compile('adam', 'categorical_crossentropy') # if single-label classification
