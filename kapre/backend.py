@@ -11,15 +11,17 @@ import numpy as np
 from librosa.core.time_frequency import fft_frequencies, mel_frequencies
 import librosa
 
-
 TOL = 1e-5
 EPS = 1e-7
+
 
 def tolerance():
     return TOL
 
+
 def eps():
     return EPS
+
 
 def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
     """[np] Compute the center frequencies of bands
@@ -36,6 +38,7 @@ def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
     
     Keunwoo: copied from Librosa
     """
+
     def _mel_to_hz(mels):
         """Convert mel bin numbers to frequencies
         copied from Librosa
@@ -48,9 +51,9 @@ def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
         freqs = f_min + f_sp * mels
 
         # And now the nonlfinear scale
-        min_log_hz = 1000.0                         # beginning of log region
-        min_log_mel = (min_log_hz - f_min) / f_sp   # same (Mels)
-        logstep = np.log(6.4) / 27.0                # step size for log region
+        min_log_hz = 1000.0  # beginning of log region
+        min_log_mel = (min_log_hz - f_min) / f_sp  # same (Mels)
+        logstep = np.log(6.4) / 27.0  # step size for log region
         log_t = (mels >= min_log_mel)
 
         freqs[log_t] = min_log_hz \
@@ -72,9 +75,9 @@ def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
         mels = (frequencies - f_min) / f_sp
 
         # Fill in the log-scale part
-        min_log_hz = 1000.0                         # beginning of log region
-        min_log_mel = (min_log_hz - f_min) / f_sp   # same (Mels)
-        logstep = np.log(6.4) / 27.0                # step size for log region
+        min_log_hz = 1000.0  # beginning of log region
+        min_log_mel = (min_log_hz - f_min) / f_sp  # same (Mels)
+        logstep = np.log(6.4) / 27.0  # step size for log region
 
         log_t = (frequencies >= min_log_hz)
         mels[log_t] = min_log_mel \
@@ -99,7 +102,7 @@ def _dft_frequencies(sr=22050, n_dft=2048):
     '''
     return np.linspace(0,
                        float(sr) / 2,
-                       int(1 + n_dft//2),
+                       int(1 + n_dft // 2),
                        endpoint=True).astype(K.floatx())
 
 
@@ -125,10 +128,10 @@ def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
 
     # centre freqs of mel bands
     freqs = mel_frequencies(n_mels + 2,
-                             fmin=fmin,
-                             fmax=fmax)
+                            fmin=fmin,
+                            fmax=fmax)
     # Slaney-style mel is scaled to be approx constant energy per channel
-    enorm = 2.0 / (freqs[2:n_mels+2] - freqs[:n_mels])
+    enorm = 2.0 / (freqs[2:n_mels + 2] - freqs[:n_mels])
 
     for i in range(n_mels):
         # lower and upper slopes qfor all bins
@@ -139,6 +142,7 @@ def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
         weights[i] = np.maximum(0, np.minimum(lower, upper)) * enorm[i]
 
     return weights.astype(K.floatx())
+
 
 def get_stft_kernels(n_dft, keras_ver='new'):
     '''[np] Return dft kernels for real/imagnary parts assuming
@@ -172,9 +176,9 @@ def get_stft_kernels(n_dft, keras_ver='new'):
     timesteps = range(n_dft)
     w_ks = [(2 * np.pi * k) / float(n_dft) for k in xrange(n_dft)]
     dft_real_kernels = np.array([[np.cos(w_k * n) for n in timesteps]
-                                  for w_k in w_ks])
+                                 for w_k in w_ks])
     dft_imag_kernels = np.array([[np.sin(w_k * n) for n in timesteps]
-                                  for w_k in w_ks])
+                                 for w_k in w_ks])
 
     # windowing DFT filters
     dft_window = _hann(n_dft, sym=False)
@@ -232,13 +236,15 @@ def _hann(M, sym=True):
         w = w[:-1]
     return w.astype(K.floatx())
 
+
 # Filterbanks
 def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None):
     '''[np] '''
-    return mel(sr, (n_freq - 1 ) * 2, n_mels=128, fmin=0.0, fmax=None).astype(K.floatx())
+    return mel(sr, (n_freq - 1) * 2, n_mels=128, fmin=0.0, fmax=None).astype(K.floatx())
+
 
 def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
-                 fmin=None, spread=0.125):  # pragma: no cover
+                   fmin=None, spread=0.125):  # pragma: no cover
     '''[np] Approximate a constant-Q filter bank for a fixed-window STFT.
 
     Each filter is a log-normal window centered at the corresponding frequency.
@@ -286,10 +292,10 @@ def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
 
     for i in range(n_bins):
         # What's the center (median) frequency of this filter?
-        c_freq = fmin * (2.0**(float(i) / bins_per_octave))
+        c_freq = fmin * (2.0 ** (float(i) / bins_per_octave))
 
         # Place a log-normal window around c_freq
-        basis[i, 1:] = np.exp(-0.5 * ((log_freqs - np.log2(c_freq)) / sigma)**2
+        basis[i, 1:] = np.exp(-0.5 * ((log_freqs - np.log2(c_freq)) / sigma) ** 2
                               - np.log2(sigma) - log_freqs)
 
     # Normalize the filters

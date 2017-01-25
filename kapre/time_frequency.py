@@ -118,7 +118,8 @@ class Spectrogram(Layer):
         # Non-trainable params: 0
         ```
     '''
-    def __init__(self, n_dft=512, n_hop=None, border_mode='same', 
+
+    def __init__(self, n_dft=512, n_hop=None, border_mode='same',
                  power_spectrogram=2.0, return_decibel_spectrogram=False,
                  trainable_kernel=False, dim_ordering='default', **kwargs):
         assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
@@ -156,19 +157,19 @@ class Spectrogram(Layer):
         assert self.len_src >= self.n_dft, 'Hey! The input is too short!'
 
         self.n_frame = conv_output_length(self.len_src,
-                                    self.n_dft,
-                                    self.border_mode,
-                                    self.n_hop)
+                                          self.n_dft,
+                                          self.border_mode,
+                                          self.n_hop)
 
         dft_real_kernels, dft_imag_kernels = backend.get_stft_kernels(self.n_dft)
         self.dft_real_kernels = K.variable(dft_real_kernels, dtype=K.floatx())
         self.dft_imag_kernels = K.variable(dft_imag_kernels, dtype=K.floatx())
         # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
         if self.trainable_kernel:
-            self.trainable_weights.append(self.dft_real_kernels) 
+            self.trainable_weights.append(self.dft_real_kernels)
             self.trainable_weights.append(self.dft_imag_kernels)
         else:
-            self.non_trainable_weights.append(self.dft_real_kernels) 
+            self.non_trainable_weights.append(self.dft_real_kernels)
             self.non_trainable_weights.append(self.dft_imag_kernels)
 
         self.built = True
@@ -184,9 +185,9 @@ class Spectrogram(Layer):
         output = self._spectrogram_mono(x[:, 0:1, :])
         if self.is_mono is False:
             for ch_idx in range(1, self.n_ch):
-                output = K.concatenate((output, 
-                           self._spectrogram_mono(x[:, ch_idx:ch_idx+1, :])),
-                           axis=self.ch_axis_idx)
+                output = K.concatenate((output,
+                                        self._spectrogram_mono(x[:, ch_idx:ch_idx + 1, :])),
+                                       axis=self.ch_axis_idx)
         if self.power_spectrogram != 2.0:
             output = K.pow(K.sqrt(output), self.power_spectrogram)
         if self.return_decibel_spectrogram:
@@ -200,7 +201,7 @@ class Spectrogram(Layer):
                   'power_spectrogram': self.power_spectrogram,
                   'return_decibel_spectrogram': self.return_decibel_spectrogram,
                   'trainable_kernel': self.trainable_kernel,
-                  'dim_ordering':self.dim_ordering}
+                  'dim_ordering': self.dim_ordering}
         base_config = super(Spectrogram, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -307,13 +308,14 @@ class Melspectrogram(Spectrogram):
         # Non-trainable params: 32,896
         # ________________________________________________________________________________
         ```
-    '''    
+    '''
+
     def __init__(self,
-                 sr=22050, n_mels=128, fmin=0.0, fmax=None, 
+                 sr=22050, n_mels=128, fmin=0.0, fmax=None,
                  power_melgram=1.0, return_decibel_melgram=False,
                  trainable_fb=False, **kwargs):
         '''**kwargs: for Melspectrogram input arguments. '''
-        
+
         super(Melspectrogram, self).__init__(**kwargs)
         assert sr > 0
         assert fmin >= 0.0
@@ -339,7 +341,7 @@ class Melspectrogram(Spectrogram):
         # compute freq2mel matrix --> 
         mel_basis = backend.mel(self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax)  # (128, 1025) (mel_bin, n_freq)
         mel_basis = np.transpose(mel_basis)
-        
+
         self.freq2mel = K.variable(mel_basis, dtype=K.floatx())
         if self.trainable_fb:
             self.trainable_weights.append(self.freq2mel)
@@ -362,7 +364,7 @@ class Melspectrogram(Spectrogram):
         else:
             power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 3, 2, 1])
         # now, whatever dim_ordering, (batch_sample, n_ch, n_time, n_freq)
-        output = K.dot(power_spectrogram, self.freq2mel) 
+        output = K.dot(power_spectrogram, self.freq2mel)
         if self.dim_ordering == 'th':
             output = K.permute_dimensions(output, [0, 1, 3, 2])
         else:

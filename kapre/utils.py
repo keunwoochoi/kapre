@@ -22,6 +22,7 @@ class AmplitudeToDB(Layer):
 
     ```
     '''
+
     def __init__(self, ref_power=1.0, amin=1e-10, top_db=80.0):
         assert isinstance(ref_power, float) or ref_power == 'max'
         self.ref_power = ref_power
@@ -35,7 +36,7 @@ class AmplitudeToDB(Layer):
     def get_config(self):
         config = {'ref_power': self.ref_power,
                   'amin': self.amin,
-                  'top_db' : self.top_db}
+                  'top_db': self.top_db}
         base_config = super(AmplitudeToDB, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -61,7 +62,8 @@ class Normalization2D(Layer):
         model.add(Normalization2D(stf_axis='freq))
     ```
     '''
-    def __init__(self, str_axis=None, int_axis=None, dim_ordering='default', 
+
+    def __init__(self, str_axis=None, int_axis=None, dim_ordering='default',
                  eps=1e-10, **kwargs):
         assert not (int_axis is None and str_axis is None), \
             'In Normalization2D, int_axis or str_axis should be specified.'

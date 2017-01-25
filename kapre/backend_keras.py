@@ -4,6 +4,7 @@ import numpy as np
 import keras
 from keras import backend as K
 
+
 def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
     """[K] Convert (linear) amplitude to decibel (log10(x)).
 
@@ -17,6 +18,3 @@ def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
     log_spec = log_spec - K.max(log_spec)  # [-?, 0]
     log_spec = K.maximum(log_spec, -1 * dynamic_range)  # [-80, 0]
     return log_spec
-
-
-

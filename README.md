@@ -15,10 +15,9 @@ So please use git version until it becomes more stable.)
 * `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
 * `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
 * `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
-
+* `AdditiveNoise` in `augmentation.py`
 
 ## Usage Example
-
 
 ### Mel-spectrogram
 ```python
@@ -72,19 +71,19 @@ Please read docstrings at this moment.
 # Plan
 
   - [x] `time_frequency`: Spectrogram, Mel-spectrogram
-  - [x] `utils`: AmplitudeToDB, Normalization2D, A-weighting
-  - [x] `filterbank`: filterbanks
+  - [x] `utils`: AmplitudeToDB, Normalization2D
+  - [x] `filterbank`: filterbanks (init with mel)
   - [x] `stft`: FFT-based STFT (Done for theano-backend only)
-  - [x] `data_augmentation`: (Random-gain) Gaussian noise (developing...)
-  - [ ] `data_augmentation`: Random cropping 1D/2D, Dynamic Range Compression1D
+  - [x] `data_augmentation`: (Random-gain) white noise
+  - [ ] `data_augmentation`: Dynamic Range Compression1D, some other noises
   - [ ] `utils`: A-weighting
   - [ ] `filterbank`: Parameteric Filter bank
   - [ ] `Decompose`: Harmonic-Percussive separation
-  - [ ] `InverseSpectrogram`
-  - [ ] `TimeFrequency`: Harmonic/Spiral representations, chromagram
+  - [ ] `InverseSpectrogram`: istft, (+ util: magnitude + phase merger)
+  - [ ] `TimeFrequency`: Harmonic/Spiral representations, chromagram, tempogram
 
 # Citation
-Citation is required if you used `kapre` in your paper.
+Please cite it as...
 
 ```
 @article{choi2016kapre,

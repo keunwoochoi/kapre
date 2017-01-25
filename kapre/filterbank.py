@@ -32,6 +32,7 @@ class Filterbank(Layer):
         trainable_fb: bool
     
     '''
+
     def __init__(self, n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
                  bins_per_octave=12, **kwargs):
         ''' TODO: is sr necessary? is fmax necessary? init with None?  '''
@@ -51,24 +52,24 @@ class Filterbank(Layer):
         if self.dim_ordering == 'th':
             self.n_ch = input_shape[1]
             self.n_freq = input_shape[2]
-            self.n_time = input_shape[3] 
+            self.n_time = input_shape[3]
         else:
             self.n_ch = input_shape[3]
             self.n_freq = input_shape[1]
             self.n_time = input_shape[2]
 
         if self.init == 'mel':
-            self.filterbank = backend.filterbank_mel(sr=self.sr, 
-                                     n_freq=self.n_freq,
-                                     n_mels=self.n_fbs,
-                                     fmin=self.fmin,
-                                     fmax=self.fmax)
+            self.filterbank = backend.filterbank_mel(sr=self.sr,
+                                                     n_freq=self.n_freq,
+                                                     n_mels=self.n_fbs,
+                                                     fmin=self.fmin,
+                                                     fmax=self.fmax)
         elif self.init == 'log':
             self.filterbank = backend.filterbank_log(sr=sr,
-                                     n_freq=self.n_freq,
-                                     n_bins=self.n_fbs,
-                                     bins_per_octave = self.bins_per_octave,
-                                     fmin=self.fmin)
+                                                     n_freq=self.n_freq,
+                                                     n_bins=self.n_fbs,
+                                                     bins_per_octave=self.bins_per_octave,
+                                                     fmin=self.fmin)
 
         if self.trainable_fb == True:
             self.trainable_weights.append(self.filterbank)
@@ -104,4 +105,3 @@ class Filterbank(Layer):
                   'trainable_fb': self.trainable_fb}
         base_config = super(Filterbank, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-

@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 import numpy as np
 from keras import backend as K
-from keras.engine import Layer
+from keras.engine import Layer, InputSpec
 
 
 class AdditiveNoise(Layer):
@@ -66,22 +66,26 @@ class AdditiveNoise(Layer):
         # ________________________________________________________________________________
         ```
     """
+
     def __init__(self, power=0.1, random_gain=False, noise_type='white', **kwargs):
         self.supports_masking = True
         self.power = power
         self.random_gain = random_gain
         self.noise_type = noise_type
+        self.uses_learning_phase = True
         super(AdditiveNoise, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
         if self.random_gain:
-            x + K.random_normal(shape=K.shape(x),
-                                       mean=0.,
-                                       std=np.random.uniform(0.0, self.power))
+            noise_x = x + K.random_normal(shape=K.shape(x),
+                                          mean=0.,
+                                          std=np.random.uniform(0.0, self.power))
         else:
-            return x + K.random_normal(shape=K.shape(x),
-                                       mean=0.,
-                                       std=self.power)
+            noise_x = x + K.random_normal(shape=K.shape(x),
+                                          mean=0.,
+                                          std=self.power)
+
+        return K.in_train_phase(noise_x, x)
 
     def get_config(self):
         config = {'power': self.power,
