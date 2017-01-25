@@ -43,8 +43,16 @@ model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=src_shape,
 model.add(AdditiveNoise(power=0.2))
 # If you wanna normalise it per-frequency
 model.add(Normalization2D(str_axis='freq')) # or 'channel', 'time', 'batch', 'data_sample'
-# Then add your model
-# E.g., model.add(some convolution layers...)
+# After this, it's just keras workflow. For eaxmple..
+# Add some layers, e.g., model.add(some convolution layers..)
+# Compile the model
+model.compile('adam', 'categorical_crossentropy') # if single-label classification
+# train it with raw audio sample inputs
+x = load_x() # e.g., x.shape = (10000, 6, 44100)
+y = load_y() # e.g., y.shape = (10000, 10) if it's 10-class classification
+# and train it
+model.fit(x, y)
+# write a paper and graduate or get paid. Profit!
 ```
 
 ## When you wanna save/load model w these layers
