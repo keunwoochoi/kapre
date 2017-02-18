@@ -90,6 +90,6 @@ class AdditiveNoise(Layer):
     def get_config(self):
         config = {'power': self.power,
                   'random_gain': self.random_gain,
-                  'noise_type': self.type}
+                  'noise_type': self.noise_type}
         base_config = super(AdditiveNoise, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
