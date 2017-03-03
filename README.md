@@ -70,7 +70,7 @@ model.summary()
 model.save('temp_model.h5')
 
 model2 = keras.models.load_model('temp_model.h5', 
-  custom_objects={'Melspectrogram':kapre.TimeFrequency.Melspectrogram})
+  custom_objects={'Melspectrogram':kapre.time_frequency.Melspectrogram})
 model2.summary()
 ```
 

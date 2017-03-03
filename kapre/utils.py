@@ -67,9 +67,14 @@ class Normalization2D(Layer):
                  eps=1e-10, **kwargs):
         assert not (int_axis is None and str_axis is None), \
             'In Normalization2D, int_axis or str_axis should be specified.'
+
+        assert dim_ordering in ('th', 'tf', 'default'), \
+            'Incorrect dim_ordering: {}'.format(dim_ordering)
+
         if dim_ordering == 'default':
             self.dim_ordering = K.image_dim_ordering()
-        self.dim_ordering in ('th', 'tf')
+        else:
+            self.dim_ordering = dim_ordering
 
         if int_axis is None:
             assert str_axis in ('batch', 'data_sample', 'channel', 'freq', 'time'), \
@@ -111,7 +116,7 @@ class Normalization2D(Layer):
         return (x - mean) / (std + self.eps)
 
     def get_config(self):
-        config = {'axis': self.axis,
+        config = {'int_axis': self.axis,
                   'dim_ordering': self.dim_ordering}
         base_config = super(Normalization2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
