@@ -1,6 +1,9 @@
 # kapre
 Keras Audio Preprocessors
 
+## News
+* 15 March 2017 - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py) is added.
+
 ## Installation
 ```
 $ git clone https://github.com/keunwoochoi/kapre.git
@@ -10,7 +13,7 @@ $ python setup.py install
 (Kapre is on pip, but pip version is not always up-to-date. 
 So please use git version until it becomes more stable.)
 
-# Layers
+## Layers
 
 * `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
 * `Stft` in [stft.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/stft.py)
@@ -19,6 +22,8 @@ So please use git version until it becomes more stable.)
 * `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
 
 ## Usage Example
+
+* For real, working code: checkout [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
 ### Mel-spectrogram
 ```python
@@ -31,9 +36,7 @@ from kapre.augmentation import AdditiveNoise
 input_shape = (6, 44100) 
 sr = 44100
 model = Sequential()
-# A mel-spectrogram layer with
-# no decibel conversion for some reasons and (return_decibel=False)
-# amplitude, not power (power=1.0)
+# A mel-spectrogram layer
 model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=input_shape,
                          border_mode='same', sr=sr, n_mels=128,
                          fmin=0.0, fmax=sr/2, power=1.0,
@@ -75,7 +78,7 @@ model2.summary()
 ```
 
 # Documentation
-Please read docstrings at this moment.
+Please read docstrings at this moment. Fortunately I quite enjoy writing docstrings.
 
 # Plan
 
@@ -84,6 +87,7 @@ Please read docstrings at this moment.
   - [x] `filterbank`: filterbanks (init with mel)
   - [x] `stft`: FFT-based STFT (Done for theano-backend only)
   - [x] `data_augmentation`: (Random-gain) white noise
+  - [x] `datasets.py`: download and manage MIR datasets.
   - [ ] `data_augmentation`: Dynamic Range Compression1D, some other noises
   - [ ] `utils`: A-weighting
   - [ ] `filterbank`: Parameteric Filter bank
