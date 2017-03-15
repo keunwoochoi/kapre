@@ -59,7 +59,7 @@ model.fit(x, y)
 # write a paper and graduate or get paid. Profit!
 ```
 
-## When you wanna save/load model w these layers
+###  When you wanna save/load model w these layers
 
 Use `custom_objects` keyword argument as below.
 
@@ -75,6 +75,20 @@ model.save('temp_model.h5')
 model2 = keras.models.load_model('temp_model.h5', 
   custom_objects={'Melspectrogram':kapre.time_frequency.Melspectrogram})
 model2.summary()
+```
+
+### Downloading datasets
+```python
+import kapre
+
+kapre.datasets.load_gtzan_genre('datasets')
+# checkout datasets/gtzan,
+# also `datasets/gtzan_genre/dataset_summary_kapre.csv`
+kapre.datasets.load_magnatagatune('/Users/username/all_datasets')
+# for magnatagatune, it doesn't create csv file as it already come with.
+kapre.datasets.load_gtzan_speechmusic('datasets')
+# check out `datasets/gtzan_speechmusic/dataset_summary_kapre.csv`
+
 ```
 
 # Documentation
