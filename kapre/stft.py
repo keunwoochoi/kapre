@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import numpy as np
 from keras import backend as K
 from keras.engine import Layer
-from keras.utils.np_utils import conv_output_length
+import keras
+if int(keras.__version__[0]) <= 1:
+    from keras.utils.np_utils import conv_output_length
+else:
+    from keras.utils.conv_utils import conv_output_length
 from . import backend
 from . import backend_keras
 
@@ -127,7 +130,7 @@ class Stft(Layer):
         self.fft_window = backend._hann(self.n_fft, sym=False)
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if self.dim_ordering == 'th':
             return (input_shape[0], self.n_ch, self.n_freq, self.n_frame)
         else:

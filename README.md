@@ -2,7 +2,13 @@
 Keras Audio Preprocessors
 
 ## News
-* 15 March 2017 - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py) is added.
+* 16 March 2017 (kapre v0.0.3.1)
+  - Compatible to Keras 2.0. Kapre won't support Keras 1.0 and require Keras 2.0 now.
+  - There's no change on Kapre API and you can just use, save, and load.
+  - Stft is not working and will be fixed later.
+
+* 15 March 2017 (kapre v0.0.3)
+  - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py) is added.
 
 ## Installation
 ```

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-from keras import initializations
 from keras.engine import Layer
 from keras import backend as K
-import librosa
-import numpy as np
 from . import backend
 
 
@@ -77,13 +74,13 @@ class Filterbank(Layer):
             self.non_trainable_weights.append(self.filterbank)
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if self.dim_ordering == 'th':
             return (input_shape[0], self.n_ch, self.n_fbs, self.n_time)
         else:
             return (input_shape[0], self.n_fbs, self.n_time, self.n_ch)
 
-    def call(self, x, mask=None):
+    def call(self, x):
         if self.dim_ordering == 'th':
             x = K.permute_dimensions(x, [0, 1, 3, 2])
         else:

@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
+import keras
 from keras import backend as K
 from keras.engine import Layer
-from keras.utils.np_utils import conv_output_length
+
+if int(keras.__version__[0]) <= 1:
+    from keras.utils.np_utils import conv_output_length
+else:
+    from keras.utils.conv_utils import conv_output_length
 from . import backend, backend_keras
 
 
@@ -19,15 +24,15 @@ class Spectrogram(Layer):
             If `None`, `n_dft` / 2 is used.
             Default: `None`
 
-        * `border_mode`: string, `'same'` or `'valid'`. 
+        * `padding`: string, `'same'` or `'valid'`.
             Default: `'same'`
 
         * `power_spectrogram`: float (scalar), `2.0` to get power-spectrogram,
             `1.0` to get amplitude-spectrogram.
             Default: `2.0`
 
-        * `return_decibel_spectrogram`: bool, returns decibel, 
-            i.e. log10(amplitude spectrogram) if `True`. 
+        * `return_decibel_spectrogram`: bool, returns decibel,
+            i.e. log10(amplitude spectrogram) if `True`.
             Default: `False`
 
         * `trainable_kernel`: bool, set if the kernels are trainable.
@@ -67,8 +72,8 @@ class Spectrogram(Layer):
         src = np.random.random((2, 44100))
         sr = 44100
         model = Sequential()
-        model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape, 
-                  return_decibel_spectrogram=True, power_spectrogram=2.0, 
+        model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape,
+                  return_decibel_spectrogram=True, power_spectrogram=2.0,
                   trainable_kernel=False, name='static_stft'))
         model.summary(line_length=80, positions=[.33, .65, .8, 1.])
         # Keras version: 1.2.1
@@ -76,7 +81,7 @@ class Spectrogram(Layer):
         # Keras image dim ordering: th
         # Kapre version: 0.0.3
         # ________________________________________________________________________________
-        # Layer (type)              Output Shape              Param #     Connected to    
+        # Layer (type)              Output Shape              Param #     Connected to
         # ================================================================================
         # static_stft (Spectrogram) (None, 2, 257, 173)       263168      spectrogram_inpu
         # ================================================================================
@@ -99,8 +104,8 @@ class Spectrogram(Layer):
         src = np.random.random((2, 44100))
         sr = 44100
         model = Sequential()
-        model.add(Spectrogram(n_dft=2048, n_hop=1024, input_shape=src.shape, 
-                  return_decibel_spectrogram=True, power_spectrogram=2.0, 
+        model.add(Spectrogram(n_dft=2048, n_hop=1024, input_shape=src.shape,
+                  return_decibel_spectrogram=True, power_spectrogram=2.0,
                   trainable_kernel=True, name='trainable_stft'))
         model.summary(line_length=80, positions=[.33, .65, .8, 1.])
 
@@ -109,7 +114,7 @@ class Spectrogram(Layer):
         # Keras image dim ordering: th
         # Kapre version: 0.0.3
         # ________________________________________________________________________________
-        # Layer (type)              Output Shape              Param #     Connected to    
+        # Layer (type)              Output Shape              Param #     Connected to
         # ================================================================================
         # trainable_stft (Spectrogr (None, 2, 1025, 44)       4198400     spectrogram_inpu
         # ================================================================================
@@ -119,14 +124,14 @@ class Spectrogram(Layer):
         ```
     '''
 
-    def __init__(self, n_dft=512, n_hop=None, border_mode='same',
+    def __init__(self, n_dft=512, n_hop=None, padding='same',
                  power_spectrogram=2.0, return_decibel_spectrogram=False,
                  trainable_kernel=False, dim_ordering='default', **kwargs):
         assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
             ('n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft)
         assert isinstance(trainable_kernel, bool)
         assert isinstance(return_decibel_spectrogram, bool)
-        assert border_mode in ('same', 'valid')
+        assert padding in ('same', 'valid')
         if n_hop is None:
             n_hop = n_dft / 2
 
@@ -140,7 +145,7 @@ class Spectrogram(Layer):
         self.n_filter = (n_dft / 2) + 1
         self.trainable_kernel = trainable_kernel
         self.n_hop = n_hop
-        self.border_mode = 'same'
+        self.padding = 'same'
         self.power_spectrogram = float(power_spectrogram)
         self.return_decibel_spectrogram = return_decibel_spectrogram
         super(Spectrogram, self).__init__(**kwargs)
@@ -158,7 +163,7 @@ class Spectrogram(Layer):
 
         self.n_frame = conv_output_length(self.len_src,
                                           self.n_dft,
-                                          self.border_mode,
+                                          self.padding,
                                           self.n_hop)
 
         dft_real_kernels, dft_imag_kernels = backend.get_stft_kernels(self.n_dft)
@@ -172,15 +177,16 @@ class Spectrogram(Layer):
             self.non_trainable_weights.append(self.dft_real_kernels)
             self.non_trainable_weights.append(self.dft_imag_kernels)
 
-        self.built = True
+        super(Spectrogram, self).build(input_shape)
+        # self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if self.dim_ordering == 'th':
             return (input_shape[0], self.n_ch, self.n_filter, self.n_frame)
         else:
             return (input_shape[0], self.n_filter, self.n_frame, self.n_ch)
 
-    def call(self, x, mask=None):
+    def call(self, x):
         '''computes spectrorgram ** power.'''
         output = self._spectrogram_mono(x[:, 0:1, :])
         if self.is_mono is False:
@@ -197,7 +203,7 @@ class Spectrogram(Layer):
     def get_config(self):
         config = {'n_dft': self.n_dft,
                   'n_hop': self.n_hop,
-                  'border_mode': self.border_mode,
+                  'padding': self.padding,
                   'power_spectrogram': self.power_spectrogram,
                   'return_decibel_spectrogram': self.return_decibel_spectrogram,
                   'trainable_kernel': self.trainable_kernel,
@@ -213,12 +219,12 @@ class Spectrogram(Layer):
         subsample = (self.n_hop, 1)
         output_real = K.conv2d(x, self.dft_real_kernels,
                                strides=subsample,
-                               border_mode=self.border_mode,
-                               dim_ordering='tf')
+                               padding=self.padding,
+                               data_format='channels_last')
         output_imag = K.conv2d(x, self.dft_imag_kernels,
                                strides=subsample,
-                               border_mode=self.border_mode,
-                               dim_ordering='tf')
+                               padding=self.padding,
+                               data_format='channels_last')
         output = output_real ** 2 + output_imag ** 2
         # now shape is (batch_sample, n_frame, 1, freq)
         if self.dim_ordering == 'tf':
@@ -250,7 +256,7 @@ class Melspectrogram(Spectrogram):
             `1.0` if amplitude spectrogram.
             Default: `1.0`
 
-        * `return_decibel_melgram`: bool, returns decibel, 
+        * `return_decibel_melgram`: bool, returns decibel,
             i.e. log10(amplitude spectrogram) if `True`
             Default: `False`
 
@@ -259,7 +265,7 @@ class Melspectrogram(Spectrogram):
             Default: `False`
 
         * `**kwargs`: `Spectrogram` keywords arguments such as `n_dft`, `n_hop`,
-            `border_mode`, `trainable_kernel`, `dim_ordering`. 
+            `padding`, `trainable_kernel`, `dim_ordering`.
 
     # Input shape
         * 2D array, `(audio_channel, audio_length)`.
@@ -349,14 +355,14 @@ class Melspectrogram(Spectrogram):
             self.non_trainable_weights.append(self.freq2mel)
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if self.dim_ordering == 'th':
             return (input_shape[0], self.n_ch, self.n_mels, self.n_frame)
         else:
             return (input_shape[0], self.n_mels, self.n_frame, self.n_ch)
 
-    def call(self, x, mask=None):
-        power_spectrogram = super(Melspectrogram, self).call(x, mask)
+    def call(self, x):
+        power_spectrogram = super(Melspectrogram, self).call(x)
         # now,  th: (batch_sample, n_ch, n_freq, n_time)
         #       tf: (batch_sample, n_freq, n_time, n_ch)
         if self.dim_ordering == 'th':

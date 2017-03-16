@@ -75,15 +75,15 @@ class AdditiveNoise(Layer):
         self.uses_learning_phase = True
         super(AdditiveNoise, self).__init__(**kwargs)
 
-    def call(self, x, mask=None):
+    def call(self, x):
         if self.random_gain:
             noise_x = x + K.random_normal(shape=K.shape(x),
                                           mean=0.,
-                                          std=np.random.uniform(0.0, self.power))
+                                          stddev=np.random.uniform(0.0, self.power))
         else:
             noise_x = x + K.random_normal(shape=K.shape(x),
                                           mean=0.,
-                                          std=self.power)
+                                          stddev=self.power)
 
         return K.in_train_phase(noise_x, x)
 
