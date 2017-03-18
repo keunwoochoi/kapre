@@ -2,6 +2,60 @@ import os
 import utils_datasets
 
 
+def load_fma(save_path='datasets', size='small'):
+    """Download fma:free music archive (https://github.com/mdeff/fma)
+
+    Arguments
+    ---------
+        save_path: absolute/relative path to store the dataset
+        size: string, 'small', 'medium', 'large', 'huge'
+            small: 4K tracks, 10 balance genres, 3.4GB, 30s
+            medium: 14,511 tracks, 20 unbalanced genres, 12.2GB, 30s
+            (large: 77,643 tracks, 68 unbalanced genres, 90GB, 30s)
+            (huge: 77,643 tracks, 68 unbalanced genres, 900GB, untrimmed)
+
+    """
+    assert size in ('small', 'medium', 'large', 'huge')
+    assert size in ('small', 'medium')  # 18 Mar 2017, only small/medium is released yet.
+    if size == 'small':
+        zip_filename = 'fma_small.zip'
+        zip_path = utils_datasets.get_file(zip_filename, 'https://os.unil.cloud.switch.ch/fma/fma_small.zip',
+                                           save_path, untar=False, cache_subdir='fma',
+                                           md5_hash='1104d67b3c8235bccbeaa11200a4e0b2')
+
+    elif size == 'medium':
+        zip_filename = 'fma_medium.zip'
+        zip_path = utils_datasets.get_file(zip_filename, 'https://os.unil.cloud.switch.ch/fma/fma_medium.zip',
+                                           save_path, untar=False, cache_subdir='fma',
+                                           md5_hash='07ec85c99f942765f35d88aaa87dabd3')
+    print("unzipping...")
+    os.system('unzip {} -d {}'.format(os.path.join(zip_path, zip_filename), zip_path))
+
+
+def load_musicnet(save_path='datasets', format='hdf'):
+    """Download musicnet (https://homes.cs.washington.edu/~thickstn/start.html)
+
+    Arguments
+    ---------
+        save_path: absolute/relative path to store the dataset
+        format: string, either 'hdf' or 'npz'
+
+    """
+    assert format in ('hdf', 'npz')
+    if format == 'hdf':
+        utils_datasets.get_file('musicnet.h5', 'https://homes.cs.washington.edu/~thickstn/media/musicnet.h5',
+                                save_path, untar=False, cache_subdir='musicnet',
+                                md5_hash='05103753391a8019029b29b790f7e1f7')
+    else:
+        utils_datasets.get_file('musicnet.npz', 'https://homes.cs.washington.edu/~thickstn/media/musicnet.npz',
+                                save_path, untar=False, cache_subdir='musicnet',
+                                md5_hash='9303e5338adefd3715c51997553fb45f')
+    utils_datasets.get_file('musicnet_metadata.csv',
+                            'https://homes.cs.washington.edu/~thickstn/media/musicnet_metadata.csv',
+                            save_path, untar=False, cache_subdir='musicnet',
+                            md5_hash=None)
+
+
 def load_magnatagatune(save_path='datasets'):
     """Download magnatagatune dataset, concate the zip files, unzip it,
     to `save_path`.
@@ -103,7 +157,11 @@ def load_gtzan_genre(save_path='datasets'):
 
 if __name__ == "__main__":
     print("Test")
-    load_gtzan_genre()
-    load_magnatagatune()
-    load_gtzan_speechmusic()
+    # load_gtzan_genre()
+    # load_magnatagatune()
+    # load_gtzan_speechmusic()
+    load_musicnet(format='hdf')
+    load_musicnet(format='npz')
+    # load_fma(size='small')
+    load_fma(size='medium')
     print('done')
