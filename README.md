@@ -2,6 +2,9 @@
 Keras Audio Preprocessors
 
 ## News
+* 18 March 2017
+  - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py); GTZan, MagnaTagATune, MusicNet, FMA are available.
+
 * 16 March 2017 (kapre v0.0.3.1)
   - Compatible to Keras 2.0. Kapre won't support Keras 1.0 and require Keras 2.0 now.
   - There's no change on Kapre API and you can just use, save, and load.
@@ -18,6 +21,12 @@ $ python setup.py install
 ```
 (Kapre is on pip, but pip version is not always up-to-date. 
 So please use git version until it becomes more stable.)
+
+## Datasets
+* [GTZan](http://marsyasweb.appspot.com/download/data_sets/) (30s, 10 genres, 1,000 mp3)
+* [MagnaTagATune](http://mirg.city.ac.uk/codeapps/the-magnatagatune-dataset) (29s, 188 tags, 25,880 mp3)
+* [MusicNet](https://homes.cs.washington.edu/~thickstn/musicnet.html): (full length 330 classicals music, note-wise annotations)
+* [FMA](https://github.com/mdeff/fma): small (30s, 10 genres, 4,000 mp3s), medium (30s, 20 genres, 14,511 mp3s)
 
 ## Layers
 
