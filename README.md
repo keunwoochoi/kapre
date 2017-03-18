@@ -103,7 +103,11 @@ kapre.datasets.load_magnatagatune('/Users/username/all_datasets')
 # for magnatagatune, it doesn't create csv file as it already come with.
 kapre.datasets.load_gtzan_speechmusic('datasets')
 # check out `datasets/gtzan_speechmusic/dataset_summary_kapre.csv`
-
+kapre.datasets.load_fma('datasets', size='small')
+kapre.datasets.load_fma('datasets', size='medium')
+kapre.datasets.load_musicnet('datasets', format='hdf')
+kapre.datasets.load_musicnet('datasets', format='npz')
+# Kapre does NOT remove zip/tar.gz files after extracting.
 ```
 
 # Documentation
