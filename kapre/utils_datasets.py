@@ -20,7 +20,7 @@ from keras.utils.data_utils import validate_file
 
 import pandas as pd
 
-allowed_exts = set(['mp3', 'wav', 'au'])
+allowed_exts = set(['mp3', 'wav', 'au', 'm4a'])
 
 if sys.version_info[0] == 2:
     def urlretrieve(url, filename, reporthook=None, data=None):
@@ -190,7 +190,7 @@ def get_rows_from_folders(folder_dataset, folders, dataroot=''):
     -------
         list of lists, [file_id, file_path, file_label] where
             file_id: just file names
-            file_path: file paths of each file
+            file_path: file paths of each file (without data_root for more universal usage)
             file_label: integer, 0 to N-1, according to the order in `folders`.
 
     Example
@@ -203,7 +203,7 @@ def get_rows_from_folders(folder_dataset, folders, dataroot=''):
         files = os.listdir(os.path.join(dataroot, folder_dataset, folder))
         files = [f for f in files if f.split('.')[-1].lower() in allowed_exts]
         for fname in files:
-            file_path = os.path.join(dataroot, folder_dataset, folder, fname)
+            file_path = os.path.join(folder_dataset, folder, fname)
             file_id = os.path.splitext(fname)[0]
             file_label = label_idx
             rows.append([file_id, file_path, file_label])
