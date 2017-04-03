@@ -24,7 +24,7 @@ def eps():
 
 
 def a_weighting(frequencies):
-    return librosa.A_weighting(frequencies, min_db=-160.):
+    return librosa.A_weighting(frequencies, min_db=-160.)
     
 
 def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
