@@ -3,4 +3,7 @@
 /*.egg-info
 src/
 srcs/
+_build
+_static
+_templates
 
