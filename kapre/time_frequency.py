@@ -167,8 +167,8 @@ class Spectrogram(Layer):
                                           self.n_hop)
 
         dft_real_kernels, dft_imag_kernels = backend.get_stft_kernels(self.n_dft)
-        self.dft_real_kernels = K.variable(dft_real_kernels, dtype=K.floatx())
-        self.dft_imag_kernels = K.variable(dft_imag_kernels, dtype=K.floatx())
+        self.dft_real_kernels = K.variable(dft_real_kernels, dtype=K.floatx(), name="real_kernels")
+        self.dft_imag_kernels = K.variable(dft_imag_kernels, dtype=K.floatx(), name="imag_kernels")
         # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
         if self.trainable_kernel:
             self.trainable_weights.append(self.dft_real_kernels)
