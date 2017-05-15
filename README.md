@@ -2,6 +2,8 @@
 Keras Audio Preprocessors
 
 ## News
+* 15 May 2017
+  - Jamendo dataset loader is added.
 * 18 March 2017
   - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py); GTZan, MagnaTagATune, MusicNet, FMA are available.
 
