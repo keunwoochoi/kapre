@@ -1,35 +1,132 @@
 import os
 import utils_datasets
+import librosa
+import numpy as np
+
+
+def load_jamendo(save_path='datasets', sr=16000, mono=True, duration=None, offset=0.0):
+    """Download jamendo http://www.mathieuramona.com/wp/data/jamendo/
+    It creates `save_path/jamendo` and the sub-directories, `jamendo_lab`, `train`, `valid`, `test`.
+
+    It does not remove the downloaded `.tar.gz` files in `save_path/jamendo`.
+
+    As it takes quite a while for decoding the audio files, it would be better to store
+    the returned value as npy/hdf/whatever and use it.
+
+    Arguments
+    ---------
+        save_path: absolute/relative path to store the dataset
+        sr: sampling rate of audio sources. It is also used to compute label arrays
+        mono: boolean. if downmix to mono or not.
+        duration: float [second], duration of audio files
+        offset: float [second], offset to load
+
+    Returns
+    -------
+        srcs: list, length of 3.
+            each element is a list of train/valid/test sources
+            e.g. srcs[0][0].shape = (1, 3959745) when sr=16000 and mono=True
+        ys: list, length of 3.
+            each element is a list of train/valid/test groundtruths
+            e.g., ys[0][0].shape = (3959745, )
+
+    """
+    set_names = ['train', 'valid', 'test']
+    for set in set_names:
+        datadir = utils_datasets.get_file('jam_{}_audio.tar.gz'.format(set),
+                                          'http://www.mathieuramona.com/uploads/Main/jam_{}_audio.tar.gz'.format(set),
+                                          save_path, untar=True, cache_subdir='jamendo',
+                                          tar_folder_name=set)
+    datadir = utils_datasets.get_file('jam_annote.tar.gz',
+                                      'http://www.mathieuramona.com/uploads/Main/jam_annote.tar.gz',
+                                      save_path, untar=True, cache_subdir='jamendo',
+                                      tar_folder_name='jamendo_lab')
+    # load file names in train/valid/test folder
+    x_filenames = []
+    y_filenames = []
+    for set in set_names:
+        fnames = [f.lstrip('._') for f in os.listdir(os.path.join(save_path, 'jamendo', set)) \
+                  if f.split('.')[-1] in ('ogg', 'mp3')]
+        x_filenames.append(fnames)
+        y_filenames.append([f.split('.')[0] + '.lab' for f in fnames])
+
+    srcs = []
+    ys = []
+    for set, x_fnames, y_fnames in zip(set_names, x_filenames, y_filenames):
+        srcs_set = []
+        ys_set = []
+        for idx, (x_fname, y_fname) in enumerate(zip(x_fnames, y_fnames)):
+            # process srcs
+            print('Loading {}/{}: {}...'.format(idx, len(x_fnames), x_fname))
+            src, _ = librosa.load(os.path.join(save_path, 'jamendo', set, x_fname),
+                                  sr=sr, mono=mono, offset=offset, duration=duration)
+            if mono:
+                src = src[np.newaxis, :]  # to make it (1, N) instead of (N,)
+            len_src = src.shape[1]
+            srcs_set.append(src)
+            # process ys
+            y = np.zeros((len_src,), dtype=np.bool)
+            with open(os.path.join(save_path, 'jamendo', 'jamendo_lab', y_fname)) as f_label:
+                for line in f_label:
+                    start, end, label = line.rstrip('\n').split(' ')
+                    if label == 'sing':
+                        start, end = int(np.round(float(start) * sr)), int(np.round(float(end) * sr))
+                        y[start:end] = True
+            ys_set.append(y)
+
+        srcs.append(srcs_set)
+        ys.append(ys_set)
+
+    # return
+    return srcs, ys
 
 
 def load_fma(save_path='datasets', size='small'):
     """Download fma:free music archive (https://github.com/mdeff/fma)
 
+    Downloading medium/large/full would be better with directly from the link.
+
     Arguments
     ---------
         save_path: absolute/relative path to store the dataset
         size: string, 'small', 'medium', 'large', 'huge'
-            small: 4K tracks, 10 balance genres, 3.4GB, 30s
-            medium: 14,511 tracks, 20 unbalanced genres, 12.2GB, 30s
-            (large: 77,643 tracks, 68 unbalanced genres, 90GB, 30s)
-            (huge: 77,643 tracks, 68 unbalanced genres, 900GB, untrimmed)
+            small: 8,000 tracks of 30s, 8 balanced genres (GTZAN-like) (7.2 GiB)
+            medium: 25,000 tracks of 30s, 16 unbalanced genres (22 GiB)
+            large: 106,574 tracks of 30s, 161 unbalanced genres (93 GiB)
+            full: 106,574 untrimmed tracks, 161 unbalanced genres (879 GiB)
 
     """
-    assert size in ('small', 'medium', 'large', 'huge')
-    assert size in ('small', 'medium')  # 18 Mar 2017, only small/medium is released yet.
+    assert size in ('small', 'medium', 'large', 'full')
     if size == 'small':
         zip_filename = 'fma_small.zip'
         zip_path = utils_datasets.get_file(zip_filename, 'https://os.unil.cloud.switch.ch/fma/fma_small.zip',
                                            save_path, untar=False, cache_subdir='fma',
-                                           md5_hash='1104d67b3c8235bccbeaa11200a4e0b2')
+                                           md5_hash='4edb51c99a19d31fe01a7d44d5cac19b')
 
     elif size == 'medium':
         zip_filename = 'fma_medium.zip'
         zip_path = utils_datasets.get_file(zip_filename, 'https://os.unil.cloud.switch.ch/fma/fma_medium.zip',
-                                           save_path, untar=False, cache_subdir='fma',
-                                           md5_hash='07ec85c99f942765f35d88aaa87dabd3')
-    print("unzipping...")
+                                           save_path, untar=False, cache_subdir='fma')
+    elif size == 'large':
+        zip_filename = 'fma_large.zip'
+        zip_path = utils_datasets.get_file(zip_filename, 'https://os.unil.cloud.switch.ch/fma/fma_large.zip',
+                                           save_path, untar=False, cache_subdir='fma')
+    elif size == 'full':
+        zip_filename = 'fma_full.zip'
+        zip_path = utils_datasets.get_file(zip_filename, 'https://os.unil.cloud.switch.ch/fma/fma_full.zip',
+                                           save_path, untar=False, cache_subdir='fma')
+
+    print("unzipping audio files...")
     os.system('unzip {} -d {}'.format(os.path.join(zip_path, zip_filename), zip_path))
+
+    metadata_zip_filename = 'fma_metadata.zip'
+    metadata_zip_path = utils_datasets.get_file(metadata_zip_filename,
+                                                'https://os.unil.cloud.switch.ch/fma/fma_metadata.zip',
+                                                save_path, untar=False, cache_subdir='fma',
+                                                md5_hash='d3ebfd86e283345ee2366a5492495935')
+    print("unzipping metadata files...")
+    os.system('unzip {} -d {}'.format(os.path.join(metadata_zip_path, metadata_zip_filename),
+                                      metadata_zip_path))
 
 
 def load_musicnet(save_path='datasets', format='hdf'):
@@ -153,15 +250,3 @@ def load_gtzan_genre(save_path='datasets'):
     csv_path = os.path.join(datadir, 'dataset_summary_kapre.csv')
     utils_datasets.write_to_csv(rows=rows, column_names=columns,
                                 csv_fname=csv_path)
-
-
-if __name__ == "__main__":
-    print("Test")
-    # load_gtzan_genre()
-    # load_magnatagatune()
-    # load_gtzan_speechmusic()
-    load_musicnet(format='hdf')
-    load_musicnet(format='npz')
-    # load_fma(size='small')
-    load_fma(size='medium')
-    print('done')

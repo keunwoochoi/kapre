@@ -62,7 +62,7 @@ else:
 
 
 def get_file(fname, origin, save_path, untar=False,
-             md5_hash=None, cache_subdir='datasets'):
+             md5_hash=None, cache_subdir='datasets', tar_folder_name=None):
     """Downloads a file from a URL if it not already in the cache.
     Passing the MD5 hash will verify the file after download
     as well as if it is already present in the cache.
@@ -78,6 +78,7 @@ def get_file(fname, origin, save_path, untar=False,
         untar: boolean, whether the file should be decompressed
         md5_hash: MD5 hash of the file for verification
         cache_subdir: directory being used as the cache
+        tar_folder_name: string, if inside of abc.tar.gz is not abc but def, pass def here.
 
     Returns
     -------
@@ -98,7 +99,10 @@ def get_file(fname, origin, save_path, untar=False,
     if untar:
         assert fname.endswith('.tar.gz'), fname
         fpath = os.path.join(datadir, fname)
-        untar_fpath = fpath.rstrip('.tar.gz')
+        if tar_folder_name:
+            untar_fpath = os.path.join(datadir, tar_folder_name)
+        else:
+            untar_fpath = fpath.rstrip('.tar.gz')
     else:
         fpath = os.path.join(datadir, fname)
 
@@ -107,7 +111,7 @@ def get_file(fname, origin, save_path, untar=False,
         # File found; verify integrity if a hash was provided.
         if md5_hash is not None:
             if not validate_file(fpath, md5_hash):
-                print('A local file was found, but it seems to be '
+                print('A local file was found, but it might be '
                       'incomplete or outdated.')
                 download = True
     else:
