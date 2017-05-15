@@ -25,11 +25,11 @@ $ python setup.py install
 So please use git version until it becomes more stable.)
 
 ## Datasets
-* [GTZan](http://marsyasweb.appspot.com/download/data_sets/) (30s, 10 genres, 1,000 mp3)
-* [MagnaTagATune](http://mirg.city.ac.uk/codeapps/the-magnatagatune-dataset) (29s, 188 tags, 25,880 mp3)
+* [GTZan](http://marsyasweb.appspot.com/download/data_sets/): (30s, 10 genres, 1,000 mp3)
+* [MagnaTagATune](http://mirg.city.ac.uk/codeapps/the-magnatagatune-dataset): (29s, 188 tags, 25,880 mp3) for tagging and triplet similarity
 * [MusicNet](https://homes.cs.washington.edu/~thickstn/musicnet.html): (full length 330 classicals music, note-wise annotations)
-* [FMA](https://github.com/mdeff/fma): small (30s, 10 genres, 4,000 mp3s), medium (30s, 20 genres, 14,511 mp3s)
-
+* [FMA](https://github.com/mdeff/fma): small/medium/large/full collections, up to 100+K songs from free music archieve, for genre classification. With genre hierarchy, pre-computed features, splits, etc.
+* [Jamendo](http://www.mathieuramona.com/wp/data/jamendo/): 61/16/24 songs for vocal activity detection
 ## Layers
 
 * `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
