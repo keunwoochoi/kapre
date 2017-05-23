@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # kapre documentation build configuration file, created by
-# sphinx-quickstart on Tue Apr  4 16:39:56 2017.
+# sphinx-quickstart on Tue May 23 13:57:54 2017.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -20,6 +20,7 @@ import shlex
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('../'))
 
 # -- General configuration ------------------------------------------------
 
@@ -31,6 +32,8 @@ sys.path.insert(0, os.path.abspath('.'))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
