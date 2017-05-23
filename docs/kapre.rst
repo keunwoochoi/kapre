@@ -1,10 +1,7 @@
-kapre package
-=============
+Kapre
+=====
 
-Submodules
-----------
-
-kapre.augmentation module
+kapre.augmentation
 -------------------------
 
 .. automodule:: kapre.augmentation
@@ -92,11 +89,3 @@ kapre.utils_datasets module
     :undoc-members:
     :show-inheritance:
 
-
-Module contents
----------------
-
-.. automodule:: kapre
-    :members:
-    :undoc-members:
-    :show-inheritance:
