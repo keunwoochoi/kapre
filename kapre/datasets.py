@@ -84,7 +84,7 @@ def load_jamendo(save_path='datasets', sr=16000, mono=True, duration=None, offse
 def load_fma(save_path='datasets', size='small'):
     """Download fma:free music archive (https://github.com/mdeff/fma)
 
-    Downloading medium/large/full would be better with directly from the link.
+    It would be better to download directly from the link for large/full..
 
     Arguments
     ---------

@@ -111,8 +111,8 @@ def get_file(fname, origin, save_path, untar=False,
         # File found; verify integrity if a hash was provided.
         if md5_hash is not None:
             if not validate_file(fpath, md5_hash):
-                print('A local file was found, but it might be '
-                      'incomplete or outdated.')
+                print('A local file was found, just checked md5 hash, but it might be '
+                      'incomplete or outdated')
                 download = True
     else:
         download = True

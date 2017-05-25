@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+Time-frequency representations of audio signal
+
+"""
 from __future__ import absolute_import
 import numpy as np
 import keras
@@ -13,50 +17,60 @@ from . import backend, backend_keras
 
 
 class Spectrogram(Layer):
-    '''Returns spectrogram(s) in 2D image format.
-    
-    # Arguments
-        * `n_dft`: integer > 0 (scalar), power of 2. 
-            number of DFT points. 
+    """Returns spectrogram(s) in 2D image format.
+
+    # Parameters
+
+        n_dft: integer > 0 (scalar), power of 2.
+            The number of DFT points.
             Default: 512
 
-        * `n_hop`: integer > 0 (scalar), hop length. 
+        n_hop: integer > 0 (scalar),
+            hop length between frames in sample
             If `None`, `n_dft` / 2 is used.
             Default: `None`
 
-        * `padding`: string, `'same'` or `'valid'`.
+        padding: string,
+            Padding strategies at the end of signal, `'same'` or `'valid'`.
             Default: `'same'`
 
-        * `power_spectrogram`: float (scalar), `2.0` to get power-spectrogram,
+        power_spectrogram: float (scalar),
+            `2.0` to get power-spectrogram,
             `1.0` to get amplitude-spectrogram.
             Default: `2.0`
 
-        * `return_decibel_spectrogram`: bool, returns decibel,
+        `return_decibel_spectrogram`: bool,
+            Whether returns in decibel or not,
             i.e. log10(amplitude spectrogram) if `True`.
             Default: `False`
 
-        * `trainable_kernel`: bool, set if the kernels are trainable.
+        `trainable_kernel`: bool
+            Whether the kernels are trainable or not,
             If `True`, Kernels are initialised with DFT kernels and then trained.
             Default: `False`
 
-        * `dim_ordering`: string, `'th'` or `'tf'`.
+        `dim_ordering`: string, `'th'` or `'tf'`.
             The returned spectrogram follows this dim_ordering convention.
             If `'default'`, follows the current Keras session's setting.
             Setting is in `./keras/keras.json`.
             `Default`: `'default'`
 
-    # Input shape
-        * 2D array, `(audio_channel, audio_length)`.
-            E.g., `(1, 44100)` for mono signal,
-                `(2, 44100)` for stereo signal.
-            It supports multichannel signal input.
+
+    # Note: input shape
+        The input should be a 2D array, `(audio_channel, audio_length)`.
+        E.g., `(1, 44100)` for mono signal, `(2, 44100)` for stereo signal.
+        It supports multichannel signal input, so `audio_channel` can be any positive integer.
+
 
     # Returns
-        * abs(Spectrogram) in a shape of 2D data, i.e.,
+
+
+        abs(Spectrogram) in a shape of 2D data, i.e.,
             `(None, n_channel, n_freq, n_time)` if `'th'`,
             `(None, n_freq, n_time, n_channel)` if `'tf'`,
 
-    # Example
+    # Examples
+
         ```python
         import keras
         import kapre
@@ -89,6 +103,7 @@ class Spectrogram(Layer):
         # Trainable params: 0
         # Non-trainable params: 263,168
         ```
+
         ```python
         import keras
         import kapre
@@ -122,7 +137,7 @@ class Spectrogram(Layer):
         # Trainable params: 4,198,400
         # Non-trainable params: 0
         ```
-    '''
+    """
 
     def __init__(self, n_dft=512, n_hop=None, padding='same',
                  power_spectrogram=2.0, return_decibel_spectrogram=False,
@@ -159,7 +174,8 @@ class Spectrogram(Layer):
             self.ch_axis_idx = 1
         else:
             self.ch_axis_idx = 3
-        assert self.len_src >= self.n_dft, 'Hey! The input is too short!'
+        if self.len_src is not None:
+            assert self.len_src >= self.n_dft, 'Hey! The input is too short!'
 
         self.n_frame = conv_output_length(self.len_src,
                                           self.n_dft,
