@@ -157,7 +157,8 @@ class Spectrogram(Layer):
             self.dim_ordering = dim_ordering
 
         self.n_dft = n_dft
-        self.n_filter = (n_dft / 2) + 1
+        assert n_dft % 2 == 0
+        self.n_filter = int(n_dft / 2) + 1
         self.trainable_kernel = trainable_kernel
         self.n_hop = n_hop
         self.padding = 'same'

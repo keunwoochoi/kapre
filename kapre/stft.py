@@ -105,7 +105,8 @@ class Stft(Layer):
             self.dim_ordering = dim_ordering
 
         self.n_fft = n_fft
-        self.n_freq = (n_fft / 2) + 1
+        assert n_fft % 2 == 0
+        self.n_freq = int((n_fft / 2) + 1)
         self.n_hop = n_hop
         # self.border_mode = 'same'
         self.power_stft = float(power_stft)
