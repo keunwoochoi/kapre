@@ -39,6 +39,9 @@ extensions = [
     'sphinxcontrib.napoleon'
 ]
 
+napoleon_numpy_docstring = True
+
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -117,7 +120,7 @@ class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
             return Mock()
-            
+
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
