@@ -9,11 +9,13 @@ Kapre
 Kapre is a python package for audio preprocessing in Keras. It provides Keras layers
 that help audio-related deep neural network realtime on GPU.
 
-API Documentation
------------------
+API
+---
 
 .. toctree::
    :maxdepth: 2
+
+   .. api
 
    time_frequency
    filterbank
