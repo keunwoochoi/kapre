@@ -8,25 +8,33 @@ from . import backend
 # not parameterised, just a matrix.
 
 class Filterbank(Layer):
-    '''Filterbank assumes a 2d input, i.e., `(None, n_ch, n_freqs, n_time)` (theano).
+    '''Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
     
-    # Shapes
-        input_shape: (None, n_ch, n_freqs, n_time)
+    Notes
+    -----
+    input_shape: ``(None, n_ch, n_freqs, n_time)``
 
-        output_shape: (None, n_ch, n_mels, n_time)
+    output_shape: ``(None, n_ch, n_mels, n_time)``
     
-    # Arguments
-        n_fbs: integer, number of filterbanks
+    Parameters
+    ----------
+    n_fbs: int
+        Number of filterbanks
 
-        sr: integer, sampling rate, used to initialize freq_to_mel
+    sr: int
+        sampling rate. It is used to initialize ``freq_to_mel``.
 
-        init: string. if 'mel', init with mel center frequencies and stds.
+    init: str
+        if ``'mel'``, init with mel center frequencies and stds.
 
-        fmin = float, min frequency fb.
+    fmin = float
+        min frequency of filterbanks.
 
-        fmax = float. max frequency in fb.
+    fmax = float
+        max frequency of filterbanks.
 
-        trainable_fb: bool
+    trainable_fb: bool,
+        Whether the filterbanks are trainalbe or not.
     
     '''
 

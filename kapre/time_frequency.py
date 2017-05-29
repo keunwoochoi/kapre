@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Time-frequency representations of audio signal
+Time-frequency representations
+==============================
 
 """
 from __future__ import absolute_import
@@ -17,94 +18,60 @@ from . import backend, backend_keras
 
 
 class Spectrogram(Layer):
-    """Returns spectrogram(s) in 2D image format.
+    """Spectrogram layer that outputs spectrogram(s) in 2D image format.
 
-    # Parameters
+    Parameters
+    ----------
+    n_dft: int > 0 [scalar]
+        |  The number of DFT points, presumably power of 2.
+        |  Default: ``512``
 
-        n_dft: integer > 0 (scalar), power of 2.
-            The number of DFT points.
-            Default: 512
+    n_hop: int > 0 [scalar]
+        |  Hop length between frames in sample,  probably <= ``n_dft``.
+        |  Default: ``None`` (``n_dft / 2`` is used)
 
-        n_hop: integer > 0 (scalar),
-            hop length between frames in sample
-            If `None`, `n_dft` / 2 is used.
-            Default: `None`
+    padding: str, ``'same'`` or ``'valid'``.
+        |  Padding strategies at the ends of signal.
+        |  Default: ``'same'``
 
-        padding: string,
-            Padding strategies at the end of signal, `'same'` or `'valid'`.
-            Default: `'same'`
+    power_spectrogram: float [scalar],
+        |  ``2.0`` to get power-spectrogram, ``1.0`` to get amplitude-spectrogram.
+        |  Usually ``1.0`` or ``2.0``.
+        |  Default: ``2.0``
 
-        power_spectrogram: float (scalar),
-            `2.0` to get power-spectrogram,
-            `1.0` to get amplitude-spectrogram.
-            Default: `2.0`
+    return_decibel_spectrogram: bool,
+        |  Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
+        |  Recommended to use ``True``, although it's not by default.
+        |  Default: ``False``
 
-        `return_decibel_spectrogram`: bool,
-            Whether returns in decibel or not,
-            i.e. log10(amplitude spectrogram) if `True`.
-            Default: `False`
+    trainable_kernel: bool
+        |  Whether the kernels are trainable or not.
+        |  If ``True``, Kernels are initialised with DFT kernels and then trained.
+        |  Default: ``False``
 
-        `trainable_kernel`: bool
-            Whether the kernels are trainable or not,
-            If `True`, Kernels are initialised with DFT kernels and then trained.
-            Default: `False`
+    dim_ordering: string, ``'th'`` or ``'tf'``.
+        |  The returned spectrogram follows this dim_ordering convention.
+        |  If ``'default'``, it follows the current Keras session's setting.
+        |  Setting is in ``./keras/keras.json``.
+        |  Default: ``'default'``
 
-        `dim_ordering`: string, `'th'` or `'tf'`.
-            The returned spectrogram follows this dim_ordering convention.
-            If `'default'`, follows the current Keras session's setting.
-            Setting is in `./keras/keras.json`.
-            `Default`: `'default'`
+    Notes
+    -----
+        |  The input should be a 2D array, ``(audio_channel, audio_length)``.
+        |  E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
+        |  It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
 
+    Returns
+    -------
+    A Keras layer
+        |  abs(Spectrogram) in a shape of 2D data, i.e.,
+        |  `(None, n_channel, n_freq, n_time)` if `'th'`,
+        |  `(None, n_freq, n_time, n_channel)` if `'tf'`,
 
-    # Note: input shape
-        The input should be a 2D array, `(audio_channel, audio_length)`.
-        E.g., `(1, 44100)` for mono signal, `(2, 44100)` for stereo signal.
-        It supports multichannel signal input, so `audio_channel` can be any positive integer.
+    Example
+    -------
+    Adding a trainable Spectrogram layer::
 
-
-    # Returns
-
-
-        abs(Spectrogram) in a shape of 2D data, i.e.,
-            `(None, n_channel, n_freq, n_time)` if `'th'`,
-            `(None, n_freq, n_time, n_channel)` if `'tf'`,
-
-    # Examples
-
-        ```python
-        import keras
-        import kapre
-        from keras.models import Sequential
-        from kapre.time_frequency import Spectrogram
-        import numpy as np
-
-        print('Keras version: {}'.format(keras.__version__))
-        print('Keras backend: {}'.format(keras.backend._backend))
-        print('Keras image dim ordering: {}'.format(keras.backend.image_dim_ordering()))
-        print('Kapre version: {}'.format(kapre.__version__))
-
-        src = np.random.random((2, 44100))
-        sr = 44100
-        model = Sequential()
-        model.add(Spectrogram(n_dft=512, n_hop=256, input_shape=src.shape,
-                  return_decibel_spectrogram=True, power_spectrogram=2.0,
-                  trainable_kernel=False, name='static_stft'))
-        model.summary(line_length=80, positions=[.33, .65, .8, 1.])
-        # Keras version: 1.2.1
-        # Keras backend: theano
-        # Keras image dim ordering: th
-        # Kapre version: 0.0.3
-        # ________________________________________________________________________________
-        # Layer (type)              Output Shape              Param #     Connected to
-        # ================================================================================
-        # static_stft (Spectrogram) (None, 2, 257, 173)       263168      spectrogram_inpu
-        # ================================================================================
-        # Total params: 263,168
-        # Trainable params: 0
-        # Non-trainable params: 263,168
-        ```
-
-        ```python
         import keras
         import kapre
         from keras.models import Sequential
@@ -136,7 +103,7 @@ class Spectrogram(Layer):
         # Total params: 4,198,400
         # Trainable params: 4,198,400
         # Non-trainable params: 0
-        ```
+
     """
 
     def __init__(self, n_dft=512, n_hop=None, padding='same',
@@ -167,7 +134,6 @@ class Spectrogram(Layer):
         super(Spectrogram, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        '''input_shape: (n_ch, length)'''
         self.n_ch = input_shape[1]
         self.len_src = input_shape[2]
         self.is_mono = (self.n_ch == 1)
@@ -204,7 +170,6 @@ class Spectrogram(Layer):
             return (input_shape[0], self.n_filter, self.n_frame, self.n_ch)
 
     def call(self, x):
-        '''computes spectrorgram ** power.'''
         output = self._spectrogram_mono(x[:, 0:1, :])
         if self.is_mono is False:
             for ch_idx in range(1, self.n_ch):
@@ -252,51 +217,68 @@ class Spectrogram(Layer):
 
 
 class Melspectrogram(Spectrogram):
-    '''Returns mel-spectrogram(s) in 2D image format. Send arguments of
-        `Spectrogram` as **kwargs.
+    '''Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
+    Its base class is ``Spectrogram``.
+    Mel-spectrogram is an efficient representation using the property of human
+    auditory system -- by compressing frequency axis into mel-scale axis.
 
-    # Arguments
-        * `sr`: integer > 0 (scalar), sampling rate.
-            Default: `22050`
+    Parameters
+    ----------
+    sr: integer > 0 [scalar]
+        |  sampling rate of the input audio signal.
+        |  Default: ``22050``
 
-        * `n_mels`: integer > 0 (scalar), number of mel bands.
-            Default: `128`
+    n_mels: int > 0 [scalar]
+        |  The number of mel bands.
+        |  Default: ``128``
 
-        * `fmin`: float > 0 (scalar), minimum frequency to include in melgram.
-            Default: `0.0`
+    fmin: float > 0 [scalar]
+        |  Minimum frequency to include in Mel-spectrogram.
+        |  Default: ``0.0``
 
-        * `fmax`: float > fmin (scalar), maximum frequency to include in melgram.
-            If `None`, it is inferred as `sr / 2`.
-            Default: `None`
+    fmax: float > ``fmin`` [scalar]
+        |  Maximum frequency to include in Mel-spectrogram.
+        |  If `None`, it is inferred as ``sr / 2``.
+        |  Default: `None`
 
-        * `power_melgram`: float (scalar), `2.0` if power-spectrogram,
-            `1.0` if amplitude spectrogram.
-            Default: `1.0`
+    power_melgram: float [scalar]
+        |  Power of ``2.0`` if power-spectrogram,
+        |  ``1.0`` if amplitude spectrogram.
+        |  Default: ``1.0``
 
-        * `return_decibel_melgram`: bool, returns decibel,
-            i.e. log10(amplitude spectrogram) if `True`
-            Default: `False`
+    return_decibel_melgram: bool
+        |  Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
+        |  Recommended to use ``True``, although it's not by default.
+        |  Default: ``False``
 
-        * `trainable_fb`: bool, set if the melgram filterbank are trainable.
-            If `True`, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
-            Default: `False`
+    trainable_fb: bool
+        |  Whether the spectrogram -> mel-spectrogram filterbanks are trainable.
+        |  If ``True``, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
+        |  If ``False``, it is initialised and then frozen.
+        |  Default: `False`
 
-        * `**kwargs`: `Spectrogram` keywords arguments such as `n_dft`, `n_hop`,
-            `padding`, `trainable_kernel`, `dim_ordering`.
+    **kwargs:
+        |  The keyword arguments of ``Spectrogram`` such as ``n_dft``, ``n_hop``,
+        |  ``padding``, ``trainable_kernel``, ``dim_ordering``.
 
-    # Input shape
-        * 2D array, `(audio_channel, audio_length)`.
-            E.g., `(1, 44100)` for mono signal,
-                `(2, 44100)` for stereo signal.
-            It supports multichannel signal input.
+    Notes
+    -----
+        |  The input should be a 2D array, ``(audio_channel, audio_length)``.
+        |  E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
+        |  It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
 
-    # Returns
-        * abs(mel-spectrogram) in a shape of 2D data, i.e.,
-            `(None, n_channel, n_mels, n_time)` if `'th'`,
-            `(None, n_mels, n_time, n_channel)` if `'tf'`,
+    Returns
+    -------
+    A Keras layer
+        |  abs(mel-spectrogram) in a shape of 2D data, i.e.,
+        |  `(None, n_channel, n_mels, n_time)` if `'th'`,
+        |  `(None, n_mels, n_time, n_channel)` if `'tf'`,
 
-    # Example
-        ```python
+    Example
+    -------
+    Adding a non-trainable Mel-spectrogram layer with
+    128 mel-bands and in decibel scale.::
+
         import keras
         import kapre
         from keras.models import Sequential
@@ -327,17 +309,16 @@ class Melspectrogram(Spectrogram):
         # melgram (Melspectrogram)  (None, 2, 128, 173)       296064      melspectrogram_i
         # ================================================================================
         # Total params: 296,064
-        # Trainable params: 263,168
-        # Non-trainable params: 32,896
+        # Trainable params: 0
+        # Non-trainable params: 296,064
         # ________________________________________________________________________________
-        ```
+
     '''
 
     def __init__(self,
                  sr=22050, n_mels=128, fmin=0.0, fmax=None,
                  power_melgram=1.0, return_decibel_melgram=False,
                  trainable_fb=False, **kwargs):
-        '''**kwargs: for Melspectrogram input arguments. '''
 
         super(Melspectrogram, self).__init__(**kwargs)
         assert sr > 0

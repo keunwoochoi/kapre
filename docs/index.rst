@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+
 Kapre
 =====
 Kapre is a python package for audio preprocessing in Keras. It provides Keras layers
@@ -14,6 +15,19 @@ API Documentation
 .. toctree::
    :maxdepth: 2
 
-   kapre
+   time_frequency
+   filterbank
+   augmentation
+   utils
+   datasets
+   
+   
+
+
+
+Indices and Tables
+==================
+* :ref:`genindex`
+* :ref:`search`
 
 

@@ -1,10 +1,17 @@
-''' Some backend computation with numpy.
-Similar computation with keras is on `backend_keras.py`.
+'''
 
-* Don't forget to use K.float()! Otherwise numpy uses float64. 
-* Some functions are copied-and-pasted from librosa (to reduce dependency), but
-    later I realised it'd be better to just use it. 
-    TODO: remove copied code and use librosa.
+Kapre backend functions
+=======================\
+
+|  Some backend functions that mainly use numpy.
+|  Functions with Keras' backend is in ``backend_keras.py``.
+
+Notes
+-----
+    * Don't forget to use ``K.float()``! Otherwise numpy uses float64.
+    * Some functions are copied-and-pasted from librosa (to reduce dependency), but
+        later I realised it'd be better to just use it.
+    * TODO: remove copied code and use librosa.
 '''
 from keras import backend as K
 import numpy as np
@@ -27,10 +34,10 @@ def eps():
 
 def a_weighting(frequencies):
     return librosa.A_weighting(frequencies, min_db=-160.)
-    
+
 
 def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
-    """[np] Compute the center frequencies of bands
+    """Compute the center frequencies of bands
     TODO: ...do I use it?
     """
     if fmin is None:
@@ -41,8 +48,7 @@ def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
 def mel_frequencies(n_mels=128, fmin=0.0, fmax=11025.0):
     """[np] Compute the center frequencies of mel bands.
     `htk` is removed.
-    
-    Keunwoo: copied from Librosa
+    Copied from Librosa 0.4.x
     """
 
     def _mel_to_hz(mels):
@@ -165,8 +171,8 @@ def get_stft_kernels(n_dft, keras_ver='new'):
 
     Returns
     -------
-    dft_real_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
-    dft_imag_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
+        |  dft_real_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
+        |  dft_imag_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
 
     * nb_filter = n_dft/2 + 1
     * n_win = n_dft
@@ -220,6 +226,7 @@ def _hann(M, sym=True):
         When True (default), generates a symmetric window, for use in filter
         design.
         When False, generates a periodic window, for use in spectral analysis.
+
     Returns
     -------
     w : ndarray

@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+Data augmentation
+=================
+"""
 from __future__ import absolute_import
 import numpy as np
 from keras import backend as K
@@ -6,27 +10,32 @@ from keras.engine import Layer, InputSpec
 
 
 class AdditiveNoise(Layer):
-    """Add noise to input
+    """Add noise to input data and output it.
 
-    # Arguments
-        * `power`: float (scalar), the power of noise. std if it's white noise.
-            Default: `0.1`
+    Parameters
+    ----------
+    power: float [scalar]
+        |  The power of noise. std if it's white noise.
+        |  Default: ``0.1``
 
-        * `random_gain`: bool, if the gain would be random.
-            If true, gain is sampled from uniform(low=0.0, high=power) and applied.
-            Default: `False`
+    random_gain: bool
+        |  Whether the noise gain is random or not.
+        |  If ``True``, gain is sampled from ``uniform(low=0.0, high=power)`` in every batch.
+        |  Default: ``False``
 
-        * `noise_type`; string, now only support 'white'.
-            Default: `white`
+    noise_type; str,
+        |  Specify the type of noise. It only supports ``'white'`` now.
+        |  Default: ```white```
 
-    # Input shapes
-        Any shape
 
-    # Returns
-        input + generated noise in the same shape as input.
+    Returns
+    -------
+    Same as input data but with additional generated noise.
 
-    # Examples
-        ```python
+    Examples
+    --------
+    Adding a white noise on the top of Mel-spectrogram
+
         import keras
         import kapre
         from keras.models import Sequential
@@ -64,7 +73,7 @@ class AdditiveNoise(Layer):
         # Trainable params: 0
         # Non-trainable params: 296,064
         # ________________________________________________________________________________
-        ```
+
     """
 
     def __init__(self, power=0.1, random_gain=False, noise_type='white', **kwargs):

@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Datasets
+========
+
+"""
 import os
 from . import utils_datasets
 import librosa
@@ -13,22 +19,33 @@ def load_jamendo(save_path='datasets', sr=16000, mono=True, duration=None, offse
     As it takes quite a while for decoding the audio files, it would be better to store
     the returned value as npy/hdf/whatever and use it.
 
-    Arguments
-    ---------
-        save_path: absolute/relative path to store the dataset
-        sr: sampling rate of audio sources. It is also used to compute label arrays
-        mono: boolean. if downmix to mono or not.
-        duration: float [second], duration of audio files
-        offset: float [second], offset to load
+    Parameters
+    ----------
+    save_path: str,
+        absolute/relative path to store the dataset
+
+    sr: int > 0
+        sampling rate of audio sources.
+        It is also used to compute label arrays
+
+    mono: bool
+        Whether downmix the audio signals to mono or not.
+
+    duration: float [second]
+        Duration of audio files
+
+    offset: float [second]
+        Offset to load
 
     Returns
     -------
         srcs: list, length of 3.
-            each element is a list of train/valid/test sources
-            e.g. srcs[0][0].shape = (1, 3959745) when sr=16000 and mono=True
+            |  each element is a list of train/valid/test sources
+            |  e.g. ``srcs[0][0].shape = (1, 3959745)`` when ``sr=16000`` and ``mono=True``
+
         ys: list, length of 3.
-            each element is a list of train/valid/test groundtruths
-            e.g., ys[0][0].shape = (3959745, )
+            |  each element is a list of train/valid/test groundtruths
+            |  e.g., ``ys[0][0].shape = (3959745, )``
 
     """
     set_names = ['train', 'valid', 'test']
@@ -86,14 +103,16 @@ def load_fma(save_path='datasets', size='small'):
 
     It would be better to download directly from the link for large/full..
 
-    Arguments
-    ---------
-        save_path: absolute/relative path to store the dataset
-        size: string, 'small', 'medium', 'large', 'huge'
-            small: 8,000 tracks of 30s, 8 balanced genres (GTZAN-like) (7.2 GiB)
-            medium: 25,000 tracks of 30s, 16 unbalanced genres (22 GiB)
-            large: 106,574 tracks of 30s, 161 unbalanced genres (93 GiB)
-            full: 106,574 untrimmed tracks, 161 unbalanced genres (879 GiB)
+    Parameters
+    ----------
+    save_path: str,
+        absolute/relative path to store the dataset
+
+    size: str, 'small', 'medium', 'large', 'huge'
+        |  small: 8,000 tracks of 30s, 8 balanced genres (GTZAN-like) (7.2 GiB)
+        |  medium: 25,000 tracks of 30s, 16 unbalanced genres (22 GiB)
+        |  large: 106,574 tracks of 30s, 161 unbalanced genres (93 GiB)
+        |  full: 106,574 untrimmed tracks, 161 unbalanced genres (879 GiB)
 
     """
     assert size in ('small', 'medium', 'large', 'full')
@@ -132,10 +151,13 @@ def load_fma(save_path='datasets', size='small'):
 def load_musicnet(save_path='datasets', format='hdf'):
     """Download musicnet (https://homes.cs.washington.edu/~thickstn/start.html)
 
-    Arguments
-    ---------
-        save_path: absolute/relative path to store the dataset
-        format: string, either 'hdf' or 'npz'
+    Parameters
+    ----------
+    save_path: str,
+        absolute/relative path to store the dataset
+
+    format: str,
+        Data format to download. Either 'hdf' or 'npz'
 
     """
     assert format in ('hdf', 'npz')
@@ -157,8 +179,8 @@ def load_magnatagatune(save_path='datasets'):
     """Download magnatagatune dataset, concate the zip files, unzip it,
     to `save_path`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
         save_path: absolute or relative path to store the dataset
 
     """
@@ -203,7 +225,8 @@ def load_gtzan_speechmusic(save_path='datasets'):
 
     Arguments
     ---------
-        save_path: absolute or relative path to store the dataset
+    save_path: str,
+        Absolute or relative path to store the dataset
 
     """
     datadir = utils_datasets.get_file('gtzan_speechmusic.tar.gz', 'http://opihi.cs.uvic.ca/sound/music_speech.tar.gz',
@@ -232,9 +255,10 @@ def load_gtzan_genre(save_path='datasets'):
     ```
     Then it creates a helper csv file.
 
-    Arguments
-    ---------
-        save_path: absolute or relative path to store the dataset
+    Parameters
+    ----------
+    save_path: str,
+        Absolute or relative path to store the dataset
 
     """
 

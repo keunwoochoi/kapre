@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+Utils
+=====
+"""
 from __future__ import absolute_import
 import numpy as np
 from keras.engine import Layer
@@ -8,19 +12,24 @@ from . import backend_keras
 
 
 class AmplitudeToDB(Layer):
-    '''Converts amplitude to decibel
+    '''A layer that converts amplitude to decibel
 
-    # Parameter
-        * amin: float (scalar), noise floor.
+    Parameters
+    ----------
+    amin: float [scalar]
+        Noise floor.
         
-        * top_db: float (scalar), dynamic range.
+    top_db: float [scalar]
+        Dynamic range of output.
 
-    # Example
-    ```python
+    Example
+    -------
+    Adding ``AmplitudeToDB`` after a spectrogram::
+
         model.add(Spectrogram(return_decibel=False))
         model.add(AmplitudeToDB())
 
-    ```
+
     '''
 
     def __init__(self, ref_power=1.0, amin=1e-10, top_db=80.0):
@@ -42,25 +51,33 @@ class AmplitudeToDB(Layer):
 
 
 class Normalization2D(Layer):
-    '''Normalises input data in `axis` axis.
+    '''A layer that normalises input data in ``axis`` axis.
 
-    # Parameters
-        * input_shape: (None, n_ch, n_row, n_col) if theano.
+    Parameters
+    ----------
+    input_shape: tuple
+        E.g., ``(None, n_ch, n_row, n_col)`` if theano.
 
-        * int_axis: integer, along which mean/std is computed.
-            0 for per data sample, -1 for per batch.
+    int_axis: int
+        |  axis index that along which mean/std is computed.
+        |  0 for per data sample, -1 for per batch.
+        |  1, 2, 3 for channel, row, col (if theano convention)
+        |  if ``None``, ``str_axis`` SHOULD BE set.
 
-        * str_axis: string, used ONLY IF `int_axis is None`.
-            in ('batch', 'data_sample', 'channel', 'freq', 'time')
-            Even though it is optional, actually it is recommended to use
-            `str_axis` over `int_axis` because it provides more meaningful
-            and dim_ordering-robust interface.
+    str_axis: str
+        |  used ONLY IF ``int_axis`` is ``None``.
+        |  ``'batch'``, ``'data_sample'``, ``'channel'``, ``'freq'``, ``'time')``
+        |  Even though it is optional, actually it is recommended to use
+        |  ``str_axis`` over ``int_axis`` because it provides more meaningful
+        |  and dim_ordering-robust interface.
 
-    # Example
-    ```
+    Example
+    -------
+    A frequency-axis normalization after a spectrogram::
+
         model.add(Spectrogram())
         model.add(Normalization2D(stf_axis='freq))
-    ```
+
     '''
 
     def __init__(self, str_axis=None, int_axis=None, dim_ordering='default',

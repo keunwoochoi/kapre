@@ -15,44 +15,55 @@ from theano.tensor import fft
 
 
 class Stft(Layer):
-    '''Returns STFT in 2D image format. It uses Fast Fourier transform (FFT)
-    Now only support for theano.
+    '''Spectrogram layer that outputs spectrogram(s) in 2D image format.
+    It uses Fast Fourier transform (FFT).
+    Now only support for theano (>=0.9).
     
-    # Arguments
-        * `n_fft`: integer > 0 (scalar), power of 2. 
-            number of DFT points
-            Default: `512`
+    Parameters
+    ----------
+    n_fft: int > 0 [scalar]
+        |  The number of FFT points, presumably power of 2,
+        |  Default: ``512``
 
-        * `n_hop`: integer > 0 (scalar), hop length.
-            If `None`, `n_fft / 2` is used.
-            Default: `None`
+    n_hop: int > 0 [scalar]
+        |  Hop length between frames in sample,  probably <= ``n_dft``.
+        |  Default: ``None`` (``n_dft / 2`` is used)
 
-        * `power_stft`: float (scalar), `2.0` if power-spectrogram,
-            `1.0` if amplitude spectrogram
-            Default: `2.0`
+    power_stft: float [scalar]
+        |  ``2.0`` to get power-spectrogram, ``1.0`` to get amplitude-spectrogram.
+        |  Usually ``1.0`` or ``2.0``.
+        |  Default: ``2.0``
 
-        * `return_decibel_stft`: bool, returns decibel, 
-            i.e. log10(amplitude spectrogram) if `True`
-            Default: `False`
 
-        * `dim_ordering`: string, `'th'` or `'tf'`.
-            The returned spectrogram follows this dim_ordering convention.
-            If `'default'`, follows the current Keras session's setting.
-            Default: `'default'`
+    return_decibel_stft: bool
+        |  Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
+        |  Recommended to use ``True``, although it's not by default.
+        |  Default: ``False``
 
-    # Input shape
-        * 2D array, `(audio_channel, audio_length)`.
-            E.g., `(1, 44100)` for mono signal,
-                `(2, 44100)` for stereo signal.
-            It supports multichannel signal input.
+    dim_ordering: string, ``'th'`` or ``'tf'``.
+        |  The returned spectrogram follows this dim_ordering convention.
+        |  If ``'default'``, it follows the current Keras session's setting.
+        |  Setting is in ``./keras/keras.json``.
+        |  Default: ``'default'``
 
-    # Returns
-        * abs(Spectrogram) in a shape of 2D data, i.e.,
-            `(None, n_channel, n_freq, n_time)` if `'th'`,
-            `(None, n_freq, n_time, n_channel)` if `'tf'`,
+    Notes
+    -----
+        |  The input should be a 2D array, ``(audio_channel, audio_length)``.
+        |  E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
+        |  It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
 
-    # Example
-        ```python
+    Returns
+    -------
+    A Keras layer
+        |  abs(Spectrogram) in a shape of 2D data, i.e.,
+        |  `(None, n_channel, n_freq, n_time)` if `'th'`,
+        |  `(None, n_freq, n_time, n_channel)` if `'tf'`,
+
+
+    Example
+    -------
+    Adding a STFT layer::
+
         import keras
         import kapre
         from keras.models import Sequential
@@ -85,7 +96,7 @@ class Stft(Layer):
         # Non-trainable params: 0
         # ________________________________________________________________________________
 
-        ```
+
     '''
     def __init__(self, n_fft=512, n_hop=None,
                  power_stft=2.0, return_decibel_stft=False,
@@ -115,7 +126,6 @@ class Stft(Layer):
         super(Stft, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        '''input_shape: (n_ch, length)'''
         self.n_ch = input_shape[1]
         self.len_src = input_shape[2]
         self.is_mono = (self.n_ch == 1)
@@ -138,8 +148,7 @@ class Stft(Layer):
             return (input_shape[0], self.n_freq, self.n_frame, self.n_ch)
 
     def call(self, x, mask=None):
-        '''computes stft ** power.'''
-        for fr_idx in range(self.n_frame):    
+        for fr_idx in range(self.n_frame):
             X_frame_power = K.sum(K.square(fft.rfft(
                                         self.fft_window * x[:, :, fr_idx * self.n_hop :
                                                            fr_idx * self.n_hop + self.n_fft]
