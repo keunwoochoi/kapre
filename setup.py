@@ -14,9 +14,9 @@ setup(name='kapre',
         'librosa >= 0.4',
         'pandas',
       ],
-      extras_require={
-          'docs':['numpydoc', 'sphinx', 'sphinx_rtd_theme',
-                  'sphinxcontrib-napoleon']
-          },
+      # extras_require={
+      #     'docs':['numpydoc', 'sphinx > 1.3', 'sphinx_rtd_theme',
+      #             'sphinxcontrib-napoleon']
+      #     },
       keywords='audio music deep learning keras',
       zip_safe=False)

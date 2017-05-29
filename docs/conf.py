@@ -36,7 +36,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.autodoc',
-    'sphinxcontrib.napoleon'
+    'sphinx.ext.napoleon'
 ]
 
 napoleon_numpy_docstring = True
