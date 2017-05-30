@@ -1,3 +1,5 @@
+.. _api:
+
 .. automodule:: kapre.time_frequency
     :members:
     :show-inheritance:
