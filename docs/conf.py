@@ -19,9 +19,9 @@ import shlex
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../kapre'))
+# sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('../'))
+# sys.path.insert(0, os.path.abspath('../kapre'))
 
 # -- General configuration ------------------------------------------------
 
@@ -32,15 +32,17 @@ sys.path.insert(0, os.path.abspath('../kapre'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     # 'numpydoc'
 ]
+from glob import glob
+autosummary_generate = glob('*.rst')
 
 napoleon_numpy_docstring = True
 
@@ -88,7 +90,7 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', '_templates']
+exclude_patterns = ['_build', '_templates', 'Thumbs.db', '.DS_Store']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -199,11 +201,11 @@ html_static_path = ['_static']
 #html_additional_pages = {}
 
 # If false, no module index is generated.
-html_domain_indices = True
+# html_domain_indices = True
 
 # If false, no index is generated.
-html_use_index = True
-html_use_modindex = True
+# html_use_index = True
+# html_use_modindex = True
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False
@@ -329,4 +331,3 @@ intersphinx_mapping = {'python': ('https://docs.python.org/2.7', None),
                        'keras': ('https://keras.io', None)}
 
 numpydoc_show_class_members = False
-
