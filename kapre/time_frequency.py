@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Time-frequency representations
-==============================
-
-"""
 from __future__ import absolute_import
 import numpy as np
 import keras

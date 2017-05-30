@@ -1,7 +1,5 @@
-time frequency
---------------
-
-.. _api:
+time-frequency representations
+------------------------------
 
 .. automodule:: kapre.time_frequency
     :members:
