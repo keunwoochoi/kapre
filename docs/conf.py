@@ -41,8 +41,6 @@ extensions = [
     'sphinx.ext.intersphinx',
     # 'numpydoc'
 ]
-from glob import glob
-autosummary_generate = glob('*.rst')
 
 napoleon_numpy_docstring = True
 
@@ -90,7 +88,7 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', '_templates', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', '_templates']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -201,11 +199,11 @@ html_static_path = ['_static']
 #html_additional_pages = {}
 
 # If false, no module index is generated.
-# html_domain_indices = True
+html_domain_indices = True
 
 # If false, no index is generated.
-# html_use_index = True
-# html_use_modindex = True
+html_use_index = True
+html_use_modindex = True
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False
@@ -331,3 +329,4 @@ intersphinx_mapping = {'python': ('https://docs.python.org/2.7', None),
                        'keras': ('https://keras.io', None)}
 
 numpydoc_show_class_members = False
+
