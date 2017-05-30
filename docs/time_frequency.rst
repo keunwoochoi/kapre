@@ -1,3 +1,6 @@
+time frequency
+--------------
+
 .. _api:
 
 .. automodule:: kapre.time_frequency
