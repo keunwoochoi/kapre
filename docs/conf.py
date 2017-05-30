@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# kapre documentation build configuration file, created by
-# sphinx-quickstart on Tue May 23 13:57:54 2017.
+# Kapre documentation build configuration file, created by
+# sphinx-quickstart on Wed May 31 00:31:32 2017.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -19,9 +19,7 @@ import shlex
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-# sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../'))
-# sys.path.insert(0, os.path.abspath('../kapre'))
+#sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration ------------------------------------------------
 
@@ -35,15 +33,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx',
-    # 'numpydoc'
 ]
-
-napoleon_numpy_docstring = True
-
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -60,7 +50,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'kapre'
+project = u'Kapre'
 copyright = u'2017, Keunwoo Choi'
 author = u'Keunwoo Choi'
 
@@ -88,7 +78,7 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', '_templates']
+exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -99,7 +89,7 @@ exclude_patterns = ['_build', '_templates']
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
-add_module_names = True
+#add_module_names = True
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
@@ -107,22 +97,6 @@ add_module_names = True
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
-
-
-# -- RTD cruft ---
-
-import six
-
-if six.PY3:
-    from unittest.mock import MagicMock
-else:
-    from mock import Mock as MagicMock
-
-
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-            return Mock()
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -138,16 +112,7 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-# html_theme = 'sphinx_rtd_theme'
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
-    html_theme = 'default'
-    MOCK_MODULES = ['argparse', 'numpy', 'scipy', 'freetype', 'matplotlib']
-    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-else:
-    import sphinx_rtd_theme
-    html_theme = 'sphinx_rtd_theme'
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -199,11 +164,10 @@ html_static_path = ['_static']
 #html_additional_pages = {}
 
 # If false, no module index is generated.
-html_domain_indices = True
+#html_domain_indices = True
 
 # If false, no index is generated.
-html_use_index = True
-html_use_modindex = True
+#html_use_index = True
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False
@@ -240,7 +204,7 @@ html_use_modindex = True
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'kapredoc'
+htmlhelp_basename = 'Kapredoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -262,7 +226,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'kapre.tex', u'kapre Documentation',
+  (master_doc, 'Kapre.tex', u'Kapre Documentation',
    u'Keunwoo Choi', 'manual'),
 ]
 
@@ -292,7 +256,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'kapre', u'kapre Documentation',
+    (master_doc, 'kapre', u'Kapre Documentation',
      [author], 1)
 ]
 
@@ -306,8 +270,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'kapre', u'kapre Documentation',
-   author, 'kapre', 'One line description of project.',
+  (master_doc, 'Kapre', u'Kapre Documentation',
+   author, 'Kapre', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -322,11 +286,3 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
-
-intersphinx_mapping = {'python': ('https://docs.python.org/2.7', None),
-                       'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-                       'librosa': ('https://librosa.github.io/librosa/', None),
-                       'keras': ('https://keras.io', None)}
-
-numpydoc_show_class_members = False
-
