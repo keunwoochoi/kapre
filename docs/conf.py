@@ -18,6 +18,11 @@ import shlex
 
 import six
 
+print '-' * 60
+print sys.path
+
+
+
 if six.PY3:
     from unittest.mock import MagicMock
 else:
@@ -27,6 +32,13 @@ else:
 #     @classmethod
 #     def __getattr__(cls, name):
 #             return Mock()
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+# sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('..'))
 
 class Mock(MagicMock):
     @classmethod
@@ -38,12 +50,6 @@ MOCK_MODULES = ['pygtk', 'gtk', 'gobject', 'argparse', 'numpy', 'pandas', 'tenso
                 'keras.backend.tensorflow_backend', 'tensorflow.python.training', 
                 'tensorflow.python.training.moving_averages', 'kapre']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ------------------------------------------------
 

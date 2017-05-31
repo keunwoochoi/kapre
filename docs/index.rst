@@ -15,7 +15,7 @@ Contents:
    :maxdepth: 2
 
    time_frequency.rst
-   
+
 
 Indices and tables
 ==================
