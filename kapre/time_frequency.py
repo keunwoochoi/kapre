@@ -44,8 +44,8 @@ class Spectrogram(Layer):
         |  If ``True``, Kernels are initialised with DFT kernels and then trained.
         |  Default: ``False``
 
-    dim_ordering: string, ``'th'`` or ``'tf'``.
-        |  The returned spectrogram follows this dim_ordering convention.
+    dim_ordering: string, ``'channels_first'`` or ``'channels_last'``.
+        |  The returned spectrogram follows this image_data_format strategy.
         |  If ``'default'``, it follows the current Keras session's setting.
         |  Setting is in ``./keras/keras.json``.
         |  Default: ``'default'``
@@ -60,8 +60,8 @@ class Spectrogram(Layer):
     -------
     A Keras layer
         |  abs(Spectrogram) in a shape of 2D data, i.e.,
-        |  `(None, n_channel, n_freq, n_time)` if `'th'`,
-        |  `(None, n_freq, n_time, n_channel)` if `'tf'`,
+        |  `(None, n_channel, n_freq, n_time)` if `'channels_first'`,
+        |  `(None, n_freq, n_time, n_channel)` if `'channels_last'`,
 
     Example
     -------
@@ -103,7 +103,7 @@ class Spectrogram(Layer):
 
     def __init__(self, n_dft=512, n_hop=None, padding='same',
                  power_spectrogram=2.0, return_decibel_spectrogram=False,
-                 trainable_kernel=False, dim_ordering='default', **kwargs):
+                 trainable_kernel=False, image_data_format='default', **kwargs):
         assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
             ('n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft)
         assert isinstance(trainable_kernel, bool)
@@ -112,11 +112,11 @@ class Spectrogram(Layer):
         if n_hop is None:
             n_hop = n_dft / 2
 
-        assert dim_ordering in ('default', 'th', 'tf')
-        if dim_ordering == 'default':
-            self.dim_ordering = K.image_dim_ordering()
+        assert image_data_format in ('default', 'channels_first', 'channels_last')
+        if image_data_format == 'default':
+            self.image_data_format = K.image_data_format()
         else:
-            self.dim_ordering = dim_ordering
+            self.image_data_format = image_data_format
 
         self.n_dft = n_dft
         assert n_dft % 2 == 0
@@ -132,7 +132,7 @@ class Spectrogram(Layer):
         self.n_ch = input_shape[1]
         self.len_src = input_shape[2]
         self.is_mono = (self.n_ch == 1)
-        if self.dim_ordering == 'th':
+        if self.image_data_format == 'channels_first':
             self.ch_axis_idx = 1
         else:
             self.ch_axis_idx = 3
@@ -159,10 +159,10 @@ class Spectrogram(Layer):
         # self.built = True
 
     def compute_output_shape(self, input_shape):
-        if self.dim_ordering == 'th':
-            return (input_shape[0], self.n_ch, self.n_filter, self.n_frame)
+        if self.image_data_format == 'channels_first':
+            return input_shape[0], self.n_ch, self.n_filter, self.n_frame
         else:
-            return (input_shape[0], self.n_filter, self.n_frame, self.n_ch)
+            return input_shape[0], self.n_filter, self.n_frame, self.n_ch
 
     def call(self, x):
         output = self._spectrogram_mono(x[:, 0:1, :])
@@ -184,7 +184,7 @@ class Spectrogram(Layer):
                   'power_spectrogram': self.power_spectrogram,
                   'return_decibel_spectrogram': self.return_decibel_spectrogram,
                   'trainable_kernel': self.trainable_kernel,
-                  'dim_ordering': self.dim_ordering}
+                  'image_data_format': self.image_data_format}
         base_config = super(Spectrogram, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -349,22 +349,22 @@ class Melspectrogram(Spectrogram):
         self.built = True
 
     def compute_output_shape(self, input_shape):
-        if self.dim_ordering == 'th':
-            return (input_shape[0], self.n_ch, self.n_mels, self.n_frame)
+        if self.image_data_format == 'channels_first':
+            return input_shape[0], self.n_ch, self.n_mels, self.n_frame
         else:
-            return (input_shape[0], self.n_mels, self.n_frame, self.n_ch)
+            return input_shape[0], self.n_mels, self.n_frame, self.n_ch
 
     def call(self, x):
         power_spectrogram = super(Melspectrogram, self).call(x)
         # now,  th: (batch_sample, n_ch, n_freq, n_time)
         #       tf: (batch_sample, n_freq, n_time, n_ch)
-        if self.dim_ordering == 'th':
+        if self.image_data_format == 'channels_first':
             power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 1, 3, 2])
         else:
             power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 3, 2, 1])
         # now, whatever dim_ordering, (batch_sample, n_ch, n_time, n_freq)
         output = K.dot(power_spectrogram, self.freq2mel)
-        if self.dim_ordering == 'th':
+        if self.image_data_format == 'channels_first':
             output = K.permute_dimensions(output, [0, 1, 3, 2])
         else:
             output = K.permute_dimensions(output, [0, 3, 2, 1])

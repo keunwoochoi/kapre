@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='kapre',
-      version='0.0.3.1',
+      version='0.0.4',
       description='KAPRE: Keras Audio Preprocessors. A set of Keras layers for audio pre-processing easier deep learning',
       author='Keunwoo Choi',
       url='http://github.com/keunwoo/kapre/',
@@ -14,6 +14,7 @@ setup(name='kapre',
         'numpy >= 1.8.0',
         'librosa >= 0.4',
         'pandas',
+        'future'
       ],
       extras_require={
           'docs':['sphinx > 1.3', 'sphinx_rtd_theme'], # 'numpydoc', 

@@ -61,7 +61,7 @@ class Normalization2D(Layer):
     int_axis: int
         |  axis index that along which mean/std is computed.
         |  0 for per data sample, -1 for per batch.
-        |  1, 2, 3 for channel, row, col (if theano convention)
+        |  1, 2, 3 for channel, row, col (if channels_first)
         |  if ``None``, ``str_axis`` SHOULD BE set.
 
     str_axis: str
@@ -80,18 +80,18 @@ class Normalization2D(Layer):
 
     '''
 
-    def __init__(self, str_axis=None, int_axis=None, dim_ordering='default',
+    def __init__(self, str_axis=None, int_axis=None, image_data_format='default',
                  eps=1e-10, **kwargs):
         assert not (int_axis is None and str_axis is None), \
             'In Normalization2D, int_axis or str_axis should be specified.'
 
-        assert dim_ordering in ('th', 'tf', 'default'), \
-            'Incorrect dim_ordering: {}'.format(dim_ordering)
+        assert image_data_format in ('channels_first', 'channels_last', 'default'), \
+            'Incorrect image_data_format: {}'.format(image_data_format)
 
-        if dim_ordering == 'default':
-            self.dim_ordering = K.image_dim_ordering()
+        if image_data_format == 'default':
+            self.image_data_format = K.image_data_format()
         else:
-            self.dim_ordering = dim_ordering
+            self.image_data_format = image_data_format
 
         if int_axis is None:
             assert str_axis in ('batch', 'data_sample', 'channel', 'freq', 'time'), \
@@ -101,19 +101,19 @@ class Normalization2D(Layer):
             elif str_axis == 'data_sample':
                 int_axis = 0
             elif str_axis == 'channel':
-                if self.dim_ordering == 'th':
+                if self.image_data_format == 'channels_first':
                     int_axis = 1
-                elif self.dim_ordering == 'tf':
+                elif self.image_data_format == 'channels_last':
                     int_axis = 3
             elif str_axis == 'freq':
-                if self.dim_ordering == 'th':
+                if self.image_data_format == 'channels_first':
                     int_axis = 2
-                elif self.dim_ordering == 'tf':
+                elif self.image_data_format == 'channels_last':
                     int_axis = 1
             elif str_axis == 'time':
-                if self.dim_ordering == 'th':
+                if self.image_data_format == 'channels_first':
                     int_axis = 3
-                elif self.dim_ordering == 'tf':
+                elif self.image_data_format == 'channels_last':
                     int_axis = 2
 
         assert int_axis in (-1, 0, 1, 2, 3), 'invalid int_axis: ' + str(int_axis)
@@ -134,7 +134,7 @@ class Normalization2D(Layer):
 
     def get_config(self):
         config = {'int_axis': self.axis,
-                  'dim_ordering': self.dim_ordering}
+                  'image_data_format': self.image_data_format}
         base_config = super(Normalization2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 

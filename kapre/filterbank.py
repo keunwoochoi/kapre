@@ -54,7 +54,7 @@ class Filterbank(Layer):
         super(Filterbank, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        if self.dim_ordering == 'th':
+        if self.image_data_format == 'channels_first':
             self.n_ch = input_shape[1]
             self.n_freq = input_shape[2]
             self.n_time = input_shape[3]
@@ -70,7 +70,7 @@ class Filterbank(Layer):
                                                      fmin=self.fmin,
                                                      fmax=self.fmax)
         elif self.init == 'log':
-            self.filterbank = backend.filterbank_log(sr=sr,
+            self.filterbank = backend.filterbank_log(sr=self.sr,
                                                      n_freq=self.n_freq,
                                                      n_bins=self.n_fbs,
                                                      bins_per_octave=self.bins_per_octave,
@@ -83,19 +83,19 @@ class Filterbank(Layer):
         self.built = True
 
     def compute_output_shape(self, input_shape):
-        if self.dim_ordering == 'th':
-            return (input_shape[0], self.n_ch, self.n_fbs, self.n_time)
+        if self.image_data_format == 'channels_first':
+            return input_shape[0], self.n_ch, self.n_fbs, self.n_time
         else:
-            return (input_shape[0], self.n_fbs, self.n_time, self.n_ch)
+            return input_shape[0], self.n_fbs, self.n_time, self.n_ch
 
     def call(self, x):
-        if self.dim_ordering == 'th':
+        if self.image_data_format == 'channels_first':
             x = K.permute_dimensions(x, [0, 1, 3, 2])
         else:
             x = K.permute_dimensions(x, [0, 3, 2, 1])
         output = K.dot(x, self.filterbank)
 
-        if self.dim_ordering == 'th':
+        if self.image_data_format == 'channels_first':
             return K.permute_dimensions(output, [0, 1, 3, 2])
         else:
             return K.permute_dimensions(output, [0, 3, 2, 1])
