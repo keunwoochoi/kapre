@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from keras.engine import Layer
 from keras import backend as K
 from . import backend
@@ -76,7 +77,7 @@ class Filterbank(Layer):
                                                      bins_per_octave=self.bins_per_octave,
                                                      fmin=self.fmin)
 
-        if self.trainable_fb == True:
+        if self.trainable_fb:
             self.trainable_weights.append(self.filterbank)
         else:
             self.non_trainable_weights.append(self.filterbank)

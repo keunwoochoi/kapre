@@ -110,7 +110,7 @@ class Spectrogram(Layer):
         assert isinstance(return_decibel_spectrogram, bool)
         assert padding in ('same', 'valid')
         if n_hop is None:
-            n_hop = n_dft / 2
+            n_hop = n_dft // 2
 
         assert image_data_format in ('default', 'channels_first', 'channels_last')
         if image_data_format == 'default':
@@ -120,7 +120,7 @@ class Spectrogram(Layer):
 
         self.n_dft = n_dft
         assert n_dft % 2 == 0
-        self.n_filter = int(n_dft / 2) + 1
+        self.n_filter = int(n_dft // 2) + 1
         self.trainable_kernel = trainable_kernel
         self.n_hop = n_hop
         self.padding = 'same'
