@@ -151,10 +151,12 @@ Please cite this repo, but icml 2017 workshop paper will be up soon.
 ## `time_frequency`
 ### `Spectrogram`
 
-`kapre.time_frequency.Spectrogram(n_dft=512, n_hop=None, padding='same',
-                 power_spectrogram=2.0, return_decibel_spectrogram=False,
-                 trainable_kernel=False, image_data_format='default', **kwargs)`
-
+```python
+kapre.time_frequency.Spectrogram(n_dft=512, n_hop=None, padding='same',
+                                 power_spectrogram=2.0, return_decibel_spectrogram=False,
+                                 trainable_kernel=False, image_data_format='default',
+                                 **kwargs)
+```
 Spectrogram layer that outputs spectrogram(s) in 2D image format.
 
 #### Parameters
