@@ -148,7 +148,7 @@ Please cite this repo, but icml 2017 workshop paper will be up soon.
 ```
 
 # API Documentation
-## time_frequency.py
+## [time_frequency.py](kapre/time_frequency.py)
 ### Spectrogram ([↑up to contents](#contents))
 
 ```python
