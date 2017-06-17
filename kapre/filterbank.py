@@ -9,35 +9,37 @@ from kapre import backend
 # not parameterised, just a matrix multiplication
 
 class Filterbank(Layer):
-    '''Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
+    '''
+    ### `Filterbank`
 
-    Notes
-    -----
-    input_shape: ``(None, n_ch, n_freqs, n_time)``
+    `kapre.filterbank.Filterbank`
 
-    output_shape: ``(None, n_ch, n_mels, n_time)``
+    Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
 
-    Parameters
-    ----------
-    n_fbs: int
-        Number of filterbanks
+    #### Notes
+        * input_shape: ``(None, n_ch, n_freqs, n_time)``
+        * output_shape: ``(None, n_ch, n_mels, n_time)``
 
-    sr: int
-        sampling rate. It is used to initialize ``freq_to_mel``.
+    #### Parameters
+    * n_fbs: int
+       - Number of filterbanks
 
-    init: str
-        if ``'mel'``, init with mel center frequencies and stds.
+    * sr: int
+        - sampling rate. It is used to initialize ``freq_to_mel``.
 
-    fmin = float
-        min frequency of filterbanks.
-        If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
+    * init: str
+        - if ``'mel'``, init with mel center frequencies and stds.
 
-    fmax = float
-        max frequency of filterbanks.
-        If `init == 'log'`, fmax is ignored.
+    * fmin: float
+        - min frequency of filterbanks.
+        - If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
 
-    trainable_fb: bool,
-        Whether the filterbanks are trainalbe or not.
+    * fmax: float
+        - max frequency of filterbanks.
+        - If `init == 'log'`, fmax is ignored.
+
+    * trainable_fb: bool,
+        - Whether the filterbanks are trainable or not.
 
     '''
 
