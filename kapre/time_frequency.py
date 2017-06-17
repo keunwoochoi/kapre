@@ -12,8 +12,12 @@ class Spectrogram(Layer):
     """
     ### `Spectrogram`
 
-    `kapre.time_frequency.Spectrogram`
-
+    ```python
+    kapre.time_frequency.Spectrogram(n_dft=512, n_hop=None, padding='same',
+                                     power_spectrogram=2.0, return_decibel_spectrogram=False,
+                                     trainable_kernel=False, image_data_format='default',
+                                     **kwargs)
+    ```
     Spectrogram layer that outputs spectrogram(s) in 2D image format.
 
     #### Parameters
@@ -179,8 +183,11 @@ class Spectrogram(Layer):
 class Melspectrogram(Spectrogram):
     '''
     ### `Melspectrogram`
-
-    `kapre.time_frequency.Melspectrogram`
+    ```python
+    kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
+                                        power_melgram=1.0, return_decibel_melgram=False,
+                                        trainable_fb=False, **kwargs)
+    ```
 
     Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
 

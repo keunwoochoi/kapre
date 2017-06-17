@@ -12,8 +12,9 @@ class AmplitudeToDB(Layer):
 
     ### `AmplitudeToDB`
 
-    `kapre.utils.AmplitudeToDB`
-
+    ```python
+    kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kargs)
+    ```
 
     A layer that converts amplitude to decibel
 
@@ -41,7 +42,7 @@ class AmplitudeToDB(Layer):
 
     '''
 
-    def __init__(self, ref_power=1.0, amin=1e-10, top_db=80.0):
+    def __init__(self, ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs):
         assert isinstance(ref_power, float) or ref_power == 'max'
         self.ref_power = ref_power
         self.amin = amin

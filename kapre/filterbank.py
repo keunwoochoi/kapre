@@ -12,7 +12,8 @@ class Filterbank(Layer):
     '''
     ### `Filterbank`
 
-    `kapre.filterbank.Filterbank`
+    `kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
+                                 bins_per_octave=12, image_data_format='default', **kwargs)`
 
     Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
 

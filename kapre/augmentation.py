@@ -8,9 +8,10 @@ from keras.engine import Layer, InputSpec
 class AdditiveNoise(Layer):
     """
     ### `AdditiveNoise`
-    
-    `kapre.augmentation.AdditiveNoise`
 
+    ```python
+    kapre.augmentation.AdditiveNoise(power=0.1, random_gain=False, noise_type='white', **kwargs)
+    ```
     Add noise to input data and output it.
 
     #### Parameters

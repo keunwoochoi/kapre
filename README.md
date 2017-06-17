@@ -202,8 +202,11 @@ A Keras layer
 
 ### `Melspectrogram`
 
-`kapre.time_frequency.Melspectrogram`
-
+```python
+kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
+                                    power_melgram=1.0, return_decibel_melgram=False,
+                                    trainable_fb=False, **kwargs)
+```
 Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
 
 Its base class is ``Spectrogram``.
@@ -254,11 +257,14 @@ A Keras layer
  * `(None, n_channel, n_mels, n_time)` if `'channels_first'`,
  * `(None, n_mels, n_time, n_channel)` if `'channels_last'`,
 
+
+
 ## `utils`
 ### `AmplitudeToDB`
 
-`kapre.utils.AmplitudeToDB`
-
+```python
+kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs)
+```
 
 A layer that converts amplitude to decibel
 
@@ -284,7 +290,10 @@ Adding ``AmplitudeToDB`` after a spectrogram:
 
 ### `Normalization2D`
 
-`kapre.utils.Normalization2D`
+```python
+kapre.utils.Normalization2D(str_axis=None, int_axis=None, image_data_format='default',
+                            eps=1e-10, **kwargs)
+```
 
 A layer that normalises input data in ``axis`` axis.
 
@@ -315,8 +324,10 @@ A frequency-axis normalization after a spectrogram::
 ## `filterbank`
 ### `Filterbank`
 
-`kapre.filterbank.Filterbank`
-
+```python
+kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
+                            bins_per_octave=12, image_data_format='default', **kwargs)
+```
 Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
 
 #### Notes
@@ -341,7 +352,9 @@ Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
 
 ### `AdditiveNoise`
 
-`kapre.augmentation.AdditiveNoise`
+```python
+kapre.augmentation.AdditiveNoise(power=0.1, random_gain=False, noise_type='white', **kwargs)
+```
 
 Add noise to input data and output it.
 
