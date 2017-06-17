@@ -280,12 +280,12 @@ A layer that converts amplitude to decibel
 #### Example
 Adding ``AmplitudeToDB`` after a spectrogram:
 ```python
-    model.add(Spectrogram(return_decibel=False))
-    model.add(AmplitudeToDB())
+model.add(Spectrogram(return_decibel=False))
+model.add(AmplitudeToDB())
 ```
 , which is the same as:
 ```python
-    model.add(Spectrogram(return_decibel=True))
+model.add(Spectrogram(return_decibel=True))
 ```
 
 ### `Normalization2D` ([↑up to contents](#contents))
@@ -331,8 +331,8 @@ kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., f
 Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
 
 #### Notes
-    * input_shape: ``(None, n_ch, n_freqs, n_time)``
-    * output_shape: ``(None, n_ch, n_mels, n_time)``
+ * input_shape: ``(None, n_ch, n_freqs, n_time)``
+ * output_shape: ``(None, n_ch, n_mels, n_time)``
 
 #### Parameters
 * n_fbs: int
@@ -360,16 +360,16 @@ Add noise to input data and output it.
 
 #### Parameters
 
-* power: float [scalar]
-    - The power of noise. std if it's white noise.
-    - Default: ``0.1``
-* random_gain: bool
-    - Whether the noise gain is random or not.
-    - If ``True``, gain is sampled from ``uniform(low=0.0, high=power)`` in every batch.
-    - Default: ``False``
-* noise_type; str,
-    - Specify the type of noise. It only supports ``'white'`` now.
-    - Default: ```white```
+    * power: float [scalar]
+        - The power of noise. std if it's white noise.
+        - Default: ``0.1``
+    * random_gain: bool
+        - Whether the noise gain is random or not.
+        - If ``True``, gain is sampled from ``uniform(low=0.0, high=power)`` in every batch.
+        - Default: ``False``
+    * noise_type; str,
+        - Specify the type of noise. It only supports ``'white'`` now.
+        - Default: ```white```
 
 
 #### Returns
