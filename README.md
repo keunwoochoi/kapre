@@ -151,7 +151,9 @@ Please cite this repo, but icml 2017 workshop paper will be up soon.
 ## `time_frequency`
 ### `Spectrogram`
 
-`kapre.time_frequency.spectrogram`
+`kapre.time_frequency.Spectrogram(n_dft=512, n_hop=None, padding='same',
+                 power_spectrogram=2.0, return_decibel_spectrogram=False,
+                 trainable_kernel=False, image_data_format='default', **kwargs)`
 
 Spectrogram layer that outputs spectrogram(s) in 2D image format.
 
@@ -211,36 +213,29 @@ auditory system -- by compressing frequency axis into mel-scale axis.
  * sr: integer > 0 [scalar]
    - sampling rate of the input audio signal.
    - Default: ``22050``
-
  * n_mels: int > 0 [scalar]
    - The number of mel bands.
    - Default: ``128``
-
  * fmin: float > 0 [scalar]
    - Minimum frequency to include in Mel-spectrogram.
    - Default: ``0.0``
-
  * fmax: float > ``fmin`` [scalar]
    - Maximum frequency to include in Mel-spectrogram.
    - If `None`, it is inferred as ``sr / 2``.
    - Default: `None`
-
  * power_melgram: float [scalar]
    - Power of ``2.0`` if power-spectrogram,
    - ``1.0`` if amplitude spectrogram.
    - Default: ``1.0``
-
  * return_decibel_melgram: bool
    - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
    - Recommended to use ``True``, although it's not by default.
    - Default: ``False``
-
  * trainable_fb: bool
    - Whether the spectrogram -> mel-spectrogram filterbanks are trainable.
    - If ``True``, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
    - If ``False``, it is initialised and then frozen.
    - Default: `False`
-
  * **kwargs:
    - The keyword arguments of ``Spectrogram`` such as ``n_dft``, ``n_hop``,
    - ``padding``, ``trainable_kernel``, ``image_data_format``.
@@ -269,10 +264,8 @@ A layer that converts amplitude to decibel
 
 * ref_power: float [scalar]
     - reference power. Default: 1.0
-
 * amin: float [scalar]
     - Noise floor. Default: 1e-10
-
 * top_db: float [scalar]
     - Dynamic range of output. Default: 80.0
 
@@ -297,14 +290,12 @@ A layer that normalises input data in ``axis`` axis.
 
 * input_shape: tuple of ints
     - E.g., ``(None, n_ch, n_row, n_col)`` if theano.
-
 * str_axis: str
     - used ONLY IF ``int_axis`` is ``None``.
     - ``'batch'``, ``'data_sample'``, ``'channel'``, ``'freq'``, ``'time')``
     - Even though it is optional, actually it is recommended to use
     - ``str_axis`` over ``int_axis`` because it provides more meaningful
     - and image data format-robust interface.
-
 * int_axis: int
     - axis index that along which mean/std is computed.
     - `0` for per data sample, `-1` for per batch.
@@ -333,21 +324,16 @@ Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
 #### Parameters
 * n_fbs: int
    - Number of filterbanks
-
 * sr: int
     - sampling rate. It is used to initialize ``freq_to_mel``.
-
 * init: str
     - if ``'mel'``, init with mel center frequencies and stds.
-
 * fmin: float
     - min frequency of filterbanks.
     - If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
-
 * fmax: float
     - max frequency of filterbanks.
     - If `init == 'log'`, fmax is ignored.
-
 * trainable_fb: bool,
     - Whether the filterbanks are trainable or not.
 
@@ -362,12 +348,10 @@ Add noise to input data and output it.
 * power: float [scalar]
     - The power of noise. std if it's white noise.
     - Default: ``0.1``
-
 * random_gain: bool
     - Whether the noise gain is random or not.
     - If ``True``, gain is sampled from ``uniform(low=0.0, high=power)`` in every batch.
     - Default: ``False``
-
 * noise_type; str,
     - Specify the type of noise. It only supports ``'white'`` now.
     - Default: ```white```
