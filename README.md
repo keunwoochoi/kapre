@@ -22,7 +22,8 @@ Keras Audio Preprocessors. Written by Keunwoo Choi.
     - A full documentation in this readme.md
     - pip version is updated
 
-## Installation ([↑up to contents](#contents))
+## Installation
+([↑up to contents](#contents))
 
 1. For keras >= 2.0
 ```sh
@@ -45,9 +46,11 @@ $ git checkout a2bde3e
 $ python setup.py install
 ```
 
-## Usage ([↑up to contents](#contents))
+## Usage
 ### Layers
-Preprocessing layers
+([↑up to contents](#contents))
+
+Audio preprocessing layers
 * `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
 * `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
 * `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
@@ -61,7 +64,8 @@ Dataset management
 * [FMA](https://github.com/mdeff/fma): small/medium/large/full collections, up to 100+K songs from free music archieve, for genre classification. With genre hierarchy, pre-computed features, splits, etc.
 * [Jamendo](http://www.mathieuramona.com/wp/data/jamendo/): 61/16/24 songs for vocal activity detection
 
-## One-shot example ([↑up to contents](#contents))
+## One-shot example
+([↑up to contents](#contents))
 
 * More examples on [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
@@ -135,7 +139,9 @@ kapre.datasets.load_musicnet('datasets', format='npz')
 # Kapre does NOT remove zip/tar.gz files after extracting.
 ```
 
-# Citation ([↑up to contents](#contents))
+# Citation
+([↑up to contents](#contents))
+
 Please cite this repo, but icml 2017 workshop paper will be up soon.
 
 ```
@@ -266,7 +272,7 @@ A Keras layer
 
 
 
-## utils.py
+## [utils.py](kapre/utils.py)
 ### AmplitudeToDB
 ([↑up to contents](#contents))
 
@@ -330,7 +336,7 @@ A frequency-axis normalization after a spectrogram::
     model.add(Normalization2D(stf_axis='freq'))
     ```
 
-## filterbank.py
+## [filterbank.py](kapre/filterbank.py)
 ### Filterbank
 ([↑up to contents](#contents))
 
