@@ -15,7 +15,7 @@ Keras Audio Preprocessors. Written by Keunwoo Choi.
   - [`filterbank.Filterbank`](#filterbank)
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
-## News ([↑up to contents](#contents))
+## News
 * 22 June 2017
   - Kapre ver 0.1, aka 'pretty stable' with a benchmark paper
     - Remove STFT, python3 compatible
@@ -45,7 +45,7 @@ $ git checkout a2bde3e
 $ python setup.py install
 ```
 
-## Usage
+## Usage ([↑up to contents](#contents))
 ### Layers
 Preprocessing layers
 * `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
@@ -61,7 +61,7 @@ Dataset management
 * [FMA](https://github.com/mdeff/fma): small/medium/large/full collections, up to 100+K songs from free music archieve, for genre classification. With genre hierarchy, pre-computed features, splits, etc.
 * [Jamendo](http://www.mathieuramona.com/wp/data/jamendo/): 61/16/24 songs for vocal activity detection
 
-## One-shot example
+## One-shot example ([↑up to contents](#contents))
 
 * More examples on [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
@@ -135,7 +135,7 @@ kapre.datasets.load_musicnet('datasets', format='npz')
 # Kapre does NOT remove zip/tar.gz files after extracting.
 ```
 
-# Citation
+# Citation ([↑up to contents](#contents))
 Please cite this repo, but icml 2017 workshop paper will be up soon.
 
 ```
@@ -149,7 +149,7 @@ Please cite this repo, but icml 2017 workshop paper will be up soon.
 
 # API Documentation
 ## `time_frequency`
-### `Spectrogram`
+### `Spectrogram` ([↑up to contents](#contents))
 
 ```python
 kapre.time_frequency.Spectrogram(n_dft=512, n_hop=None, padding='same',
@@ -200,7 +200,7 @@ A Keras layer
  * `(None, n_channel, n_freq, n_time)` if `'channels_first'`,
  * `(None, n_freq, n_time, n_channel)` if `'channels_last'`,
 
-### `Melspectrogram`
+### `Melspectrogram` ([↑up to contents](#contents))
 
 ```python
 kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
@@ -260,7 +260,7 @@ A Keras layer
 
 
 ## `utils`
-### `AmplitudeToDB`
+### `AmplitudeToDB` ([↑up to contents](#contents))
 
 ```python
 kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs)
@@ -288,7 +288,7 @@ Adding ``AmplitudeToDB`` after a spectrogram:
     model.add(Spectrogram(return_decibel=True))
 ```
 
-### `Normalization2D`
+### `Normalization2D` ([↑up to contents](#contents))
 
 ```python
 kapre.utils.Normalization2D(str_axis=None, int_axis=None, image_data_format='default',
@@ -322,7 +322,7 @@ A frequency-axis normalization after a spectrogram::
     ```
 
 ## `filterbank`
-### `Filterbank`
+### `Filterbank` ([↑up to contents](#contents))
 
 ```python
 kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
@@ -350,7 +350,7 @@ Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
 * trainable_fb: bool,
     - Whether the filterbanks are trainable or not.
 
-### `AdditiveNoise`
+### `AdditiveNoise` ([↑up to contents](#contents))
 
 ```python
 kapre.augmentation.AdditiveNoise(power=0.1, random_gain=False, noise_type='white', **kwargs)
