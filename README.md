@@ -321,19 +321,19 @@ A frequency-axis normalization after a spectrogram::
     model.add(Normalization2D(stf_axis='freq'))
     ```
 
-## `filterbank`
-### `Filterbank` ([↑up to contents](#contents))
+## filterbank
+### Filterbank ([↑up to contents](#contents))
 
 ```python
 kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
                             bins_per_octave=12, image_data_format='default', **kwargs)
 ```
-Filterbank assumes a 2d input, i.e., `(None, n_ch, n_freqs, n_time)` (theano).
 
 #### Notes
-     * input_shape: `(None, n_ch, n_freqs, n_time)`
-     * output_shape: `(None, n_ch, n_mels, n_time)`
-
+    Input/output are 2D image format.
+    E.g., if channel_first,
+        - input_shape: ``(None, n_ch, n_freqs, n_time)``
+        - output_shape: ``(None, n_ch, n_mels, n_time)``
 #### Parameters
     * n_fbs: int
        - Number of filterbanks
