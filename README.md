@@ -3,18 +3,18 @@ Keras Audio Preprocessors
 
 
 ## Contents
-- [News](#News)
-- [Installation](#Installation)
-- [Usage](#Usage)
-- [Examples](#One-shot-example)
-- [How to cite](#Citation)
-- [API Documentation](#API-Documentation)
-  - [`time_frequency.Spectrogram`](#Spectrogram)
-  - [`time_frequency.Melspectrogram`](#Melspectrogram)
-  - [`utils.AmplitudeToDB`](#AmplitudeToDB)
-  - [`utils.Normalization2D`](#Normalization2D)
-  - [`filterbank.Filterbank`](#Filterbank)
-  - [`augmentation.AdditiveNoise`](#AdditiveNoise)
+- [News](#news)
+- [Installation](#installation)
+- [Usage](#usage)
+- [One-shot example](#one-shot-example)
+- [How to cite](#citation)
+- [API Documentation](#api-documentation)
+  - [`time_frequency.Spectrogram`](#spectrogram)
+  - [`time_frequency.Melspectrogram`](#melspectrogram)
+  - [`utils.AmplitudeToDB`](#amplitudeToDB)
+  - [`utils.Normalization2D`](#normalization2D)
+  - [`filterbank.Filterbank`](#filterbank)
+  - [`augmentation.AdditiveNoise`](#additiveNoise)
 
 ## News
 * 22 June 2017
