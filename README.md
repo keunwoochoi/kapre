@@ -162,35 +162,35 @@ Spectrogram layer that outputs spectrogram(s) in 2D image format.
 #### Parameters
  * n_dft: int > 0 [scalar]
    - The number of DFT points, presumably power of 2.
-   - Default: ``512``
+   - Default: `512`
  * n_hop: int > 0 [scalar]
-   - Hop length between frames in sample,  probably <= ``n_dft``.
-   - Default: ``None`` (``n_dft / 2`` is used)
- * padding: str, ``'same'`` or ``'valid'``.
+   - Hop length between frames in sample,  probably <= `n_dft`.
+   - Default: `None` (`n_dft / 2` is used)
+ * padding: str, `'same'` or `'valid'`.
    - Padding strategies at the ends of signal.
-   - Default: ``'same'``
+   - Default: `'same'`
  * power_spectrogram: float [scalar],
-   - ``2.0`` to get power-spectrogram, ``1.0`` to get amplitude-spectrogram.
-   - Usually ``1.0`` or ``2.0``.
-   - Default: ``2.0``
+   - `2.0` to get power-spectrogram, `1.0` to get amplitude-spectrogram.
+   - Usually `1.0` or `2.0`.
+   - Default: `2.0`
  * return_decibel_spectrogram: bool,
-    - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
-    - Recommended to use ``True``, although it's not by default.
-    - Default: ``False``
+    - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if `True`.
+    - Recommended to use `True`, although it's not by default.
+    - Default: `False`
  * trainable_kernel: bool
    -  Whether the kernels are trainable or not.
-   -  If ``True``, Kernels are initialised with DFT kernels and then trained.
-   -  Default: ``False``
-* image_data_format: string, ``'channels_first'`` or ``'channels_last'``.
+   -  If `True`, Kernels are initialised with DFT kernels and then trained.
+   -  Default: `False`
+* image_data_format: string, `'channels_first'` or `'channels_last'`.
    -  The returned spectrogram follows this image_data_format strategy.
-   -  If ``'default'``, it follows the current Keras session's setting.
-   -  Setting is in ``./keras/keras.json``.
-   -  Default: ``'default'``
+   -  If `'default'`, it follows the current Keras session's setting.
+   -  Setting is in `./keras/keras.json`.
+   -  Default: `'default'`
 
 #### Notes
- * The input should be a 2D array, ``(audio_channel, audio_length)``.
- * E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
- * It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
+ * The input should be a 2D array, `(audio_channel, audio_length)`.
+ * E.g., `(1, 44100)` for mono signal, `(2, 44100)` for stereo signal.
+ * It supports multichannel signal input, so `audio_channel` can be any positive integer.
 
 #### Returns
 
@@ -209,7 +209,7 @@ kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
 ```
 Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
 
-Its base class is ``Spectrogram``.
+Its base class is `Spectrogram`.
 
 Mel-spectrogram is an efficient representation using the property of human
 auditory system -- by compressing frequency axis into mel-scale axis.
@@ -217,38 +217,38 @@ auditory system -- by compressing frequency axis into mel-scale axis.
 #### Parameters
  * sr: integer > 0 [scalar]
    - sampling rate of the input audio signal.
-   - Default: ``22050``
+   - Default: `22050`
  * n_mels: int > 0 [scalar]
    - The number of mel bands.
-   - Default: ``128``
+   - Default: `128`
  * fmin: float > 0 [scalar]
    - Minimum frequency to include in Mel-spectrogram.
-   - Default: ``0.0``
- * fmax: float > ``fmin`` [scalar]
+   - Default: `0.0`
+ * fmax: float > `fmin` [scalar]
    - Maximum frequency to include in Mel-spectrogram.
-   - If `None`, it is inferred as ``sr / 2``.
+   - If `None`, it is inferred as `sr / 2`.
    - Default: `None`
  * power_melgram: float [scalar]
-   - Power of ``2.0`` if power-spectrogram,
-   - ``1.0`` if amplitude spectrogram.
-   - Default: ``1.0``
+   - Power of `2.0` if power-spectrogram,
+   - `1.0` if amplitude spectrogram.
+   - Default: `1.0`
  * return_decibel_melgram: bool
-   - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
-   - Recommended to use ``True``, although it's not by default.
-   - Default: ``False``
+   - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if `True`.
+   - Recommended to use `True`, although it's not by default.
+   - Default: `False`
  * trainable_fb: bool
    - Whether the spectrogram -> mel-spectrogram filterbanks are trainable.
-   - If ``True``, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
-   - If ``False``, it is initialised and then frozen.
+   - If `True`, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
+   - If `False`, it is initialised and then frozen.
    - Default: `False`
  * **kwargs:
-   - The keyword arguments of ``Spectrogram`` such as ``n_dft``, ``n_hop``,
-   - ``padding``, ``trainable_kernel``, ``image_data_format``.
+   - The keyword arguments of `Spectrogram` such as `n_dft`, `n_hop`,
+   - `padding`, `trainable_kernel`, `image_data_format`.
 
 #### Notes
- * The input should be a 2D array, ``(audio_channel, audio_length)``.
-E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
- * It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
+ * The input should be a 2D array, `(audio_channel, audio_length)`.
+E.g., `(1, 44100)` for mono signal, `(2, 44100)` for stereo signal.
+ * It supports multichannel signal input, so `audio_channel` can be any positive integer.
 
 #### Returns
 
@@ -278,7 +278,7 @@ A layer that converts amplitude to decibel
     - Dynamic range of output. Default: 80.0
 
 #### Example
-Adding ``AmplitudeToDB`` after a spectrogram:
+Adding `AmplitudeToDB` after a spectrogram:
 ```python
 model.add(Spectrogram(return_decibel=False))
 model.add(AmplitudeToDB())
@@ -295,23 +295,23 @@ kapre.utils.Normalization2D(str_axis=None, int_axis=None, image_data_format='def
                             eps=1e-10, **kwargs)
 ```
 
-A layer that normalises input data in ``axis`` axis.
+A layer that normalises input data in `axis` axis.
 
 #### Parameters
 
 * input_shape: tuple of ints
-    - E.g., ``(None, n_ch, n_row, n_col)`` if theano.
+    - E.g., `(None, n_ch, n_row, n_col)` if theano.
 * str_axis: str
-    - used ONLY IF ``int_axis`` is ``None``.
-    - ``'batch'``, ``'data_sample'``, ``'channel'``, ``'freq'``, ``'time')``
+    - used ONLY IF `int_axis` is `None`.
+    - `'batch'`, `'data_sample'`, `'channel'`, `'freq'`, `'time')`
     - Even though it is optional, actually it is recommended to use
-    - ``str_axis`` over ``int_axis`` because it provides more meaningful
+    - `str_axis` over `int_axis` because it provides more meaningful
     - and image data format-robust interface.
 * int_axis: int
     - axis index that along which mean/std is computed.
     - `0` for per data sample, `-1` for per batch.
     - `1`, `2`, `3` for channel, row, col (if channels_first)
-    - if `int_axis is None`, ``str_axis`` SHOULD BE set.
+    - if `int_axis is None`, `str_axis` SHOULD BE set.
 
 #### Example
 
@@ -328,27 +328,27 @@ A frequency-axis normalization after a spectrogram::
 kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
                             bins_per_octave=12, image_data_format='default', **kwargs)
 ```
-Filterbank assumes a 2d input, i.e., ``(None, n_ch, n_freqs, n_time)`` (theano).
+Filterbank assumes a 2d input, i.e., `(None, n_ch, n_freqs, n_time)` (theano).
 
 #### Notes
- * input_shape: ``(None, n_ch, n_freqs, n_time)``
- * output_shape: ``(None, n_ch, n_mels, n_time)``
+     * input_shape: `(None, n_ch, n_freqs, n_time)`
+     * output_shape: `(None, n_ch, n_mels, n_time)`
 
 #### Parameters
-* n_fbs: int
-   - Number of filterbanks
-* sr: int
-    - sampling rate. It is used to initialize ``freq_to_mel``.
-* init: str
-    - if ``'mel'``, init with mel center frequencies and stds.
-* fmin: float
-    - min frequency of filterbanks.
-    - If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
-* fmax: float
-    - max frequency of filterbanks.
-    - If `init == 'log'`, fmax is ignored.
-* trainable_fb: bool,
-    - Whether the filterbanks are trainable or not.
+    * n_fbs: int
+       - Number of filterbanks
+    * sr: int
+        - sampling rate. It is used to initialize `freq_to_mel`.
+    * init: str
+        - if `'mel'`, init with mel center frequencies and stds.
+    * fmin: float
+        - min frequency of filterbanks.
+        - If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
+    * fmax: float
+        - max frequency of filterbanks.
+        - If `init == 'log'`, fmax is ignored.
+    * trainable_fb: bool,
+        - Whether the filterbanks are trainable or not.
 
 ### `AdditiveNoise` ([↑up to contents](#contents))
 
@@ -362,14 +362,14 @@ Add noise to input data and output it.
 
     * power: float [scalar]
         - The power of noise. std if it's white noise.
-        - Default: ``0.1``
+        - Default: `0.1`
     * random_gain: bool
         - Whether the noise gain is random or not.
-        - If ``True``, gain is sampled from ``uniform(low=0.0, high=power)`` in every batch.
-        - Default: ``False``
+        - If `True`, gain is sampled from `uniform(low=0.0, high=power)` in every batch.
+        - Default: `False`
     * noise_type; str,
-        - Specify the type of noise. It only supports ``'white'`` now.
-        - Default: ```white```
+        - Specify the type of noise. It only supports `'white'` now.
+        - Default: `white`
 
 
 #### Returns
