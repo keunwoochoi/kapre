@@ -1,6 +1,5 @@
 # kapre
-Keras Audio Preprocessors
-
+Keras Audio Preprocessors. Written by Keunwoo Choi.
 
 ## Contents
 - [News](#news)
@@ -11,10 +10,10 @@ Keras Audio Preprocessors
 - [API Documentation](#api-documentation)
   - [`time_frequency.Spectrogram`](#spectrogram)
   - [`time_frequency.Melspectrogram`](#melspectrogram)
-  - [`utils.AmplitudeToDB`](#amplitudeToDB)
-  - [`utils.Normalization2D`](#normalization2D)
+  - [`utils.AmplitudeToDB`](#amplitudetodb)
+  - [`utils.Normalization2D`](#normalization2d)
   - [`filterbank.Filterbank`](#filterbank)
-  - [`augmentation.AdditiveNoise`](#additiveNoise)
+  - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
 * 22 June 2017
@@ -26,18 +25,18 @@ Keras Audio Preprocessors
 ## Installation
 
 1. For keras >= 2.0
-```
+```sh
 $ pip install kapre
 ```
 Or,
-```
+```sh
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
 $ python setup.py install
 ```
 
-2. For Keras 1.x (note: it is not up-to-date)
-```
+2. For Keras 1.x (note: it is not updated anymore)
+```sh
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
 $ python setup.py install
@@ -73,7 +72,7 @@ from kapre.time_frequency import Melspectrogram
 from kapre.utils import Normalization2D
 from kapre.augmentation import AdditiveNoise
 
-# 6 channels (!), maybe 1-sec audio signal
+# 6 channels (!), maybe 1-sec audio signal, for an example.
 input_shape = (6, 44100) 
 sr = 44100
 model = Sequential()
@@ -97,10 +96,10 @@ x = load_x() # e.g., x.shape = (10000, 6, 44100)
 y = load_y() # e.g., y.shape = (10000, 10) if it's 10-class classification
 # and train it
 model.fit(x, y)
-# write a paper and graduate or get paid. Profit!
+# Done!
 ```
 
-###  When you wanna save/load model w these layers
+### To save/load models with kapre layers
 
 Use `custom_objects` keyword argument as below.
 
@@ -112,7 +111,7 @@ model = keras.models.Sequential()
 model.add(kapre.time_frequency.Melspectrogram(512, input_shape=(1, 44100)))
 model.summary()
 model.save('temp_model.h5')
-
+# Now saved, let's load it.
 model2 = keras.models.load_model('temp_model.h5', 
   custom_objects={'Melspectrogram':kapre.time_frequency.Melspectrogram})
 model2.summary()
@@ -137,7 +136,7 @@ kapre.datasets.load_musicnet('datasets', format='npz')
 ```
 
 # Citation
-Please cite it as...
+Please cite this repo, but icml 2017 workshop paper will be up soon.
 
 ```
 @article{choi2016kapre,
@@ -160,30 +159,24 @@ Spectrogram layer that outputs spectrogram(s) in 2D image format.
  * n_dft: int > 0 [scalar]
    - The number of DFT points, presumably power of 2.
    - Default: ``512``
-
  * n_hop: int > 0 [scalar]
    - Hop length between frames in sample,  probably <= ``n_dft``.
    - Default: ``None`` (``n_dft / 2`` is used)
-
  * padding: str, ``'same'`` or ``'valid'``.
    - Padding strategies at the ends of signal.
    - Default: ``'same'``
-
  * power_spectrogram: float [scalar],
    - ``2.0`` to get power-spectrogram, ``1.0`` to get amplitude-spectrogram.
    - Usually ``1.0`` or ``2.0``.
    - Default: ``2.0``
-
  * return_decibel_spectrogram: bool,
     - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
     - Recommended to use ``True``, although it's not by default.
     - Default: ``False``
-
  * trainable_kernel: bool
    -  Whether the kernels are trainable or not.
    -  If ``True``, Kernels are initialised with DFT kernels and then trained.
    -  Default: ``False``
-
 * image_data_format: string, ``'channels_first'`` or ``'channels_last'``.
    -  The returned spectrogram follows this image_data_format strategy.
    -  If ``'default'``, it follows the current Keras session's setting.
