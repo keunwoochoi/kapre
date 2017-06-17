@@ -15,14 +15,14 @@ Keras Audio Preprocessors. Written by Keunwoo Choi.
   - [`filterbank.Filterbank`](#filterbank)
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
-## News
+## News ([↑up to contents](#contents))
 * 22 June 2017
   - Kapre ver 0.1, aka 'pretty stable' with a benchmark paper
     - Remove STFT, python3 compatible
     - A full documentation in this readme.md
     - pip version is updated
 
-## Installation
+## Installation ([↑up to contents](#contents))
 
 1. For keras >= 2.0
 ```sh
