@@ -1,6 +1,10 @@
 # kapre
 Keras Audio Preprocessors. Written by Keunwoo Choi.
 
+Why bother to save STFT/melspectrograms to your storage? Just do it on-the-fly on-GPU.
+
+How demanding is the computation? [Check out this paper!](https://drive.google.com/open?id=0B8uiKWlnL9qDQjRJZ3lSSDJTZU0)
+
 ## Contents
 - [News](#news)
 - [Installation](#installation)
@@ -17,7 +21,7 @@ Keras Audio Preprocessors. Written by Keunwoo Choi.
 
 ## News
 * 22 June 2017
-  - Kapre ver 0.1, aka 'pretty stable' with a benchmark paper
+  - Kapre ver 0.1, aka 'pretty stable' with a [benchmark paper](https://drive.google.com/open?id=0B8uiKWlnL9qDQjRJZ3lSSDJTZU0)
     - Remove STFT, python3 compatible
     - A full documentation in this readme.md
     - pip version is updated
