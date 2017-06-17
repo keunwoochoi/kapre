@@ -40,6 +40,8 @@ def log_frequencies(n_bins=128, fmin=None, fmax=11025.0):
     """Compute the center frequencies of bands
     TODO: ...do I use it?
     """
+    assert fmin > 0, 'minimum frequency should be >0, but fmin={}.\nSuggestion: Juss pass None!'.format(fmin)
+
     if fmin is None:
         fmin = librosa.core.time_frequency.note_to_hz('C1').astype(K.floatx())
     return np.logspace(np.log2(fmin), np.log2(fmax), num=n_bins, base=2).astype(K.floatx())
@@ -156,7 +158,7 @@ def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None):
     return weights.astype(K.floatx())
 
 
-def get_stft_kernels(n_dft, keras_ver='new'):
+def get_stft_kernels(n_dft):
     '''[np] Return dft kernels for real/imagnary parts assuming
         the input . is real.
     An asymmetric hann window is used (scipy.signal.hann).
@@ -165,9 +167,6 @@ def get_stft_kernels(n_dft, keras_ver='new'):
     ----------
     n_dft : int > 0 and power of 2 [scalar]
         Number of dft components.
-
-    keras_ver : string, 'new' or 'old'
-        It determines the reshaping strategy.
 
     Returns
     -------
@@ -196,18 +195,21 @@ def get_stft_kernels(n_dft, keras_ver='new'):
     dft_real_kernels = np.multiply(dft_real_kernels, dft_window)
     dft_imag_kernels = np.multiply(dft_imag_kernels, dft_window)
 
-    if keras_ver == 'old':  # 1.0.6: reshape filter e.g. (5, 8) -> (5, 1, 8, 1)
-        dft_real_kernels = dft_real_kernels[:nb_filter]
-        dft_imag_kernels = dft_imag_kernels[:nb_filter]
-        dft_real_kernels = dft_real_kernels[:, np.newaxis, :, np.newaxis]
-        dft_imag_kernels = dft_imag_kernels[:, np.newaxis, :, np.newaxis]
-    else:
-        dft_real_kernels = dft_real_kernels[:nb_filter].transpose()
-        dft_imag_kernels = dft_imag_kernels[:nb_filter].transpose()
-        dft_real_kernels = dft_real_kernels[:, np.newaxis, np.newaxis, :]
-        dft_imag_kernels = dft_imag_kernels[:, np.newaxis, np.newaxis, :]
+    dft_real_kernels = dft_real_kernels[:nb_filter].transpose()
+    dft_imag_kernels = dft_imag_kernels[:nb_filter].transpose()
+    dft_real_kernels = dft_real_kernels[:, np.newaxis, np.newaxis, :]
+    dft_imag_kernels = dft_imag_kernels[:, np.newaxis, np.newaxis, :]
 
     return dft_real_kernels.astype(K.floatx()), dft_imag_kernels.astype(K.floatx())
+
+
+def get_mel_kernels(sr, n_dft, n_mels, fmin, fmax):
+    """
+
+    """
+    dft_real_kernels, dft_img_kernels = get_stft_kernels(n_dft)
+    mel_basis = mel(sr, n_dft, n_mels, fmin, fmax)
+    mel_basis = np.transpose(mel_basis)
 
 
 def _hann(M, sym=True):
@@ -251,7 +253,7 @@ def _hann(M, sym=True):
 # Filterbanks
 def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None):
     '''[np] '''
-    return mel(sr, (n_freq - 1) * 2, n_mels=128, fmin=0.0, fmax=None).astype(K.floatx())
+    return mel(sr, (n_freq - 1) * 2, n_mels=n_mels, fmin=fmin, fmax=fmax).astype(K.floatx())
 
 
 def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,

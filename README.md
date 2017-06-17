@@ -2,6 +2,11 @@
 Keras Audio Preprocessors
 
 ## News
+* 2x June 2017
+  - Kapre ver 0.1
+    - Remove STFT, python3 compatible
+    - A full documentation in this readme.md
+    - pip version is updated
 * 15 May 2017
   - Jamendo dataset loader is added.
 * 18 March 2017
@@ -16,13 +21,33 @@ Keras Audio Preprocessors
   - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py) is added.
 
 ## Installation
+
+1. For keras >= 2.0
+```
+$ pip install kapre
+```
+Or,
 ```
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
 $ python setup.py install
 ```
-(Kapre is on pip, but pip version is not always up-to-date. 
-So please use git version until it becomes more stable.)
+
+2. For Keras 1.x (note: it is not up-to-date)
+```
+$ git clone https://github.com/keunwoochoi/kapre.git
+$ cd kapre
+$ python setup.py install
+$ cd kapre
+$ git checkout a2bde3e
+$ python setup.py install
+```
+
+## Layers
+* `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+* `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
+* `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+* `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
 
 ## Datasets
 * [GTZan](http://marsyasweb.appspot.com/download/data_sets/): (30s, 10 genres, 1,000 mp3)
@@ -30,13 +55,6 @@ So please use git version until it becomes more stable.)
 * [MusicNet](https://homes.cs.washington.edu/~thickstn/musicnet.html): (full length 330 classicals music, note-wise annotations)
 * [FMA](https://github.com/mdeff/fma): small/medium/large/full collections, up to 100+K songs from free music archieve, for genre classification. With genre hierarchy, pre-computed features, splits, etc.
 * [Jamendo](http://www.mathieuramona.com/wp/data/jamendo/): 61/16/24 songs for vocal activity detection
-## Layers
-
-* `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* `Stft` in [stft.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/stft.py)
-* `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
-* `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
 
 ## Usage Example
 
@@ -112,24 +130,6 @@ kapre.datasets.load_musicnet('datasets', format='npz')
 # Kapre does NOT remove zip/tar.gz files after extracting.
 ```
 
-# Documentation
-Please read docstrings at this moment. Fortunately I quite enjoy writing docstrings.
-
-# Plan
-
-  - [x] `time_frequency`: Spectrogram, Mel-spectrogram
-  - [x] `utils`: AmplitudeToDB, Normalization2D
-  - [x] `filterbank`: filterbanks (init with mel)
-  - [x] `stft`: FFT-based STFT (Done for theano-backend only)
-  - [x] `data_augmentation`: (Random-gain) white noise
-  - [x] `datasets.py`: download and manage MIR datasets.
-  - [ ] `data_augmentation`: Dynamic Range Compression1D, some other noises
-  - [ ] `utils`: A-weighting
-  - [ ] `filterbank`: Parameteric Filter bank
-  - [ ] `Decompose`: Harmonic-Percussive separation
-  - [ ] `InverseSpectrogram`: istft, (+ util: magnitude + phase merger)
-  - [ ] `TimeFrequency`: Harmonic/Spiral representations, chromagram, tempogram
-
 # Citation
 Please cite it as...
 
@@ -141,3 +141,62 @@ Please cite it as...
   year={2016}
 }
 ```
+
+# Documentation
+## `time_frequency`
+### `Spectrogram`
+
+`kapre.time_frequency.spectrogram`
+
+Spectrogram layer that outputs spectrogram(s) in 2D image format.
+
+#### Parameters
+ * n_dft: int > 0 [scalar]
+   - The number of DFT points, presumably power of 2.
+   - Default: ``512``
+
+ * n_hop: int > 0 [scalar]
+   - Hop length between frames in sample,  probably <= ``n_dft``.
+   - Default: ``None`` (``n_dft / 2`` is used)
+
+ * padding: str, ``'same'`` or ``'valid'``.
+   - Padding strategies at the ends of signal.
+   - Default: ``'same'``
+
+ * power_spectrogram: float [scalar],
+   - ``2.0`` to get power-spectrogram, ``1.0`` to get amplitude-spectrogram.
+   - Usually ``1.0`` or ``2.0``.
+   - Default: ``2.0``
+
+ * return_decibel_spectrogram: bool,
+    - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
+    - Recommended to use ``True``, although it's not by default.
+    - Default: ``False``
+
+ * trainable_kernel: bool
+   -  Whether the kernels are trainable or not.
+   -  If ``True``, Kernels are initialised with DFT kernels and then trained.
+   -  Default: ``False``
+
+* image_data_format: string, ``'channels_first'`` or ``'channels_last'``.
+   -  The returned spectrogram follows this image_data_format strategy.
+   -  If ``'default'``, it follows the current Keras session's setting.
+   -  Setting is in ``./keras/keras.json``.
+   -  Default: ``'default'``
+
+#### Notes
+ * The input should be a 2D array, ``(audio_channel, audio_length)``.
+ * E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
+ * It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
+
+#### Returns
+
+A Keras layer
+
+ * abs(Spectrogram) in a shape of 2D data, i.e.,
+ * `(None, n_channel, n_freq, n_time)` if `'channels_first'`,
+ * `(None, n_freq, n_time, n_channel)` if `'channels_last'`,
+
+
+
+

@@ -69,7 +69,7 @@ class Normalization2D(Layer):
         |  ``'batch'``, ``'data_sample'``, ``'channel'``, ``'freq'``, ``'time')``
         |  Even though it is optional, actually it is recommended to use
         |  ``str_axis`` over ``int_axis`` because it provides more meaningful
-        |  and dim_ordering-robust interface.
+        |  and image data format-robust interface.
 
     Example
     -------

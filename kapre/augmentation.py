@@ -77,6 +77,7 @@ class AdditiveNoise(Layer):
     """
 
     def __init__(self, power=0.1, random_gain=False, noise_type='white', **kwargs):
+        assert noise_type in ['white']
         self.supports_masking = True
         self.power = power
         self.random_gain = random_gain
