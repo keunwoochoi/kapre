@@ -203,7 +203,8 @@ A Keras layer.
      * `(None, n_channel, n_freq, n_time)` if `'channels_first'`,
      * `(None, n_freq, n_time, n_channel)` if `'channels_last'`,
 
-### Melspectrogram ([↑up to contents](#contents))
+### Melspectrogram
+([↑up to contents](#contents))
 
 ```python
 kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
@@ -266,7 +267,8 @@ A Keras layer
 
 
 ## utils.py
-### AmplitudeToDB ([↑up to contents](#contents))
+### AmplitudeToDB
+([↑up to contents](#contents))
 
 ```python
 kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs)
@@ -294,7 +296,8 @@ model.add(AmplitudeToDB())
 model.add(Spectrogram(return_decibel=True))
 ```
 
-### Normalization2D ([↑up to contents](#contents))
+### Normalization2D
+([↑up to contents](#contents))
 
 ```python
 kapre.utils.Normalization2D(str_axis=None, int_axis=None, image_data_format='default',
@@ -328,7 +331,8 @@ A frequency-axis normalization after a spectrogram::
     ```
 
 ## filterbank.py
-### Filterbank ([↑up to contents](#contents))
+### Filterbank
+([↑up to contents](#contents))
 
 ```python
 kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
@@ -356,7 +360,8 @@ kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., f
     * trainable_fb: bool,
         - Whether the filterbanks are trainable or not.
 
-### `AdditiveNoise` ([↑up to contents](#contents))
+### `AdditiveNoise`
+([↑up to contents](#contents))
 
 ```python
 kapre.augmentation.AdditiveNoise(power=0.1, random_gain=False, noise_type='white', **kwargs)
