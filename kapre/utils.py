@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Utils
-=====
-"""
 from __future__ import absolute_import
 import numpy as np
 from keras.engine import Layer
@@ -12,27 +8,41 @@ from . import backend_keras
 
 
 class AmplitudeToDB(Layer):
-    '''A layer that converts amplitude to decibel
+    '''
 
-    Parameters
-    ----------
-    amin: float [scalar]
-        Noise floor.
+    ### `AmplitudeToDB`
+
+    ```python
+    kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kargs)
+    ```
+
+    A layer that converts amplitude to decibel
+
+    #### Parameters
+
+    * ref_power: float [scalar]
+        - reference power. Default: 1.0
+
+    * amin: float [scalar]
+        - Noise floor. Default: 1e-10
         
-    top_db: float [scalar]
-        Dynamic range of output.
+    * top_db: float [scalar]
+        - Dynamic range of output. Default: 80.0
 
-    Example
-    -------
-    Adding ``AmplitudeToDB`` after a spectrogram::
-
+    #### Example
+    Adding ``AmplitudeToDB`` after a spectrogram:
+    ```python
         model.add(Spectrogram(return_decibel=False))
         model.add(AmplitudeToDB())
-
+    ```
+    , which is the same as:
+    ```python
+        model.add(Spectrogram(return_decibel=True))
+    ```
 
     '''
 
-    def __init__(self, ref_power=1.0, amin=1e-10, top_db=80.0):
+    def __init__(self, ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs):
         assert isinstance(ref_power, float) or ref_power == 'max'
         self.ref_power = ref_power
         self.amin = amin
@@ -51,70 +61,71 @@ class AmplitudeToDB(Layer):
 
 
 class Normalization2D(Layer):
-    '''A layer that normalises input data in ``axis`` axis.
+    '''
+    
+    ### `Normalization2D`
+    
+    `kapre.utils.Normalization2D`
+    
+    A layer that normalises input data in ``axis`` axis.
 
-    Parameters
-    ----------
-    input_shape: tuple
-        E.g., ``(None, n_ch, n_row, n_col)`` if theano.
+    #### Parameters
+    
+    * input_shape: tuple of ints
+        - E.g., ``(None, n_ch, n_row, n_col)`` if theano.
 
-    int_axis: int
-        |  axis index that along which mean/std is computed.
-        |  0 for per data sample, -1 for per batch.
-        |  1, 2, 3 for channel, row, col (if theano convention)
-        |  if ``None``, ``str_axis`` SHOULD BE set.
+    * str_axis: str
+        - used ONLY IF ``int_axis`` is ``None``.
+        - ``'batch'``, ``'data_sample'``, ``'channel'``, ``'freq'``, ``'time')``
+        - Even though it is optional, actually it is recommended to use
+        - ``str_axis`` over ``int_axis`` because it provides more meaningful
+        - and image data format-robust interface.
 
-    str_axis: str
-        |  used ONLY IF ``int_axis`` is ``None``.
-        |  ``'batch'``, ``'data_sample'``, ``'channel'``, ``'freq'``, ``'time')``
-        |  Even though it is optional, actually it is recommended to use
-        |  ``str_axis`` over ``int_axis`` because it provides more meaningful
-        |  and dim_ordering-robust interface.
+    * int_axis: int
+        - axis index that along which mean/std is computed.
+        - `0` for per data sample, `-1` for per batch.
+        - `1`, `2`, `3` for channel, row, col (if channels_first)
+        - if `int_axis is None`, ``str_axis`` SHOULD BE set.
 
-    Example
-    -------
+    #### Example
+
     A frequency-axis normalization after a spectrogram::
-
+        ```python
         model.add(Spectrogram())
-        model.add(Normalization2D(stf_axis='freq))
-
+        model.add(Normalization2D(stf_axis='freq'))
+        ```
     '''
 
-    def __init__(self, str_axis=None, int_axis=None, dim_ordering='default',
+    def __init__(self, str_axis=None, int_axis=None, image_data_format='default',
                  eps=1e-10, **kwargs):
         assert not (int_axis is None and str_axis is None), \
             'In Normalization2D, int_axis or str_axis should be specified.'
 
-        assert dim_ordering in ('th', 'tf', 'default'), \
-            'Incorrect dim_ordering: {}'.format(dim_ordering)
+        assert image_data_format in ('channels_first', 'channels_last', 'default'), \
+            'Incorrect image_data_format: {}'.format(image_data_format)
 
-        if dim_ordering == 'default':
-            self.dim_ordering = K.image_dim_ordering()
+        if image_data_format == 'default':
+            self.image_data_format = K.image_data_format()
         else:
-            self.dim_ordering = dim_ordering
+            self.image_data_format = image_data_format
 
-        if int_axis is None:
+        self.str_axis = str_axis
+        if self.str_axis is None: # use int_axis
+            self.int_axis = int_axis
+        else: # use str_axis
+            # warning
+            if int_axis is not None:
+                print('int_axis={} passed but is ignored, str_axis is used instead.'.format(int_axis))
+            # do the work
             assert str_axis in ('batch', 'data_sample', 'channel', 'freq', 'time'), \
-                'Incorrect str_axis: %s' % str_axis
+                'Incorrect str_axis: {}'.format(str_axis)
             if str_axis == 'batch':
                 int_axis = -1
-            elif str_axis == 'data_sample':
-                int_axis = 0
-            elif str_axis == 'channel':
-                if self.dim_ordering == 'th':
-                    int_axis = 1
-                elif self.dim_ordering == 'tf':
-                    int_axis = 3
-            elif str_axis == 'freq':
-                if self.dim_ordering == 'th':
-                    int_axis = 2
-                elif self.dim_ordering == 'tf':
-                    int_axis = 1
-            elif str_axis == 'time':
-                if self.dim_ordering == 'th':
-                    int_axis = 3
-                elif self.dim_ordering == 'tf':
-                    int_axis = 2
+            else:
+                if self.image_data_format == 'channels_first':
+                    int_axis = ['data_sample', 'channel', 'freq', 'time'].index(str_axis)
+                else:
+                    int_axis = ['data_sample', 'freq', 'time', 'channel'].index(str_axis)
 
         assert int_axis in (-1, 0, 1, 2, 3), 'invalid int_axis: ' + str(int_axis)
         self.axis = int_axis
@@ -134,62 +145,7 @@ class Normalization2D(Layer):
 
     def get_config(self):
         config = {'int_axis': self.axis,
-                  'dim_ordering': self.dim_ordering}
+                  'str_axis': self.str_axis
+                  'image_data_format': self.image_data_format}
         base_config = super(Normalization2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
-
-class FrequencyWeighting(Layer):
-    """
-
-    The computation code is from librosa.
-    Brian, thanks x NaN!
-
-    """
-
-    def __init__(self, mode, frequencies, decibel, power, **kwargs):
-        """
-        mode: 'A' 'a' for A-weighting
-        frequencies: list of float or 1d np array, center frequencies.
-        decibel: Bool, true if input is decibel scale (log(X))
-        power: float but probably either 1.0 or 2.0.
-        E.g., if input is power spectrogram which is log(X**2),
-            power = 2.0,
-            decibel = True
-        If decibel:
-            in call(), weights are ADDED.
-        else:
-            in call(), weights are MULTIPLIED.
-
-
-        """
-        # TODO: Current code is for keras v1.
-        assert mode.lower() in ('a')
-        self.mode = mode
-        self.frequencies = frequencies
-        self.decibel = decibel
-        self.power = power
-        super(FrequencyWeighting, self).__init__(**kwargs)
-
-        freq_weights = backend.a_weighting(self.frequencies)
-
-        if power != 2.0:
-            freq_weights *= (power / 2.0)
-        if decibel:
-            self.freq_weights = K.variable(freq_weights, dtype=K.floatx())
-        else:
-            self.freq_weights = K.variable(10. ** freq_weights, dtype=K.floatx())
-
-    def call(self, x, mask=None):
-        if self.decibel:
-            return x + self.freq_weights
-        else:
-            return x * self.freq_weights
-
-    def get_config(self):
-        config = {'mode': self.mode,
-                  'frequencies': self.frequencies,
-                  'decibel': self.decibel}
-        base_config = super(FrequencyWeighting, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
-

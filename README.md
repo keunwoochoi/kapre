@@ -1,55 +1,86 @@
 # kapre
-Keras Audio Preprocessors
+Keras Audio Preprocessors. Written by Keunwoo Choi.
+
+Why bother to save STFT/melspectrograms to your storage? Just do it on-the-fly on-GPU.
+
+How demanding is the computation? [Check out this paper!](https://drive.google.com/open?id=0B8uiKWlnL9qDQjRJZ3lSSDJTZU0)
+
+## Contents
+- [News](#news)
+- [Installation](#installation)
+- [Usage](#usage)
+- [One-shot example](#one-shot-example)
+- [How to cite](#citation)
+- [API Documentation](#api-documentation)
+  - [`time_frequency.Spectrogram`](#spectrogram)
+  - [`time_frequency.Melspectrogram`](#melspectrogram)
+  - [`utils.AmplitudeToDB`](#amplitudetodb)
+  - [`utils.Normalization2D`](#normalization2d)
+  - [`filterbank.Filterbank`](#filterbank)
+  - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
-* 15 May 2017
-  - Jamendo dataset loader is added.
-* 18 March 2017
-  - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py); GTZan, MagnaTagATune, MusicNet, FMA are available.
-
-* 16 March 2017 (kapre v0.0.3.1)
-  - Compatible to Keras 2.0. Kapre won't support Keras 1.0 and require Keras 2.0 now.
-  - There's no change on Kapre API and you can just use, save, and load.
-  - Stft is not working and will be fixed later.
-
-* 15 March 2017 (kapre v0.0.3)
-  - [`dataset.py`](https://github.com/keunwoochoi/kapre/blob/master/kapre/datasets.py) is added.
+* 19 June 2017
+  - Kapre ver 0.1, aka 'pretty stable' with a [benchmark paper](https://drive.google.com/open?id=0B8uiKWlnL9qDQjRJZ3lSSDJTZU0)
+    - Remove STFT, python3 compatible
+    - A full documentation in this readme.md
+    - pip version is updated
 
 ## Installation
+([↑up to contents](#contents))
+
+1. For keras >= 2.0
+```sh
+$ pip install kapre
 ```
+Or,
+```sh
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
 $ python setup.py install
 ```
-(Kapre is on pip, but pip version is not always up-to-date. 
-So please use git version until it becomes more stable.)
 
-## Datasets
+2. For Keras 1.x (note: it is not updated anymore)
+```sh
+$ git clone https://github.com/keunwoochoi/kapre.git
+$ cd kapre
+$ python setup.py install
+$ cd kapre
+$ git checkout a2bde3e
+$ python setup.py install
+```
+
+## Usage
+### Layers
+([↑up to contents](#contents))
+
+Audio preprocessing layers
+* `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+* `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
+* `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+* `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
+
+### Datasets
+Dataset management
 * [GTZan](http://marsyasweb.appspot.com/download/data_sets/): (30s, 10 genres, 1,000 mp3)
 * [MagnaTagATune](http://mirg.city.ac.uk/codeapps/the-magnatagatune-dataset): (29s, 188 tags, 25,880 mp3) for tagging and triplet similarity
 * [MusicNet](https://homes.cs.washington.edu/~thickstn/musicnet.html): (full length 330 classicals music, note-wise annotations)
 * [FMA](https://github.com/mdeff/fma): small/medium/large/full collections, up to 100+K songs from free music archieve, for genre classification. With genre hierarchy, pre-computed features, splits, etc.
 * [Jamendo](http://www.mathieuramona.com/wp/data/jamendo/): 61/16/24 songs for vocal activity detection
-## Layers
 
-* `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* `Stft` in [stft.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/stft.py)
-* `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
-* `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
+## One-shot example
+([↑up to contents](#contents))
 
-## Usage Example
+* More examples on [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
-* For real, working code: checkout [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
-
-### Mel-spectrogram
+### Using Mel-spectrogram
 ```python
 from keras.models import Sequential
 from kapre.time_frequency import Melspectrogram
 from kapre.utils import Normalization2D
 from kapre.augmentation import AdditiveNoise
 
-# 6 channels (!), maybe 1-sec audio signal
+# 6 channels (!), maybe 1-sec audio signal, for an example.
 input_shape = (6, 44100) 
 sr = 44100
 model = Sequential()
@@ -73,10 +104,10 @@ x = load_x() # e.g., x.shape = (10000, 6, 44100)
 y = load_y() # e.g., y.shape = (10000, 10) if it's 10-class classification
 # and train it
 model.fit(x, y)
-# write a paper and graduate or get paid. Profit!
+# Done!
 ```
 
-###  When you wanna save/load model w these layers
+### To save/load models with kapre layers
 
 Use `custom_objects` keyword argument as below.
 
@@ -88,7 +119,7 @@ model = keras.models.Sequential()
 model.add(kapre.time_frequency.Melspectrogram(512, input_shape=(1, 44100)))
 model.summary()
 model.save('temp_model.h5')
-
+# Now saved, let's load it.
 model2 = keras.models.load_model('temp_model.h5', 
   custom_objects={'Melspectrogram':kapre.time_frequency.Melspectrogram})
 model2.summary()
@@ -112,26 +143,10 @@ kapre.datasets.load_musicnet('datasets', format='npz')
 # Kapre does NOT remove zip/tar.gz files after extracting.
 ```
 
-# Documentation
-Please read docstrings at this moment. Fortunately I quite enjoy writing docstrings.
-
-# Plan
-
-  - [x] `time_frequency`: Spectrogram, Mel-spectrogram
-  - [x] `utils`: AmplitudeToDB, Normalization2D
-  - [x] `filterbank`: filterbanks (init with mel)
-  - [x] `stft`: FFT-based STFT (Done for theano-backend only)
-  - [x] `data_augmentation`: (Random-gain) white noise
-  - [x] `datasets.py`: download and manage MIR datasets.
-  - [ ] `data_augmentation`: Dynamic Range Compression1D, some other noises
-  - [ ] `utils`: A-weighting
-  - [ ] `filterbank`: Parameteric Filter bank
-  - [ ] `Decompose`: Harmonic-Percussive separation
-  - [ ] `InverseSpectrogram`: istft, (+ util: magnitude + phase merger)
-  - [ ] `TimeFrequency`: Harmonic/Spiral representations, chromagram, tempogram
-
 # Citation
-Please cite it as...
+([↑up to contents](#contents))
+
+Please cite this repo, but icml 2017 workshop paper will be up soon.
 
 ```
 @article{choi2016kapre,
@@ -141,3 +156,243 @@ Please cite it as...
   year={2016}
 }
 ```
+
+# API Documentation
+## [time_frequency.py](kapre/time_frequency.py)
+### Spectrogram
+([↑up to contents](#contents))
+
+```python
+kapre.time_frequency.Spectrogram(n_dft=512, n_hop=None, padding='same',
+                                 power_spectrogram=2.0, return_decibel_spectrogram=False,
+                                 trainable_kernel=False, image_data_format='default',
+                                 **kwargs)
+```
+Spectrogram layer that outputs spectrogram(s) in 2D image format.
+
+#### Parameters
+
+     * n_dft: int > 0 [scalar]
+       - The number of DFT points, presumably power of 2.
+       - Default: `512`
+     * n_hop: int > 0 [scalar]
+       - Hop length between frames in sample,  probably <= `n_dft`.
+       - Default: `None` (`n_dft / 2` is used)
+     * padding: str, `'same'` or `'valid'`.
+       - Padding strategies at the ends of signal.
+       - Default: `'same'`
+     * power_spectrogram: float [scalar],
+       - `2.0` to get power-spectrogram, `1.0` to get amplitude-spectrogram.
+       - Usually `1.0` or `2.0`.
+       - Default: `2.0`
+     * return_decibel_spectrogram: bool,
+        - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if `True`.
+        - Recommended to use `True`, although it's not by default.
+        - Default: `False`
+     * trainable_kernel: bool
+       -  Whether the kernels are trainable or not.
+       -  If `True`, Kernels are initialised with DFT kernels and then trained.
+       -  Default: `False`
+    * image_data_format: string, `'channels_first'` or `'channels_last'`.
+       -  The returned spectrogram follows this image_data_format strategy.
+       -  If `'default'`, it follows the current Keras session's setting.
+       -  Setting is in `./keras/keras.json`.
+       -  Default: `'default'`
+
+#### Notes
+
+     * The input should be a 2D array, `(audio_channel, audio_length)`.
+     * E.g., `(1, 44100)` for mono signal, `(2, 44100)` for stereo signal.
+     * It supports multichannel signal input, so `audio_channel` can be any positive integer.
+
+#### Returns
+
+A Keras layer.
+
+     * abs(Spectrogram) in a shape of 2D data, i.e.,
+     * `(None, n_channel, n_freq, n_time)` if `'channels_first'`,
+     * `(None, n_freq, n_time, n_channel)` if `'channels_last'`,
+
+### Melspectrogram
+([↑up to contents](#contents))
+
+```python
+kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
+                                    power_melgram=1.0, return_decibel_melgram=False,
+                                    trainable_fb=False, **kwargs)
+```
+Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
+
+Its base class is `Spectrogram`.
+
+Mel-spectrogram is an efficient representation using the property of human
+auditory system -- by compressing frequency axis into mel-scale axis.
+
+#### Parameters
+
+     * sr: integer > 0 [scalar]
+       - sampling rate of the input audio signal.
+       - Default: `22050`
+     * n_mels: int > 0 [scalar]
+       - The number of mel bands.
+       - Default: `128`
+     * fmin: float > 0 [scalar]
+       - Minimum frequency to include in Mel-spectrogram.
+       - Default: `0.0`
+     * fmax: float > `fmin` [scalar]
+       - Maximum frequency to include in Mel-spectrogram.
+       - If `None`, it is inferred as `sr / 2`.
+       - Default: `None`
+     * power_melgram: float [scalar]
+       - Power of `2.0` if power-spectrogram,
+       - `1.0` if amplitude spectrogram.
+       - Default: `1.0`
+     * return_decibel_melgram: bool
+       - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if `True`.
+       - Recommended to use `True`, although it's not by default.
+       - Default: `False`
+     * trainable_fb: bool
+       - Whether the spectrogram -> mel-spectrogram filterbanks are trainable.
+       - If `True`, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
+       - If `False`, it is initialised and then frozen.
+       - Default: `False`
+     * **kwargs:
+       - The keyword arguments of `Spectrogram` such as `n_dft`, `n_hop`,
+       - `padding`, `trainable_kernel`, `image_data_format`.
+
+#### Notes
+
+     * The input should be a 2D array, `(audio_channel, audio_length)`.
+    E.g., `(1, 44100)` for mono signal, `(2, 44100)` for stereo signal.
+     * It supports multichannel signal input, so `audio_channel` can be any positive integer.
+
+#### Returns
+
+A Keras layer
+
+     * abs(mel-spectrogram) in a shape of 2D data, i.e.,
+     * `(None, n_channel, n_mels, n_time)` if `'channels_first'`,
+     * `(None, n_mels, n_time, n_channel)` if `'channels_last'`,
+
+
+
+## [utils.py](kapre/utils.py)
+### AmplitudeToDB
+([↑up to contents](#contents))
+
+```python
+kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs)
+```
+
+A layer that converts amplitude to decibel
+
+#### Parameters
+
+    * ref_power: float [scalar]
+        - reference power. Default: 1.0
+    * amin: float [scalar]
+        - Noise floor. Default: 1e-10
+    * top_db: float [scalar]
+        - Dynamic range of output. Default: 80.0
+
+#### Example
+Adding `AmplitudeToDB` after a spectrogram:
+```python
+model.add(Spectrogram(return_decibel=False))
+model.add(AmplitudeToDB())
+```
+, which is the same as:
+```python
+model.add(Spectrogram(return_decibel=True))
+```
+
+### Normalization2D
+([↑up to contents](#contents))
+
+```python
+kapre.utils.Normalization2D(str_axis=None, int_axis=None, image_data_format='default',
+                            eps=1e-10, **kwargs)
+```
+
+A layer that normalises input data in `axis` axis.
+
+#### Parameters
+
+    * input_shape: tuple of ints
+        - E.g., `(None, n_ch, n_row, n_col)` if theano.
+    * str_axis: str
+        - used ONLY IF `int_axis` is `None`.
+        - `'batch'`, `'data_sample'`, `'channel'`, `'freq'`, `'time')`
+        - Even though it is optional, actually it is recommended to use
+        - `str_axis` over `int_axis` because it provides more meaningful
+        - and image data format-robust interface.
+    * int_axis: int
+        - axis index that along which mean/std is computed.
+        - `0` for per data sample, `-1` for per batch.
+        - `1`, `2`, `3` for channel, row, col (if channels_first)
+        - if `int_axis is None`, `str_axis` SHOULD BE set.
+
+#### Example
+
+A frequency-axis normalization after a spectrogram::
+    ```python
+    model.add(Spectrogram())
+    model.add(Normalization2D(stf_axis='freq'))
+    ```
+
+## [filterbank.py](kapre/filterbank.py)
+### Filterbank
+([↑up to contents](#contents))
+
+```python
+kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
+                            bins_per_octave=12, image_data_format='default', **kwargs)
+```
+
+#### Notes
+    Input/output are 2D image format.
+    E.g., if channel_first,
+        - input_shape: ``(None, n_ch, n_freqs, n_time)``
+        - output_shape: ``(None, n_ch, n_mels, n_time)``
+#### Parameters
+    * n_fbs: int
+       - Number of filterbanks
+    * sr: int
+        - sampling rate. It is used to initialize `freq_to_mel`.
+    * init: str
+        - if `'mel'`, init with mel center frequencies and stds.
+    * fmin: float
+        - min frequency of filterbanks.
+        - If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
+    * fmax: float
+        - max frequency of filterbanks.
+        - If `init == 'log'`, fmax is ignored.
+    * trainable_fb: bool,
+        - Whether the filterbanks are trainable or not.
+
+### `AdditiveNoise`
+([↑up to contents](#contents))
+
+```python
+kapre.augmentation.AdditiveNoise(power=0.1, random_gain=False, noise_type='white', **kwargs)
+```
+
+Add noise to input data and output it.
+
+#### Parameters
+
+    * power: float [scalar]
+        - The power of noise. std if it's white noise.
+        - Default: `0.1`
+    * random_gain: bool
+        - Whether the noise gain is random or not.
+        - If `True`, gain is sampled from `uniform(low=0.0, high=power)` in every batch.
+        - Default: `False`
+    * noise_type; str,
+        - Specify the type of noise. It only supports `'white'` now.
+        - Default: `white`
+
+
+#### Returns
+
+Same shape as input data but with additional generated noise.

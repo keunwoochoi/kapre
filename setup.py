@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(name='kapre',
-      version='0.0.3.1',
-      description='KAPRE: Keras Audio Preprocessors. A set of Keras layers for audio pre-processing easier deep learning',
+      version='0.1',
+      description='Kapre: Keras Audio Preprocessors. Keras layers for audio pre-processing in deep learning',
       author='Keunwoo Choi',
       url='http://github.com/keunwoo/kapre/',
       download_url='http://github.com/keunwoochoi/kapre/releases',
@@ -14,10 +14,7 @@ setup(name='kapre',
         'numpy >= 1.8.0',
         'librosa >= 0.4',
         'pandas',
+        'future'
       ],
-      extras_require={
-          'docs':['sphinx > 1.3', 'sphinx_rtd_theme'], # 'numpydoc', 
-          'keras': ['keras'],
-          },
       keywords='audio music deep learning keras',
       zip_safe=False)
