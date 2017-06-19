@@ -20,7 +20,7 @@ How demanding is the computation? [Check out this paper!](https://drive.google.c
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
-* 22 June 2017
+* 19 June 2017
   - Kapre ver 0.1, aka 'pretty stable' with a [benchmark paper](https://drive.google.com/open?id=0B8uiKWlnL9qDQjRJZ3lSSDJTZU0)
     - Remove STFT, python3 compatible
     - A full documentation in this readme.md
