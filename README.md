@@ -146,14 +146,15 @@ kapre.datasets.load_musicnet('datasets', format='npz')
 # Citation
 ([↑up to contents](#contents))
 
-Please cite this repo, but icml 2017 workshop paper will be up soon.
+Please cite this paper if you use Kapre for your work.
 
 ```
-@article{choi2016kapre,
-  title={kapre: Keras Audio PREprocessors},
-  author={Choi, Keunwoo},
-  journal={GitHub repository: https://github.com/keunwoochoi/kapre},
-  year={2016}
+@inproceedings{choi2017kapre,
+  title={Kapre: On-GPU Audio Preprocessing Layers for a Quick Implementation of Deep Neural Network Models with Keras},
+  author={Choi, Keunwoo and Joo, Deokjin and Kim, Juho},
+  booktitle={Machine Learning for Music Discovery Workshop at 34th International Conference on Machine Learning},
+  year={2017},
+  organization={ICML}
 }
 ```
 
