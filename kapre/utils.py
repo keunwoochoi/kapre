@@ -145,7 +145,7 @@ class Normalization2D(Layer):
 
     def get_config(self):
         config = {'int_axis': self.axis,
-                  'str_axis': self.str_axis
+                  'str_axis': self.str_axis,
                   'image_data_format': self.image_data_format}
         base_config = super(Normalization2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
