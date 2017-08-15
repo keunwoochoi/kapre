@@ -31,14 +31,12 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
 
 1. For keras >= 2.0
 ```sh
-$ pip install kapre
-```
-Or,
-```sh
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
 $ python setup.py install
 ```
+
+Note: **pip doesn't work anymore**
 
 2. For Keras 1.x (note: it is not updated anymore)
 ```sh
