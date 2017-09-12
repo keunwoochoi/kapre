@@ -84,8 +84,8 @@ sr = 44100
 model = Sequential()
 # A mel-spectrogram layer
 model.add(Melspectrogram(n_dft=512, n_hop=256, input_shape=input_shape,
-                         border_mode='same', sr=sr, n_mels=128,
-                         fmin=0.0, fmax=sr/2, power=1.0,
+                         padding='same', sr=sr, n_mels=128,
+                         fmin=0.0, fmax=sr/2, power_melgram=1.0,
                          return_decibel_melgram=False, trainable_fb=False,
                          trainable_kernel=False,
                          name='trainable_stft'))
