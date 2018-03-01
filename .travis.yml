@@ -9,7 +9,7 @@ install:
     - pip install -e .
 
 script:
-    - cd tests;pytest
+    - pytest tests
 
 after_success:
     - coveralls
