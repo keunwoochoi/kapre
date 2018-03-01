@@ -188,7 +188,7 @@ class Melspectrogram(Spectrogram):
                                         power_melgram=1.0, return_decibel_melgram=False,
                                         trainable_fb=False, **kwargs)
     ```
-
+d
     Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
 
     Its base class is ``Spectrogram``.

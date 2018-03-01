@@ -65,10 +65,10 @@ def get_stft_kernels(n_dft):
     nb_filter = int(n_dft // 2 + 1)
 
     # prepare DFT filters
-    timesteps = range(n_dft)
-    w_ks = np.arange(n_dft) * 2 * np.pi / float(n_dft)
-    dft_real_kernels = np.cos(w_ks.reshape(-1, 1) * timesteps.reshape(1, -1)).astype(K.floatx())
-    dft_imag_kernels = -np.sin(w_ks.reshape(-1, 1) * timesteps.reshape(1, -1)).astype(K.floatx())
+    timesteps = np.array(range(n_dft))
+    w_ks = np.arange(nb_filter) * 2 * np.pi / float(n_dft)
+    dft_real_kernels = np.cos(w_ks.reshape(-1, 1) * timesteps.reshape(1, -1))
+    dft_imag_kernels = -np.sin(w_ks.reshape(-1, 1) * timesteps.reshape(1, -1))
 
     # windowing DFT filters
     dft_window = librosa.filters.get_window('hann', n_dft, fftbins=True)  # _hann(n_dft, sym=False)
@@ -77,8 +77,8 @@ def get_stft_kernels(n_dft):
     dft_real_kernels = np.multiply(dft_real_kernels, dft_window)
     dft_imag_kernels = np.multiply(dft_imag_kernels, dft_window)
 
-    dft_real_kernels = dft_real_kernels[:nb_filter].transpose()
-    dft_imag_kernels = dft_imag_kernels[:nb_filter].transpose()
+    dft_real_kernels = dft_real_kernels.transpose()
+    dft_imag_kernels = dft_imag_kernels.transpose()
     dft_real_kernels = dft_real_kernels[:, np.newaxis, np.newaxis, :]
     dft_imag_kernels = dft_imag_kernels[:, np.newaxis, np.newaxis, :]
 
