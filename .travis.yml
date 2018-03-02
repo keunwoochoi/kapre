@@ -7,7 +7,7 @@ install:
     - pip install -e .
 
 script:
-    - pytest
+    - pytest tests
 
 after_success:
     - coveralls
