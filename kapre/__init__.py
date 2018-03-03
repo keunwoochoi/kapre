@@ -10,4 +10,3 @@ from . import backend_keras
 from . import augmentation
 from . import filterbank
 from . import utils
-from . import datasets
