@@ -4,7 +4,7 @@ python:
     - 3.6
 
 install:
-    - pip install -e .
+    - pip install --pre -e .[tests]
 
 script:
     - pytest
