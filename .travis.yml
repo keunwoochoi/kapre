@@ -4,10 +4,10 @@ python:
     - 3.6
 
 install:
-    - pip install -e .
+    - pip install -e .[tests]
 
 script:
-    - pytest tests
+    - pytest
 
 after_success:
     - coveralls

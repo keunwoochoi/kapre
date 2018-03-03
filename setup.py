@@ -16,5 +16,8 @@ setup(name='kapre',
         'pandas',
         'future'
       ],
+      extras_require={
+          'tests': ['pytest'],
+       }
       keywords='audio music deep learning keras',
       zip_safe=False)
