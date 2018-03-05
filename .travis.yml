@@ -1,0 +1,17 @@
+language: python
+python:
+    - 2.7
+    - 3.6
+
+install:
+    - pip install --pre -e .[tests]
+
+script:
+    - pytest
+
+after_success:
+    - coveralls
+    - pip uninstall -y kapre
+
+after_failure:
+    - pip uninstall -y kapre

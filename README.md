@@ -20,6 +20,12 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
+* March 2018
+  - Kapre ver 0.1.3
+    - Add unit tests
+    - Remove `Datasets`
+    - Remove some codes while adding more dependency on Librosa to make it cleaner and more stable
+      - and therefore `htk` option enabled in `Melspectrogram`
 * 9 July 2017
   - Kapre ver 0.1.1, aka 'pretty stable' with a [benchmark paper](https://arxiv.org/abs/1706.05781)
     - Remove STFT, python3 compatible
@@ -38,7 +44,7 @@ $ python setup.py install
 
 Note: **pip doesn't work anymore**
 
-2. For Keras 1.x (note: it is not updated anymore)
+2. For Keras 1.x (note: it is not updated anymore;)
 ```sh
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
@@ -57,14 +63,6 @@ Audio preprocessing layers
 * `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
 * `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
 * `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
-
-### Datasets
-Dataset management
-* [GTZan](http://marsyasweb.appspot.com/download/data_sets/): (30s, 10 genres, 1,000 mp3)
-* [MagnaTagATune](http://mirg.city.ac.uk/codeapps/the-magnatagatune-dataset): (29s, 188 tags, 25,880 mp3) for tagging and triplet similarity
-* [MusicNet](https://homes.cs.washington.edu/~thickstn/musicnet.html): (full length 330 classicals music, note-wise annotations)
-* [FMA](https://github.com/mdeff/fma): small/medium/large/full collections, up to 100+K songs from free music archieve, for genre classification. With genre hierarchy, pre-computed features, splits, etc.
-* [Jamendo](http://www.mathieuramona.com/wp/data/jamendo/): 61/16/24 songs for vocal activity detection
 
 ## One-shot example
 ([↑up to contents](#contents))
@@ -123,23 +121,6 @@ model2 = keras.models.load_model('temp_model.h5',
 model2.summary()
 ```
 
-### Downloading datasets
-```python
-import kapre
-
-kapre.datasets.load_gtzan_genre('datasets')
-# checkout datasets/gtzan,
-# also `datasets/gtzan_genre/dataset_summary_kapre.csv`
-kapre.datasets.load_magnatagatune('/Users/username/all_datasets')
-# for magnatagatune, it doesn't create csv file as it already come with.
-kapre.datasets.load_gtzan_speechmusic('datasets')
-# check out `datasets/gtzan_speechmusic/dataset_summary_kapre.csv`
-kapre.datasets.load_fma('datasets', size='small')
-kapre.datasets.load_fma('datasets', size='medium')
-kapre.datasets.load_musicnet('datasets', format='hdf')
-kapre.datasets.load_musicnet('datasets', format='npz')
-# Kapre does NOT remove zip/tar.gz files after extracting.
-```
 
 # Citation
 ([↑up to contents](#contents))
@@ -280,15 +261,13 @@ A Keras layer
 ([↑up to contents](#contents))
 
 ```python
-kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs)
+kapre.utils.AmplitudeToDB(amin=1e-10, top_db=80.0, **kwargs)
 ```
 
 A layer that converts amplitude to decibel
 
 #### Parameters
 
-    * ref_power: float [scalar]
-        - reference power. Default: 1.0
     * amin: float [scalar]
         - Noise floor. Default: 1e-10
     * top_db: float [scalar]

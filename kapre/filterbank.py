@@ -9,7 +9,7 @@ from kapre import backend
 # not parameterised, just a matrix multiplication
 
 class Filterbank(Layer):
-    '''
+    """
     ### `Filterbank`
 
     `kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
@@ -43,11 +43,11 @@ class Filterbank(Layer):
     * trainable_fb: bool,
         - Whether the filterbanks are trainable or not.
 
-    '''
+    """
 
     def __init__(self, n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
                  bins_per_octave=12, image_data_format='default', **kwargs):
-        ''' TODO: is sr necessary? is fmax necessary? init with None?  '''
+        """ TODO: is sr necessary? is fmax necessary? init with None?  """
         self.supports_masking = True
         self.n_fbs = n_fbs
         assert init in ('mel', 'log', 'linear', 'uni_random')
