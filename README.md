@@ -24,7 +24,7 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - Kapre ver 0.1.3
     - Add unit tests
     - Remove `Datasets`
-    - Add more dependency on Librosa to make codes cleaner and more stable
+    - Remove some codes while adding more dependency on Librosa to make it cleaner and more stable
       - and therefore `htk` option enabled in `Melspectrogram`
 * 9 July 2017
   - Kapre ver 0.1.1, aka 'pretty stable' with a [benchmark paper](https://arxiv.org/abs/1706.05781)
@@ -44,7 +44,7 @@ $ python setup.py install
 
 Note: **pip doesn't work anymore**
 
-2. For Keras 1.x (note: it is not updated anymore)
+2. For Keras 1.x (note: it is not updated anymore;)
 ```sh
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
@@ -121,23 +121,6 @@ model2 = keras.models.load_model('temp_model.h5',
 model2.summary()
 ```
 
-### Downloading datasets
-```python
-import kapre
-
-kapre.datasets.load_gtzan_genre('datasets')
-# checkout datasets/gtzan,
-# also `datasets/gtzan_genre/dataset_summary_kapre.csv`
-kapre.datasets.load_magnatagatune('/Users/username/all_datasets')
-# for magnatagatune, it doesn't create csv file as it already come with.
-kapre.datasets.load_gtzan_speechmusic('datasets')
-# check out `datasets/gtzan_speechmusic/dataset_summary_kapre.csv`
-kapre.datasets.load_fma('datasets', size='small')
-kapre.datasets.load_fma('datasets', size='medium')
-kapre.datasets.load_musicnet('datasets', format='hdf')
-kapre.datasets.load_musicnet('datasets', format='npz')
-# Kapre does NOT remove zip/tar.gz files after extracting.
-```
 
 # Citation
 ([↑up to contents](#contents))
@@ -278,15 +261,13 @@ A Keras layer
 ([↑up to contents](#contents))
 
 ```python
-kapre.utils.AmplitudeToDB(ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs)
+kapre.utils.AmplitudeToDB(amin=1e-10, top_db=80.0, **kwargs)
 ```
 
 A layer that converts amplitude to decibel
 
 #### Parameters
 
-    * ref_power: float [scalar]
-        - reference power. Default: 1.0
     * amin: float [scalar]
         - Noise floor. Default: 1e-10
     * top_db: float [scalar]

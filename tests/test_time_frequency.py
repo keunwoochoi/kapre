@@ -10,10 +10,12 @@ from kapre.time_frequency import Spectrogram, Melspectrogram
 
 
 def _num_frame_valid(nsp_src, nsp_win, len_hop):
+    """Computes the number of frames with 'valid' setting"""
     return (nsp_src - (nsp_win - len_hop)) // len_hop
 
 
 def _num_frame_same(nsp_src, len_hop):
+    """Computes the number of frames with 'same' setting"""
     return int(np.ceil(float(nsp_src) / len_hop))
 
 
