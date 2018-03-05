@@ -1,4 +1,4 @@
-'''
+"""
 
 Kapre backend functions
 =======================\
@@ -12,7 +12,7 @@ Notes
     * Some functions are copied-and-pasted from librosa (to reduce dependency), but
         later I realised it'd be better to just use it.
     * TODO: remove copied code and use librosa.
-'''
+"""
 from keras import backend as K
 import numpy as np
 import librosa
@@ -27,21 +27,21 @@ def eps():
 
 
 def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None, htk=False, norm=1):
-    '''[np] create a filterbank matrix to combine stft bins into mel-frequency bins
+    """[np] create a filterbank matrix to combine stft bins into mel-frequency bins
     use Slaney (said Librosa)
 
     n_mels: numbre of mel bands
     fmin : lowest frequency [Hz]
     fmax : highest frequency [Hz]
         If `None`, use `sr / 2.0`
-    '''
+    """
     return librosa.filters.mel(sr=sr, n_fft=n_dft, n_mels=n_mels,
                                fmin=fmin, fmax=fmax,
                                htk=htk, norm=norm).astype(K.floatx())
 
 
 def get_stft_kernels(n_dft):
-    '''[np] Return dft kernels for real/imagnary parts assuming
+    """[np] Return dft kernels for real/imagnary parts assuming
         the input . is real.
     An asymmetric hann window is used (scipy.signal.hann).
 
@@ -58,7 +58,7 @@ def get_stft_kernels(n_dft):
     * nb_filter = n_dft/2 + 1
     * n_win = n_dft
 
-    '''
+    """
     assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), \
         ('n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft)
 
@@ -85,14 +85,15 @@ def get_stft_kernels(n_dft):
     return dft_real_kernels.astype(K.floatx()), dft_imag_kernels.astype(K.floatx())
 
 
-def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None):
-    '''[np] '''
-    return mel(sr, (n_freq - 1) * 2, n_mels=n_mels, fmin=fmin, fmax=fmax).astype(K.floatx())
+def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None, htk=False, norm=1):
+    """[np] """
+    return mel(sr, (n_freq - 1) * 2, n_mels=n_mels, fmin=fmin, fmax=fmax
+               , htk=htk, norm=norm).astype(K.floatx())
 
 
 def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
                    fmin=None, spread=0.125):  # pragma: no cover
-    '''[np] Approximate a constant-Q filter bank for a fixed-window STFT.
+    """[np] Approximate a constant-Q filter bank for a fixed-window STFT.
 
     Each filter is a log-normal window centered at the corresponding frequency.
 
@@ -123,7 +124,7 @@ def filterbank_log(sr, n_freq, n_bins=84, bins_per_octave=12,
     -------
     C : np.ndarray [shape=(n_bins, 1 + n_fft/2)]
         log-frequency filter bank.
-    '''
+    """
 
     if fmin is None:
         fmin = 32.70319566

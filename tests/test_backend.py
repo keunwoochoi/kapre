@@ -11,7 +11,7 @@ TOL = 1e-5
 def test_amplitude_to_decibel():
     """test for backend_keras.amplitude_to_decibel"""
     from kapre.backend_keras import amplitude_to_decibel
-    x = np.array([0.0001, 0.001, 0.05, 0.3, 1.0, 20.5])  # random positive numbers
+    x = np.array([1e-20, 1e-5, 1e-3, 5e-2, 0.3, 1.0, 20.5, 9999])  # random positive numbers
 
     amin = 1e-5
     dynamic_range = 80.0
@@ -50,7 +50,6 @@ def test_get_stft_kernels():
     assert real_kernels.shape == (n_dft, 1, 1, n_dft // 2 + 1)
     assert imag_kernels.shape == (n_dft, 1, 1, n_dft // 2 + 1)
     assert np.allclose(real_kernels, real_kernels_ref, atol=TOL)
-    print(imag_kernels)
     assert np.allclose(imag_kernels, imag_kernels_ref, atol=TOL)
 
 
@@ -58,6 +57,7 @@ def test_filterbank_mel():
     """test for backend.filterbank_mel"""
     fbmel_ref = np.load(os.path.join(os.path.dirname(__file__), 'fbmel_8000_512.npy'))
     fbmel = KPB.filterbank_mel(sr=8000, n_freq=512)
+    assert fbmel.shape == fbmel_ref.shape
     assert np.allclose(fbmel, fbmel_ref, atol=TOL)
 
 
@@ -65,6 +65,7 @@ def test_filterbank_log():
     """test for backend.filterback_log"""
     fblog_ref = np.load(os.path.join(os.path.dirname(__file__), 'fblog_8000_512.npy'))
     fblog = KPB.filterbank_log(sr=8000, n_freq=512)
+    assert fblog.shape == fblog_ref.shape
     assert np.allclose(fblog, fblog_ref, atol=TOL)
 
 

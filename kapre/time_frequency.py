@@ -58,6 +58,7 @@ class Spectrogram(Layer):
      * The input should be a 2D array, ``(audio_channel, audio_length)``.
      * E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
      * It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
+     * The input shape is not related to keras `image_data_format()` config.
 
     #### Returns
 
@@ -89,10 +90,10 @@ class Spectrogram(Layer):
 
         self.n_dft = n_dft
         assert n_dft % 2 == 0
-        self.n_filter = int(n_dft // 2) + 1
+        self.n_filter = n_dft // 2 + 1
         self.trainable_kernel = trainable_kernel
         self.n_hop = n_hop
-        self.padding = 'same'
+        self.padding = padding
         self.power_spectrogram = float(power_spectrogram)
         self.return_decibel_spectrogram = return_decibel_spectrogram
         super(Spectrogram, self).__init__(**kwargs)
@@ -230,6 +231,12 @@ d
        - If ``False``, it is initialised and then frozen.
        - Default: `False`
 
+     * htk: bool
+       - Check out Librosa's `mel-spectrogram` or `mel` option.
+
+     * norm: float [scalar]
+       - Check out Librosa's `mel-spectrogram` or `mel` option.
+
      * **kwargs:
        - The keyword arguments of ``Spectrogram`` such as ``n_dft``, ``n_hop``,
        - ``padding``, ``trainable_kernel``, ``image_data_format``.
@@ -238,6 +245,7 @@ d
      * The input should be a 2D array, ``(audio_channel, audio_length)``.
     E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
      * It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
+     * The input shape is not related to keras `image_data_format()` config.
 
     #### Returns
 
@@ -251,7 +259,7 @@ d
     def __init__(self,
                  sr=22050, n_mels=128, fmin=0.0, fmax=None,
                  power_melgram=1.0, return_decibel_melgram=False,
-                 trainable_fb=False, **kwargs):
+                 trainable_fb=False, htk=False, norm=1, **kwargs):
 
         super(Melspectrogram, self).__init__(**kwargs)
         assert sr > 0
@@ -271,12 +279,15 @@ d
         self.return_decibel_melgram = return_decibel_melgram
         self.trainable_fb = trainable_fb
         self.power_melgram = power_melgram
+        self.htk = htk
+        self.norm = norm
 
     def build(self, input_shape):
         super(Melspectrogram, self).build(input_shape)
         self.built = False
         # compute freq2mel matrix --> 
-        mel_basis = backend.mel(self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax)  # (128, 1025) (mel_bin, n_freq)
+        mel_basis = backend.mel(self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax,
+                                self.htk, self.norm)  # (128, 1025) (mel_bin, n_freq)
         mel_basis = np.transpose(mel_basis)
 
         self.freq2mel = K.variable(mel_basis, dtype=K.floatx())
@@ -294,8 +305,8 @@ d
 
     def call(self, x):
         power_spectrogram = super(Melspectrogram, self).call(x)
-        # now,  th: (batch_sample, n_ch, n_freq, n_time)
-        #       tf: (batch_sample, n_freq, n_time, n_ch)
+        # now,  channels_first: (batch_sample, n_ch, n_freq, n_time)
+        #       channels_last: (batch_sample, n_freq, n_time, n_ch)
         if self.image_data_format == 'channels_first':
             power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 1, 3, 2])
         else:
@@ -319,6 +330,8 @@ d
                   'fmax': self.fmax,
                   'trainable_fb': self.trainable_fb,
                   'power_melgram': self.power_melgram,
-                  'return_decibel_melgram': self.return_decibel_melgram}
+                  'return_decibel_melgram': self.return_decibel_melgram,
+                  'htk': self.htk,
+                  'norm': self.norm}
         base_config = super(Melspectrogram, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

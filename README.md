@@ -20,6 +20,12 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
+* March 2018
+  - Kapre ver 0.1.3
+    - Add unit tests
+    - Remove `Datasets`
+    - Add more dependency on Librosa to make codes cleaner and more stable
+      - and therefore `htk` option enabled in `Melspectrogram`
 * 9 July 2017
   - Kapre ver 0.1.1, aka 'pretty stable' with a [benchmark paper](https://arxiv.org/abs/1706.05781)
     - Remove STFT, python3 compatible
@@ -57,14 +63,6 @@ Audio preprocessing layers
 * `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
 * `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
 * `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
-
-### Datasets
-Dataset management
-* [GTZan](http://marsyasweb.appspot.com/download/data_sets/): (30s, 10 genres, 1,000 mp3)
-* [MagnaTagATune](http://mirg.city.ac.uk/codeapps/the-magnatagatune-dataset): (29s, 188 tags, 25,880 mp3) for tagging and triplet similarity
-* [MusicNet](https://homes.cs.washington.edu/~thickstn/musicnet.html): (full length 330 classicals music, note-wise annotations)
-* [FMA](https://github.com/mdeff/fma): small/medium/large/full collections, up to 100+K songs from free music archieve, for genre classification. With genre hierarchy, pre-computed features, splits, etc.
-* [Jamendo](http://www.mathieuramona.com/wp/data/jamendo/): 61/16/24 songs for vocal activity detection
 
 ## One-shot example
 ([↑up to contents](#contents))

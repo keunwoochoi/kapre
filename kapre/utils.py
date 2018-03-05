@@ -8,7 +8,7 @@ from . import backend_keras
 
 
 class AmplitudeToDB(Layer):
-    '''
+    """
 
     ### `AmplitudeToDB`
 
@@ -40,37 +40,34 @@ class AmplitudeToDB(Layer):
         model.add(Spectrogram(return_decibel=True))
     ```
 
-    '''
+    """
 
-    def __init__(self, ref_power=1.0, amin=1e-10, top_db=80.0, **kwargs):
-        assert isinstance(ref_power, float) or ref_power == 'max'
-        self.ref_power = ref_power
+    def __init__(self, amin=1e-10, top_db=80.0, **kwargs):
         self.amin = amin
         self.top_db = top_db
         super(AmplitudeToDB, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
-        return backend_keras.amplitude_to_decibel(x, self.ref_power, self.amin, self.top_db)
+        return backend_keras.amplitude_to_decibel(x, amin=self.amin, dynamic_range=self.top_db)
 
     def get_config(self):
-        config = {'ref_power': self.ref_power,
-                  'amin': self.amin,
+        config = {'amin': self.amin,
                   'top_db': self.top_db}
         base_config = super(AmplitudeToDB, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
 class Normalization2D(Layer):
-    '''
-    
+    """
+
     ### `Normalization2D`
-    
+
     `kapre.utils.Normalization2D`
-    
+
     A layer that normalises input data in ``axis`` axis.
 
     #### Parameters
-    
+
     * input_shape: tuple of ints
         - E.g., ``(None, n_ch, n_row, n_col)`` if theano.
 
@@ -94,7 +91,7 @@ class Normalization2D(Layer):
         model.add(Spectrogram())
         model.add(Normalization2D(stf_axis='freq'))
         ```
-    '''
+    """
 
     def __init__(self, str_axis=None, int_axis=None, image_data_format='default',
                  eps=1e-10, **kwargs):
