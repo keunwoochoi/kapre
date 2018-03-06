@@ -22,6 +22,7 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
 ## News
 * March 2018
   - Kapre ver 0.1.3
+    - Kapre is on Pip again
     - Add unit tests
     - Remove `Datasets`
     - Remove some codes while adding more dependency on Librosa to make it cleaner and more stable
@@ -37,21 +38,21 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
 
 1. For keras >= 2.0
 ```sh
-$ git clone https://github.com/keunwoochoi/kapre.git
-$ cd kapre
-$ python setup.py install
+pip install kapre
 ```
-
-Note: **pip doesn't work anymore**
+Or,
+```sh
+git clone https://github.com/keunwoochoi/kapre.git
+cd kapre
+python setup.py install
+```
 
 2. For Keras 1.x (note: it is not updated anymore;)
 ```sh
-$ git clone https://github.com/keunwoochoi/kapre.git
-$ cd kapre
-$ python setup.py install
-$ cd kapre
-$ git checkout a2bde3e
-$ python setup.py install
+git clone https://github.com/keunwoochoi/kapre.git
+cd kapre
+git checkout a2bde3e
+python setup.py install
 ```
 
 ## Usage
