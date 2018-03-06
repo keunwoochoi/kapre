@@ -36,16 +36,13 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
 ([↑up to contents](#contents))
 
 1. For keras >= 2.0
-Kapre is on Pip!
-```sh
-$ pip install kapre --upgrade
-```
-Otherwise, you can clone the repo and install manually.
 ```sh
 $ git clone https://github.com/keunwoochoi/kapre.git
 $ cd kapre
 $ python setup.py install
 ```
+
+Note: **pip doesn't work anymore**
 
 2. For Keras 1.x (note: it is not updated anymore;)
 ```sh
