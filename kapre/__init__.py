@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__version__ = '0.1.3'
+__version__ = '0.1.3.1'
 VERSION = __version__
 
 from . import time_frequency
