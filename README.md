@@ -316,7 +316,7 @@ A layer that normalises input data in `axis` axis.
 A frequency-axis normalization after a spectrogram::
     ```python
     model.add(Spectrogram())
-    model.add(Normalization2D(stf_axis='freq'))
+    model.add(Normalization2D(str_axis='freq'))
     ```
 
 ## [filterbank.py](kapre/filterbank.py)

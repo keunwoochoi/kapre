@@ -89,7 +89,7 @@ class Normalization2D(Layer):
     A frequency-axis normalization after a spectrogram::
         ```python
         model.add(Spectrogram())
-        model.add(Normalization2D(stf_axis='freq'))
+        model.add(Normalization2D(str_axis='freq'))
         ```
     """
 
