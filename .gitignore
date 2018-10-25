@@ -1,5 +1,6 @@
 *.pyc
 *.mp3
+.ipynb_checkpoints
 /dist/
 /*.egg-info
 src/
