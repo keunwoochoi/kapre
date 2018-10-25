@@ -1,4 +1,5 @@
 *.pyc
+*.mp3
 /dist/
 /*.egg-info
 src/
