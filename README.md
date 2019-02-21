@@ -20,6 +20,10 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
+* 20 Feb 2019
+  - Kapre ver 0.1.4
+    - Fixed amplitude-to-decibel error as raised in [#46](https://github.com/keunwoochoi/kapre/issues/46)
+     
 * March 2018
   - Kapre ver 0.1.3
     - Kapre is on Pip again
