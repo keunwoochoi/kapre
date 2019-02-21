@@ -11,13 +11,14 @@ TOL = 1e-5
 def test_amplitude_to_decibel():
     """test for backend_keras.amplitude_to_decibel"""
     from kapre.backend_keras import amplitude_to_decibel
-    x = np.array([1e-20, 1e-5, 1e-3, 5e-2, 0.3, 1.0, 20.5, 9999])  # random positive numbers
+    x = np.array([[1e-20, 1e-5, 1e-3, 5e-2],
+                  [0.3, 1.0, 20.5, 9999]])  # random positive numbers
 
     amin = 1e-5
     dynamic_range = 80.0
 
     x_decibel = 10 * np.log10(np.maximum(x, amin))
-    x_decibel = x_decibel - np.max(x_decibel)
+    x_decibel = x_decibel - np.max(x_decibel, axis=(1, ), keepdims=True)
     x_decibel_ref = np.maximum(x_decibel, -1 * dynamic_range)
 
     x_var = K.variable(x)
