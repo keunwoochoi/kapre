@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
-from keras.engine import Layer
-from keras import backend as K
+from tensorflow.keras.layers import Layer
+from tensorflow.keras import backend as K
 from . import backend
 from . import backend_keras
 
@@ -25,7 +25,7 @@ class AmplitudeToDB(Layer):
 
     * amin: float [scalar]
         - Noise floor. Default: 1e-10
-        
+
     * top_db: float [scalar]
         - Dynamic range of output. Default: 80.0
 

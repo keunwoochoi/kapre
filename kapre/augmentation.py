@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
-from keras import backend as K
-from keras.engine import Layer, InputSpec
+from tensorflow.keras import backend as K
+# from keras import backend as K
+# from tensorflow.keras import Layer, InputSpec
+from tensorflow.keras.layers import Layer
 
 
 class AdditiveNoise(Layer):
@@ -15,7 +17,7 @@ class AdditiveNoise(Layer):
     Add noise to input data and output it.
 
     #### Parameters
-    
+
     * power: float [scalar]
         - The power of noise. std if it's white noise.
         - Default: ``0.1``

@@ -2,8 +2,8 @@
 from __future__ import absolute_import
 import numpy as np
 import keras
-from keras import backend as K
-from keras.engine import Layer
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Layer
 from keras.utils.conv_utils import conv_output_length
 from . import backend, backend_keras
 
@@ -285,7 +285,7 @@ d
     def build(self, input_shape):
         super(Melspectrogram, self).build(input_shape)
         self.built = False
-        # compute freq2mel matrix --> 
+        # compute freq2mel matrix -->
         mel_basis = backend.mel(self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax,
                                 self.htk, self.norm)  # (128, 1025) (mel_bin, n_freq)
         mel_basis = np.transpose(mel_basis)
