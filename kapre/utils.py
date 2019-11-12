@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
-from keras.engine import Layer
-from keras import backend as K
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Layer
 from . import backend
 from . import backend_keras
 
