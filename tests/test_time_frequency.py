@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-import keras
-import keras.backend as K
-from keras.backend import image_data_format
+import tensorflow.keras
+import tensorflow.keras.backend as K
+from tensorflow.keras.backend import image_data_format
 import kapre
 import pdb
 import librosa
@@ -20,6 +20,38 @@ def _num_frame_same(nsp_src, len_hop):
 
 
 def test_spectrogram():
+    def _test_correctness():
+        """ Tests correctness
+        """
+        audio_data, sr = librosa.load("speech_test_file.wav", sr=44100, mono=True)
+
+        hop_length = 128
+        n_fft = 1024
+        n_mels = 80
+
+        # compute with librosa
+        S = librosa.core.stft(audio_data, n_fft=n_fft, hop_length=hop_length)
+        magnitudes_librosa = librosa.magphase(S, power=2)[0]
+        S_DB_librosa = librosa.power_to_db(magnitudes_librosa, ref=np.max)
+
+        # compute with kapre
+        stft_model = tensorflow.keras.models.Sequential()
+        stft_model.add(Spectrogram(n_dft=n_fft, n_hop=hop_length, input_shape=(1, len(audio_data)),
+                                   power_spectrogram=2.0, return_decibel_spectrogram=False,
+                                   trainable_kernel=False, name='stft'))
+
+        S = stft_model.predict(audio_data.reshape(1, 1, -1))
+        if image_data_format() == 'channels_last':
+            S = S[0, :, :, 0]
+        else:
+            S = S[0, 0]
+        magnitudes_kapre = librosa.magphase(S, power=1)[0]
+        S_DB_kapre = librosa.power_to_db(magnitudes_kapre, ref=np.max)
+
+        DB_scale = (np.max(S_DB_librosa) - np.min(S_DB_librosa))
+        S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
+        assert np.mean(S_DB_dif) < 0.015
+
     """Test for time_frequency.Spectrogram()"""
     def _test_mono_valid():
         """Tests for
@@ -33,7 +65,7 @@ def test_spectrogram():
         n_dft, len_hop, nsp_src = 512, 256, 8000
         src = np.random.uniform(-1., 1., nsp_src)
 
-        model = keras.models.Sequential()
+        model = tensorflow.keras.models.Sequential()
         model.add(Spectrogram(n_dft=n_dft, n_hop=len_hop, padding='valid',
                               power_spectrogram=1.0, return_decibel_spectrogram=False,
                               image_data_format='default',
@@ -51,7 +83,6 @@ def test_spectrogram():
             assert batch_stft_kapre.shape[3] == _num_frame_valid(nsp_src, n_dft, len_hop)
 
         # TODO: save the model
-
 
         # Now compare the result!
         # TODO. actually, later.
@@ -81,7 +112,7 @@ def test_spectrogram():
         n_dft, len_hop, nsp_src = 512, 256, 8000
         src = np.random.uniform(-1., 1., (n_ch, nsp_src))
 
-        model = keras.models.Sequential()
+        model = tensorflow.keras.models.Sequential()
         model.add(Spectrogram(n_dft=n_dft, n_hop=len_hop, padding='same',
                               power_spectrogram=1.0, return_decibel_spectrogram=False,
                               image_data_format='default',
@@ -101,12 +132,50 @@ def test_spectrogram():
     K.set_image_data_format("channels_first")
     _test_mono_valid()
     _test_stereo_same()
+    _test_correctness()
     K.set_image_data_format("channels_last")
     _test_mono_valid()
     _test_stereo_same()
+    _test_correctness()
 
 
 def test_melspectrogram():
+    def _test_correctness():
+        """ Tests correctness
+        """
+        audio_data, sr = librosa.load("speech_test_file.wav", sr=44100, mono=True)
+
+        hop_length = 128
+        n_fft = 1024
+        n_mels = 80
+
+        # compute with librosa
+        S = librosa.feature.melspectrogram(audio_data, sr=sr, n_fft=n_fft, 
+                                           hop_length=hop_length, 
+                                           n_mels=n_mels)
+
+        S_DB_librosa = librosa.power_to_db(S, ref=np.max)
+
+        # compute with kapre
+        mels_model = tensorflow.keras.models.Sequential()
+        mels_model.add(Melspectrogram(sr=sr, n_mels=n_mels,
+                                      n_dft=n_fft, n_hop=hop_length,
+                                      input_shape=(1, len(audio_data)),
+                                      power_melgram=2,
+                                      return_decibel_melgram=False,
+                                      trainable_kernel=False, name='melgram'))
+
+        S = mels_model.predict(audio_data.reshape(1, 1, -1))
+        if image_data_format() == 'channels_last':
+            S = S[0, :, :, 0]
+        else:
+            S = S[0, 0]
+        S_DB_kapre = librosa.power_to_db(S, ref=np.max)
+
+        DB_scale = (np.max(S_DB_librosa) - np.min(S_DB_librosa))
+        S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
+        assert np.mean(S_DB_dif) < 0.01
+
     """Test for time_frequency.Melspectrogram()"""
     def _test_mono_valid():
         """Tests for
@@ -123,7 +192,7 @@ def test_melspectrogram():
         n_dft, len_hop, nsp_src = 512, 256, 12000
         src = np.random.uniform(-1., 1., nsp_src)
 
-        model = keras.models.Sequential()
+        model = tensorflow.keras.models.Sequential()
         model.add(Melspectrogram(sr=sr, n_mels=n_mels, fmin=fmin, fmax=fmax,
                                  n_dft=n_dft, n_hop=len_hop, padding='valid',
                                  power_melgram=1.0, return_decibel_melgram=False,
@@ -154,7 +223,7 @@ def test_melspectrogram():
         n_dft, len_hop, nsp_src = 512, 256, 8000
         src = np.random.uniform(-1., 1., (n_ch, nsp_src))
 
-        model = keras.models.Sequential()
+        model = tensorflow.keras.models.Sequential()
         model.add(Melspectrogram(sr=sr, n_mels=n_mels, fmin=fmin, fmax=fmax,
                                  n_dft=n_dft, n_hop=len_hop, padding='same',
                                  power_melgram=1.0, return_decibel_melgram=False,
@@ -174,10 +243,12 @@ def test_melspectrogram():
     K.set_image_data_format("channels_first")
     _test_mono_valid()
     _test_stereo_same()
+    _test_correctness()
 
     K.set_image_data_format("channels_last")
     _test_mono_valid()
     _test_stereo_same()
+    _test_correctness()
 
 
 if __name__ == '__main__':

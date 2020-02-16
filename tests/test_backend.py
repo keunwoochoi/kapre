@@ -2,7 +2,7 @@ import os
 import pytest
 import kapre
 from kapre import backend as KPB
-from keras import backend as K
+from tensorflow.keras import backend as K
 import numpy as np
 
 TOL = 1e-5

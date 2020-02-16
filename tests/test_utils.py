@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-import keras
-import keras.backend as K
-from keras.backend import image_data_format
+import tensorflow.keras
+import tensorflow.keras.backend as K
+from tensorflow.keras.backend import image_data_format
 import kapre
 import pdb
 import librosa
@@ -15,7 +15,7 @@ def test_amplitude_to_db():
     """test for AmplitudeToDB layer"""
 
     # Test for a normal case
-    model = keras.models.Sequential()
+    model = tensorflow.keras.models.Sequential()
     model.add(AmplitudeToDB(amin=1e-10, top_db=80.0,
                             input_shape=(6,)))
 
@@ -25,7 +25,7 @@ def test_amplitude_to_db():
     assert np.allclose(batch_x_db[0], x_db_ref, atol=TOL)
 
     # Smaller amin, bigger dynamic range
-    model = keras.models.Sequential()
+    model = tensorflow.keras.models.Sequential()
     model.add(AmplitudeToDB(amin=1e-12, top_db=120.0,
                             input_shape=(6,)))
     x = np.array([1e-15, 1e-10, 1e-5, 1e-2, 1e-1, 10])

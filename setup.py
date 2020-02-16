@@ -10,7 +10,6 @@ setup(name='kapre',
       license='MIT',
       packages=['kapre'],
       install_requires=[
-        'keras >= 2.0.0',
         'numpy >= 1.8.0',
         'librosa >= 0.5',
         'future'
