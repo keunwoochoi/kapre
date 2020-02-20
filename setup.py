@@ -14,10 +14,6 @@ setup(name='kapre',
         'numpy >= 1.8.0',
         'librosa >= 0.5',
         'tensorflow >= 1.15',
-        'future'
       ],
-      extras_require={
-          'tests': ['tensorflow'],
-       },
       keywords='audio music deep learning keras',
       zip_safe=False)
