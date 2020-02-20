@@ -46,23 +46,10 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
 ## Installation
 ([↑up to contents](#contents))
 
-1. For keras >= 2.0
+Kapre is now working with tensorflow >= 1.15.
+ 
 ```sh
-pip install kapre
-```
-Or,
-```sh
-git clone https://github.com/keunwoochoi/kapre.git
-cd kapre
-python setup.py install
-```
-
-2. For Keras 1.x (note: it is not updated anymore;)
-```sh
-git clone https://github.com/keunwoochoi/kapre.git
-cd kapre
-git checkout a2bde3e
-python setup.py install
+pip install git+https://github.com/keunwoochoi/kapre.git
 ```
 
 ## Usage
