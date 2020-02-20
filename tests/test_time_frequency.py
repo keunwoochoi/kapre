@@ -23,7 +23,8 @@ def test_spectrogram():
     def _test_correctness():
         """ Tests correctness
         """
-        audio_data, sr = librosa.load("speech_test_file.wav", sr=44100, mono=True)
+        audio_data = np.load('tests/speech_test_file.npz')['audio_data']
+        sr = 44100
 
         hop_length = 128
         n_fft = 1024
@@ -35,7 +36,7 @@ def test_spectrogram():
         S_DB_librosa = librosa.power_to_db(magnitudes_librosa, ref=np.max)
         
         # load precomputed
-        magnitudes_expected = np.load('test_audio_stft_g0.npy')
+        magnitudes_expected = np.load('tests/test_audio_stft_g0.npy')
 
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
@@ -54,7 +55,7 @@ def test_spectrogram():
         DB_scale = (np.max(S_DB_librosa) - np.min(S_DB_librosa))
         S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
 
-        assert np.allclose(magnitudes_expected, magnitudes_kapre)
+        assert np.allclose(magnitudes_expected, magnitudes_kapre, rtol=1e-2)
         assert np.mean(S_DB_dif) < 0.015
 
     """Test for time_frequency.Spectrogram()"""
@@ -148,21 +149,22 @@ def test_melspectrogram():
     def _test_correctness():
         """ Tests correctness
         """
-        audio_data, sr = librosa.load("speech_test_file.wav", sr=44100, mono=True)
+        audio_data = np.load('tests/speech_test_file.npz')['audio_data']
+        sr = 44100
 
         hop_length = 128
         n_fft = 1024
         n_mels = 80
 
         # compute with librosa
-        S = librosa.feature.melspectrogram(audio_data, sr=sr, n_fft=n_fft, 
-                                           hop_length=hop_length, 
+        S = librosa.feature.melspectrogram(audio_data, sr=sr, n_fft=n_fft,
+                                           hop_length=hop_length,
                                            n_mels=n_mels)
 
         S_DB_librosa = librosa.power_to_db(S, ref=np.max)
 
-         # load precomputed
-        S_expected = np.load('test_audio_mel_g0.npy')
+        # load precomputed
+        S_expected = np.load('tests/test_audio_mel_g0.npy')
 
         # compute with kapre
         mels_model = tensorflow.keras.models.Sequential()
@@ -184,7 +186,7 @@ def test_melspectrogram():
         S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
 
         # compare expected float32 values with computed ones
-        assert np.allclose(S_expected, S)
+        assert np.allclose(S_expected, S, rtol=1e-2)
         assert np.mean(S_DB_dif) < 0.01
 
     """Test for time_frequency.Melspectrogram()"""

@@ -9,9 +9,12 @@ setup(name='kapre',
       author_email='keunwoo.choi@qmul.ac.uk',
       license='MIT',
       packages=['kapre'],
+      package_data={'': ['tests/speech_test_file.npz', 'tests/test_audio_mel_g0.npy', 'tests/test_audio_stft_g0.npy']},
+      include_package_data=True,
       install_requires=[
         'numpy >= 1.8.0',
         'librosa >= 0.5',
+        'tensorflow >= 2',
         'future'
       ],
       extras_require={
