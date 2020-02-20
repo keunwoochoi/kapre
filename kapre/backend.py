@@ -16,7 +16,6 @@ Notes
 from tensorflow.keras import backend as K
 import numpy as np
 import librosa
-# Forward compatability to replace xrange
 
 EPS = 1e-7
 

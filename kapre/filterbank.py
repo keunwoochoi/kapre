@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
 from tensorflow.keras.layers import Layer
 from tensorflow.keras import backend as K
 from kapre import backend
 
-
-# Todo: Filterbank(); init with mel, log, linear, etc.
-# not parameterised, just a matrix multiplication
 
 class Filterbank(Layer):
     """

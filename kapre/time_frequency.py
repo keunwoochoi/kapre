@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Layer
