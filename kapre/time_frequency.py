@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
-import keras
-from keras import backend as K
-from keras.engine import Layer
-from keras.utils.conv_utils import conv_output_length
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Layer
 from . import backend, backend_keras
 
 
@@ -335,3 +333,29 @@ d
                   'norm': self.norm}
         base_config = super(Melspectrogram, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+def conv_output_length(input_length, filter_size,
+                       padding, stride, dilation=1):
+    """Determines output length of a convolution given input length.
+    # Arguments
+        input_length: integer.
+        filter_size: integer.
+        padding: one of `"same"`, `"valid"`, `"full"`.
+        stride: integer.
+        dilation: dilation rate, integer.
+    # Returns
+        The output length (integer).
+    """
+    if input_length is None:
+        return None
+    assert padding in {'same', 'valid', 'full', 'causal'}
+    dilated_filter_size = (filter_size - 1) * dilation + 1
+    if padding == 'same':
+        output_length = input_length
+    elif padding == 'valid':
+        output_length = input_length - dilated_filter_size + 1
+    elif padding == 'causal':
+        output_length = input_length
+    elif padding == 'full':
+        output_length = input_length + dilated_filter_size - 1
+    return (output_length + stride - 1) // stride
