@@ -14,7 +14,7 @@ setup(name='kapre',
       install_requires=[
         'numpy >= 1.8.0',
         'librosa >= 0.5',
-        'tensorflow >= 2',
+        'tensorflow >= 1.15',
         'future'
       ],
       extras_require={

@@ -55,7 +55,7 @@ def test_spectrogram():
         DB_scale = (np.max(S_DB_librosa) - np.min(S_DB_librosa))
         S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
 
-        assert np.allclose(magnitudes_expected, magnitudes_kapre, rtol=1e-2)
+        assert np.allclose(magnitudes_expected, magnitudes_kapre, rtol=1e-2, atol=1e-8)
         assert np.mean(S_DB_dif) < 0.015
 
     """Test for time_frequency.Spectrogram()"""
@@ -186,7 +186,7 @@ def test_melspectrogram():
         S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
 
         # compare expected float32 values with computed ones
-        assert np.allclose(S_expected, S, rtol=1e-2)
+        assert np.allclose(S_expected, S, rtol=1e-2, atol=1e-8)
         assert np.mean(S_DB_dif) < 0.01
 
     """Test for time_frequency.Melspectrogram()"""
