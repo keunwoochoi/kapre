@@ -20,6 +20,12 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
+* 20 Feb 2020
+  - Kapre ver 0.1.7
+    - No vanilla Keras dependency
+    - Tensorflow >= 1.15 only
+    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7. 
+    
 * 20 Feb 2019
   - Kapre ver 0.1.4
     - Fixed amplitude-to-decibel error as raised in [#46](https://github.com/keunwoochoi/kapre/issues/46)
