@@ -4,11 +4,10 @@ python:
     - "3.7"
 
 install:
-    - pip install tox-travis
     - pip install --pre -e .
 
 script:
-    - tox
+    - pytest
 
 after_success:
     - coveralls
