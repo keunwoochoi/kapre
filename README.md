@@ -20,6 +20,12 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
+* 20 Feb 2020
+  - Kapre ver 0.1.7
+    - No vanilla Keras dependency
+    - Tensorflow >= 1.15 only
+    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7. 
+    
 * 20 Feb 2019
   - Kapre ver 0.1.4
     - Fixed amplitude-to-decibel error as raised in [#46](https://github.com/keunwoochoi/kapre/issues/46)
@@ -40,23 +46,10 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
 ## Installation
 ([↑up to contents](#contents))
 
-1. For keras >= 2.0
+Kapre is now working with tensorflow >= 1.15.
+ 
 ```sh
-pip install kapre
-```
-Or,
-```sh
-git clone https://github.com/keunwoochoi/kapre.git
-cd kapre
-python setup.py install
-```
-
-2. For Keras 1.x (note: it is not updated anymore;)
-```sh
-git clone https://github.com/keunwoochoi/kapre.git
-cd kapre
-git checkout a2bde3e
-python setup.py install
+pip install git+https://github.com/keunwoochoi/kapre.git
 ```
 
 ## Usage
