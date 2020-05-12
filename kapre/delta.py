@@ -20,9 +20,8 @@ class ComputeDeltas(Layer):
         - Default: 5
 
     * mode: str
-        - Whether the noise gain is random or not.
         - pad parameter
-        - Default: 'replicate'
+        - Default: 'SYMMETRIC'
 
 
     #### Returns
@@ -49,7 +48,7 @@ class ComputeDeltas(Layer):
         n = (self.win_length - 1) // 2
         denom = n * (n + 1) * (2 * n + 1) / 3
         
-        if data_format=='channels_first':
+        if self.data_format=='channels_first':
             x = K.permute_dimensions(x,(0,2,3,1))
             
         x = tf.pad(x,tf.constant([[0,0],[0,0],[n,n],[0,0]]), mode="SYMMETRIC")
@@ -59,7 +58,7 @@ class ComputeDeltas(Layer):
         #output = tf.nn.conv2d(x,kernel,1,'VALID',data_format='NHWC')
         x = K.conv2d(x,kernel,1,data_format='channels_last')/denom
         
-        if data_format=='channels_first':
+        if self.data_format=='channels_first':
             x = K.permute_dimensions(x,(0,3,1,2))
             
         return x
