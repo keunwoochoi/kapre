@@ -1,6 +1,6 @@
 from tensorflow.keras.layers import Layer
 from tensorflow.keras import backend as K
-from kapre import backend
+from . import backend
 
 
 class Filterbank(Layer):

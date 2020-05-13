@@ -1,3 +1,5 @@
+# Oscar Tokunaga: oscar.tokunaga@hotmail.com
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
@@ -33,10 +35,17 @@ class ComputeDeltas(Layer):
     def __init__(self, 
                  win_length:int=5, 
                  mode:str='SYMMETRIC', 
-                 data_format:str='channels_last',
+                 data_format:str='default',
                  **kwargs):
+        
         assert mode in ['SYMMETRIC','REFLECT','CONSTANT']
-        self.data_format = data_format
+        
+        assert data_format in ('default', 'channels_first', 'channels_last')
+        if data_format == 'default':
+            self.data_format = K.image_data_format()
+        else:
+            self.data_format = data_format
+
         self.win_length = win_length
         self.mode = mode
         super(ComputeDeltas, self).__init__(**kwargs)
@@ -55,7 +64,6 @@ class ComputeDeltas(Layer):
         kernel = K.arange(-n,n+1,1,dtype=K.floatx())
         kernel = K.reshape(kernel,(1,kernel.shape[-1],1,1))
         
-        #output = tf.nn.conv2d(x,kernel,1,'VALID',data_format='NHWC')
         x = K.conv2d(x,kernel,1,data_format='channels_last')/denom
         
         if self.data_format=='channels_first':
