@@ -1,7 +1,5 @@
 import pytest
-import torch
 import librosa
-import torchaudio
 import numpy as np
 import tensorflow.keras
 import tensorflow.keras.backend as K
@@ -10,11 +8,12 @@ from tensorflow.keras.backend import image_data_format
 import kapre
 from kapre.delta import ComputeDeltas
 
+
 def test_deltas():
     def _test_correctness():
         """ Tests correctness
         """
-        audio_data = np.load('./speech_test_file.npz')['audio_data']
+        audio_data = np.load('tests/speech_test_file.npz')['audio_data']
         sr = 44100
 
         hop_length = 128
@@ -22,44 +21,32 @@ def test_deltas():
         n_mels = 80
 
         # compute with librosa
-        S = librosa.feature.melspectrogram(audio_data, sr=sr, n_fft=n_fft,
-                                           hop_length=hop_length,
-                                           n_mels=n_mels)
+        S = librosa.feature.melspectrogram(
+            audio_data, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels
+        )
 
-        S_DB_librosa = librosa.power_to_db(S, ref=np.max)
-
-        DS_librosa = librosa.feature.delta(S_DB_librosa)
-        
-        # Compute with torch 
-        DS_torch = (torchaudio.transforms.ComputeDeltas()(torch.Tensor(S_DB_librosa).float())).numpy()
-
+        DS_librosa = librosa.feature.delta(S, width=5, mode='constant')
 
         # compute with kapre
         mels_model = tensorflow.keras.models.Sequential()
-        mels_model.add(ComputeDeltas())
-        
-        if image_data_format() == 'channels_last':
-            S_input = S_DB_librosa.reshape(1,-1,S_DB_librosa.shape[-1],1)
-        else:
-            S_input = S_DB_librosa.reshape(1,1,-1,S_DB_librosa.shape[-1])
-            
-        S = mels_model.predict(S_input)
+        mels_model.add(ComputeDeltas(win_length=5, mode='CONSTANT'))
 
         if image_data_format() == 'channels_last':
-            DS = S[0, :, :, 0]
+            S_input = S.reshape(1, -1, S.shape[-1], 1)
         else:
-            DS = S[0, 0]
+            S_input = S.reshape(1, 1, -1, S.shape[-1])
 
-        DS_scale_librosa = (np.max(DS_librosa) - np.min(DS_librosa))
-        DS_dif_librosa = np.abs(DS - DS_librosa) / DS_scale_librosa
+        DS = mels_model.predict(S_input)
 
-        DS_scale_torch = (np.max(DS_torch) - np.min(DS_torch))
-        DS_dif_torch = np.abs(DS - DS_torch) / DS_scale_torch
+        if image_data_format() == 'channels_last':
+            DS = DS[0, :, :, 0]
+        else:
+            DS = DS[0, 0]
 
-        assert np.mean(DS_dif_torch) < 0.001
-        assert np.mean(DS_dif_librosa) < 0.05
-    
-    
+        DB_DS = librosa.power_to_db(DS, ref=np.max)
+
+        np.testing.assert_allclose(DS_librosa, DS, rtol=1e-02)
+
     K.set_image_data_format("channels_first")
     _test_correctness()
 

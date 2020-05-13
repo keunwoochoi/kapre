@@ -15,8 +15,7 @@ def test_amplitude_to_db():
 
     # Test for a normal case
     model = tensorflow.keras.models.Sequential()
-    model.add(AmplitudeToDB(amin=1e-10, top_db=80.0,
-                            input_shape=(6,)))
+    model.add(AmplitudeToDB(amin=1e-10, top_db=80.0, input_shape=(6,)))
 
     x = np.array([0, 1e-5, 1e-3, 1e-2, 1e-1, 1])
     x_db_ref = np.array([-80, -50, -30, -20, -10, 0])
@@ -25,8 +24,7 @@ def test_amplitude_to_db():
 
     # Smaller amin, bigger dynamic range
     model = tensorflow.keras.models.Sequential()
-    model.add(AmplitudeToDB(amin=1e-12, top_db=120.0,
-                            input_shape=(6,)))
+    model.add(AmplitudeToDB(amin=1e-12, top_db=120.0, input_shape=(6,)))
     x = np.array([1e-15, 1e-10, 1e-5, 1e-2, 1e-1, 10])
     x_db_ref = np.array([-120, -110, -60, -30, -20, 0])
     batch_x_db = model.predict(x[np.newaxis, :])

@@ -45,19 +45,19 @@ class AdditiveNoise(Layer):
 
     def call(self, x):
         if self.random_gain:
-            noise_x = x + K.random_normal(shape=K.shape(x),
-                                          mean=0.,
-                                          stddev=np.random.uniform(0.0, self.power))
+            noise_x = x + K.random_normal(
+                shape=K.shape(x), mean=0.0, stddev=np.random.uniform(0.0, self.power)
+            )
         else:
-            noise_x = x + K.random_normal(shape=K.shape(x),
-                                          mean=0.,
-                                          stddev=self.power)
+            noise_x = x + K.random_normal(shape=K.shape(x), mean=0.0, stddev=self.power)
 
         return K.in_train_phase(noise_x, x)
 
     def get_config(self):
-        config = {'power': self.power,
-                  'random_gain': self.random_gain,
-                  'noise_type': self.noise_type}
+        config = {
+            'power': self.power,
+            'random_gain': self.random_gain,
+            'noise_type': self.noise_type,
+        }
         base_config = super(AdditiveNoise, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

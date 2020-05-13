@@ -40,14 +40,24 @@ class Filterbank(Layer):
 
     """
 
-    def __init__(self, n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
-                 bins_per_octave=12, image_data_format='default', **kwargs):
+    def __init__(
+        self,
+        n_fbs,
+        trainable_fb,
+        sr=None,
+        init='mel',
+        fmin=0.0,
+        fmax=None,
+        bins_per_octave=12,
+        image_data_format='default',
+        **kwargs,
+    ):
         """ TODO: is sr necessary? is fmax necessary? init with None?  """
         self.supports_masking = True
         self.n_fbs = n_fbs
         assert init in ('mel', 'log', 'linear', 'uni_random')
         if fmax is None:
-            self.fmax = sr / 2.
+            self.fmax = sr / 2.0
         else:
             self.fmax = fmax
         if init in ('mel', 'log'):
@@ -76,19 +86,27 @@ class Filterbank(Layer):
             self.n_time = input_shape[2]
 
         if self.init == 'mel':
-            self.filterbank = K.variable(backend.filterbank_mel(sr=self.sr,
-                                                                n_freq=self.n_freq,
-                                                                n_mels=self.n_fbs,
-                                                                fmin=self.fmin,
-                                                                fmax=self.fmax).transpose(),
-                                         dtype=K.floatx())
+            self.filterbank = K.variable(
+                backend.filterbank_mel(
+                    sr=self.sr,
+                    n_freq=self.n_freq,
+                    n_mels=self.n_fbs,
+                    fmin=self.fmin,
+                    fmax=self.fmax,
+                ).transpose(),
+                dtype=K.floatx(),
+            )
         elif self.init == 'log':
-            self.filterbank = K.variable(backend.filterbank_log(sr=self.sr,
-                                                                n_freq=self.n_freq,
-                                                                n_bins=self.n_fbs,
-                                                                bins_per_octave=self.bins_per_octave,
-                                                                fmin=self.fmin).transpose(),
-                                         dtype=K.floatx())
+            self.filterbank = K.variable(
+                backend.filterbank_log(
+                    sr=self.sr,
+                    n_freq=self.n_freq,
+                    n_bins=self.n_fbs,
+                    bins_per_octave=self.bins_per_octave,
+                    fmin=self.fmin,
+                ).transpose(),
+                dtype=K.floatx(),
+            )
 
         if self.trainable_fb:
             self.trainable_weights.append(self.filterbank)
@@ -117,12 +135,14 @@ class Filterbank(Layer):
             return K.permute_dimensions(output, [0, 3, 2, 1])
 
     def get_config(self):
-        config = {'n_fbs': self.n_fbs,
-                  'sr': self.sr,
-                  'init': self.init,
-                  'fmin': self.fmin,
-                  'fmax': self.fmax,
-                  'bins_per_octave': self.bins_per_octave,
-                  'trainable_fb': self.trainable_fb}
+        config = {
+            'n_fbs': self.n_fbs,
+            'sr': self.sr,
+            'init': self.init,
+            'fmin': self.fmin,
+            'fmax': self.fmax,
+            'bins_per_octave': self.bins_per_octave,
+            'trainable_fb': self.trainable_fb,
+        }
         base_config = super(Filterbank, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

@@ -49,8 +49,7 @@ class AmplitudeToDB(Layer):
         return backend_keras.amplitude_to_decibel(x, amin=self.amin, dynamic_range=self.top_db)
 
     def get_config(self):
-        config = {'amin': self.amin,
-                  'top_db': self.top_db}
+        config = {'amin': self.amin, 'top_db': self.top_db}
         base_config = super(AmplitudeToDB, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -91,13 +90,18 @@ class Normalization2D(Layer):
         ```
     """
 
-    def __init__(self, str_axis=None, int_axis=None, image_data_format='default',
-                 eps=1e-10, **kwargs):
-        assert not (int_axis is None and str_axis is None), \
-            'In Normalization2D, int_axis or str_axis should be specified.'
+    def __init__(
+        self, str_axis=None, int_axis=None, image_data_format='default', eps=1e-10, **kwargs
+    ):
+        assert not (
+            int_axis is None and str_axis is None
+        ), 'In Normalization2D, int_axis or str_axis should be specified.'
 
-        assert image_data_format in ('channels_first', 'channels_last', 'default'), \
-            'Incorrect image_data_format: {}'.format(image_data_format)
+        assert image_data_format in (
+            'channels_first',
+            'channels_last',
+            'default',
+        ), 'Incorrect image_data_format: {}'.format(image_data_format)
 
         if image_data_format == 'default':
             self.image_data_format = K.image_data_format()
@@ -105,15 +109,22 @@ class Normalization2D(Layer):
             self.image_data_format = image_data_format
 
         self.str_axis = str_axis
-        if self.str_axis is None: # use int_axis
+        if self.str_axis is None:  # use int_axis
             self.int_axis = int_axis
-        else: # use str_axis
+        else:  # use str_axis
             # warning
             if int_axis is not None:
-                print('int_axis={} passed but is ignored, str_axis is used instead.'.format(int_axis))
+                print(
+                    'int_axis={} passed but is ignored, str_axis is used instead.'.format(int_axis)
+                )
             # do the work
-            assert str_axis in ('batch', 'data_sample', 'channel', 'freq', 'time'), \
-                'Incorrect str_axis: {}'.format(str_axis)
+            assert str_axis in (
+                'batch',
+                'data_sample',
+                'channel',
+                'freq',
+                'time',
+            ), 'Incorrect str_axis: {}'.format(str_axis)
             if str_axis == 'batch':
                 int_axis = -1
             else:
@@ -139,8 +150,10 @@ class Normalization2D(Layer):
         return (x - mean) / (std + self.eps)
 
     def get_config(self):
-        config = {'int_axis': self.axis,
-                  'str_axis': self.str_axis,
-                  'image_data_format': self.image_data_format}
+        config = {
+            'int_axis': self.axis,
+            'str_axis': self.str_axis,
+            'image_data_format': self.image_data_format,
+        }
         base_config = super(Normalization2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
