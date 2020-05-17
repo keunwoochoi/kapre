@@ -27,7 +27,7 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - Kapre ver 0.1.7
     - No vanilla Keras dependency
     - Tensorflow >= 1.15 only
-    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7. 
+    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7 locally (by `tox`) and 3.6 on Travis 
     
 * 20 Feb 2019
   - Kapre ver 0.1.4
