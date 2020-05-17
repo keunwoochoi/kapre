@@ -1,13 +1,15 @@
 language: python
 python:
     - "3.6"
-    - "3.7"
 
 install:
     - pip install --pre -e .
+    - pip install black
 
 script:
     - pytest
+    - black --line-length 100 --diff --check --skip-string-normalization --target-version=py37 kapre
+    - black --line-length 100 --diff --check --skip-string-normalization --target-version=py37 tests
 
 after_success:
     - coveralls

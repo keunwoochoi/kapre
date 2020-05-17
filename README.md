@@ -20,11 +20,14 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
   - [`augmentation.AdditiveNoise`](#additivenoise)
 
 ## News
+* 17 Mar 2020
+  - 0.1.7
+    - added `utils.Delta` layer
 * 20 Feb 2020
   - Kapre ver 0.1.7
     - No vanilla Keras dependency
     - Tensorflow >= 1.15 only
-    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7. 
+    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7 locally (by `tox`) and 3.6 on Travis 
     
 * 20 Feb 2019
   - Kapre ver 0.1.4
@@ -315,6 +318,30 @@ A frequency-axis normalization after a spectrogram::
     model.add(Spectrogram())
     model.add(Normalization2D(str_axis='freq'))
     ```
+
+### Delta
+
+    ```python
+    kapre.delta.Delta(win_length, mode, **kwargs)
+    ```
+    Calculates delta - local estimate of the derivative along time axis.
+    See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
+
+#### Parameters
+    
+    * win_length: int
+        - Window length of the derivative estimation
+        - Default: 5
+
+    * mode: str
+        - It specifies pad mode of `tf.pad`. Case-insensitive
+        - Default: 'symmetric'
+        - {'symmetric', 'reflect', 'constant'}
+
+
+#### Returns
+
+A tensor with the same shape as input data.
 
 ## [filterbank.py](kapre/filterbank.py)
 ### Filterbank

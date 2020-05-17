@@ -11,14 +11,14 @@ TOL = 1e-5
 def test_amplitude_to_decibel():
     """test for backend_keras.amplitude_to_decibel"""
     from kapre.backend_keras import amplitude_to_decibel
-    x = np.array([[1e-20, 1e-5, 1e-3, 5e-2],
-                  [0.3, 1.0, 20.5, 9999]])  # random positive numbers
+
+    x = np.array([[1e-20, 1e-5, 1e-3, 5e-2], [0.3, 1.0, 20.5, 9999]])  # random positive numbers
 
     amin = 1e-5
     dynamic_range = 80.0
 
     x_decibel = 10 * np.log10(np.maximum(x, amin))
-    x_decibel = x_decibel - np.max(x_decibel, axis=(1, ), keepdims=True)
+    x_decibel = x_decibel - np.max(x_decibel, axis=(1,), keepdims=True)
     x_decibel_ref = np.maximum(x_decibel, -1 * dynamic_range)
 
     x_var = K.variable(x)
@@ -39,14 +39,14 @@ def test_get_stft_kernels():
     n_dft = 4
     real_kernels, imag_kernels = KPB.get_stft_kernels(n_dft)
 
-    real_kernels_ref = np.array([[[[0.0, 0.0, 0.0]]],
-                                 [[[0.5, 0.0, -0.5]]],
-                                 [[[1.0, -1.0, 1.0]]],
-                                 [[[0.5, 0.0, -0.5]]]], dtype=K.floatx())
-    imag_kernels_ref = np.array([[[[0.0, 0.0, 0.0]]],
-                                 [[[0.0, -0.5, 0.0]]],
-                                 [[[0.0, 0.0, 0.0]]],
-                                 [[[0.0, 0.5, 0.0]]]], dtype=K.floatx())
+    real_kernels_ref = np.array(
+        [[[[0.0, 0.0, 0.0]]], [[[0.5, 0.0, -0.5]]], [[[1.0, -1.0, 1.0]]], [[[0.5, 0.0, -0.5]]]],
+        dtype=K.floatx(),
+    )
+    imag_kernels_ref = np.array(
+        [[[[0.0, 0.0, 0.0]]], [[[0.0, -0.5, 0.0]]], [[[0.0, 0.0, 0.0]]], [[[0.0, 0.5, 0.0]]]],
+        dtype=K.floatx(),
+    )
 
     assert real_kernels.shape == (n_dft, 1, 1, n_dft // 2 + 1)
     assert imag_kernels.shape == (n_dft, 1, 1, n_dft // 2 + 1)
