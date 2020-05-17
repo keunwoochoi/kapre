@@ -187,12 +187,12 @@ class Delta(Layer):
     """
 
     def __init__(
-            self, win_length: int = 5, mode: str = 'symmetric', data_format: str = 'default', **kwargs
+        self, win_length: int = 5, mode: str = 'symmetric', data_format: str = 'default', **kwargs
     ):
 
         assert data_format in ('default', 'channels_first', 'channels_last')
         assert win_length >= 3
-        assert mode.lower() in ['symmetric', 'reflect', 'constant']
+        assert mode.lower() in ('symmetric', 'reflect', 'constant')
 
         if data_format == 'default':
             self.data_format = K.image_data_format()

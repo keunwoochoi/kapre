@@ -76,7 +76,7 @@ class Spectrogram(Layer):
         return_decibel_spectrogram=False,
         trainable_kernel=False,
         image_data_format='default',
-        **kwargs
+        **kwargs,
     ):
         assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), (
             'n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft
@@ -278,7 +278,7 @@ class Melspectrogram(Spectrogram):
         trainable_fb=False,
         htk=False,
         norm=1,
-        **kwargs
+        **kwargs,
     ):
 
         super(Melspectrogram, self).__init__(**kwargs)
