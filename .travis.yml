@@ -1,4 +1,13 @@
 language: python
+
+addons:
+  apt:
+    packages:
+    - x11-utils
+    - libxkbcommon-x11-0
+services: xvfb
+dist: xenial
+
 python:
     - "3.6"
     - "3.7"
