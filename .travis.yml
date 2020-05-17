@@ -5,6 +5,7 @@ python:
 
 install:
     - pip install --pre -e .
+    - pip install black
 
 script:
     - pytest
