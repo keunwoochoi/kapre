@@ -1,7 +1,6 @@
-import numpy as np
+import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Layer
-from . import backend
 from . import backend_keras
 
 
@@ -156,4 +155,74 @@ class Normalization2D(Layer):
             'image_data_format': self.image_data_format,
         }
         base_config = super(Normalization2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+class Delta(Layer):
+    """
+    ### Delta
+
+    ```python
+    kapre.delta.Delta(win_length, mode, **kwargs)
+    ```
+    Calculates delta - local estimate of the derivative along time axis.
+    See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
+
+    #### Parameters
+
+    * win_length: int
+        - Window length of the derivative estimation
+        - Default: 5
+
+    * mode: str
+        - It specifies pad mode of `tf.pad`. Case-insensitive
+        - Default: 'symmetric'
+        - {'symmetric', 'reflect', 'constant'}
+
+
+    #### Returns
+
+    A tensor with the same shape as input data.
+
+    """
+
+    def __init__(
+            self, win_length: int = 5, mode: str = 'symmetric', data_format: str = 'default', **kwargs
+    ):
+
+        assert data_format in ('default', 'channels_first', 'channels_last')
+        assert win_length >= 3
+        assert mode.lower() in ['symmetric', 'reflect', 'constant']
+
+        if data_format == 'default':
+            self.data_format = K.image_data_format()
+        else:
+            self.data_format = data_format
+
+        self.win_length = win_length
+        self.mode = mode
+        super(Delta, self).__init__(**kwargs)
+
+    def call(self, x):
+
+        n = (self.win_length - 1) / 2.0
+        denom = n * (n + 1) * (2 * n + 1) / 3
+
+        if self.data_format == 'channels_first':
+            x = K.permute_dimensions(x, (0, 2, 3, 1))
+
+        x = tf.pad(x, tf.constant([[0, 0], [0, 0], [int(n), int(n)], [0, 0]]), mode=self.mode)
+        kernel = K.arange(-n, n + 1, 1, dtype=K.floatx())
+        kernel = K.reshape(kernel, (1, kernel.shape[-1], 1, 1))  # (freq, time)
+
+        x = K.conv2d(x, kernel, 1, data_format='channels_last') / denom
+
+        if self.data_format == 'channels_first':
+            x = K.permute_dimensions(x, (0, 3, 1, 2))
+
+        return x
+
+    def get_config(self):
+        config = {'win_length': self.win_length, 'mode': self.mode}
+        base_config = super(Delta, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

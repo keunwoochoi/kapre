@@ -76,7 +76,7 @@ class Spectrogram(Layer):
         return_decibel_spectrogram=False,
         trainable_kernel=False,
         image_data_format='default',
-        **kwargs,
+        **kwargs
     ):
         assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), (
             'n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft
@@ -193,14 +193,14 @@ class Spectrogram(Layer):
 
 
 class Melspectrogram(Spectrogram):
-    '''
+    """
     ### `Melspectrogram`
     ```python
     kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
                                         power_melgram=1.0, return_decibel_melgram=False,
                                         trainable_fb=False, **kwargs)
     ```
-d
+
     Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
 
     Its base class is ``Spectrogram``.
@@ -265,7 +265,7 @@ d
      * `(None, n_channel, n_mels, n_time)` if `'channels_first'`,
      * `(None, n_mels, n_time, n_channel)` if `'channels_last'`,
 
-    '''
+    """
 
     def __init__(
         self,
@@ -278,7 +278,7 @@ d
         trainable_fb=False,
         htk=False,
         norm=1,
-        **kwargs,
+        **kwargs
     ):
 
         super(Melspectrogram, self).__init__(**kwargs)

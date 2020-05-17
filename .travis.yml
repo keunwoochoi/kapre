@@ -8,6 +8,8 @@ install:
 
 script:
     - pytest
+    - black --line-length 100 --diff --check --skip-string-normalization --target-version=py37 kapre
+    - black --line-length 100 --diff --check --skip-string-normalization --target-version=py37 tests
 
 after_success:
     - coveralls

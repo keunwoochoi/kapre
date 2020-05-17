@@ -5,6 +5,8 @@ from tensorflow.keras import backend as K
 def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
     """[K] Convert (linear) amplitude to decibel (log10(x)).
 
+    Parameters
+    ----------
     x: Keras *batch* tensor or variable. It has to be batch because of sample-wise `K.max()`.
 
     amin: minimum amplitude. amplitude smaller than `amin` is set to this.
