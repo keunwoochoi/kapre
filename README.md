@@ -21,7 +21,7 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
 
 ## News
 * 17 Mar 2020
-  - 0.1.7
+  - 0.1.8
     - added `utils.Delta` layer
 * 20 Feb 2020
   - Kapre ver 0.1.7
