@@ -1,6 +1,10 @@
 import numpy as np
 from tensorflow.keras import backend as K
 
+def log10(x):
+    numerator = K.log(x)
+    denominator = K.log(K.constant(10.0, dtype=K.floatx()))
+    return numerator / denominator
 
 def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
     """[K] Convert (linear) amplitude to decibel (log10(x)).
@@ -14,7 +18,9 @@ def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
     dynamic_range: dynamic_range in decibel
 
     """
-    log_spec = 10 * K.log(K.maximum(x, amin)) / np.log(10).astype(K.floatx())
+    log_spec = 10 * log10(K.maximum(amin, x))
+    
+
     if K.ndim(x) > 1:
         axis = tuple(range(K.ndim(x))[1:])
     else:
@@ -23,3 +29,4 @@ def amplitude_to_decibel(x, amin=1e-10, dynamic_range=80.0):
     log_spec = log_spec - K.max(log_spec, axis=axis, keepdims=True)  # [-?, 0]
     log_spec = K.maximum(log_spec, -1 * dynamic_range)  # [-80, 0]
     return log_spec
+    

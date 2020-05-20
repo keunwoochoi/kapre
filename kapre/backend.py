@@ -14,6 +14,7 @@ Notes
     * TODO: remove copied code and use librosa.
 """
 from tensorflow.keras import backend as K
+import tensorflow as tf
 import numpy as np
 import librosa
 
@@ -36,6 +37,25 @@ def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None, htk=False, norm=1):
     return librosa.filters.mel(
         sr=sr, n_fft=n_dft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
     ).astype(K.floatx())
+
+def tf_mel(sr:int, n_fft:int, spec_bins:int=None, n_mels:int=128, fmin:float=0.0, fmax:float=None):
+    """[np] create a filterbank matrix to combine stft bins into mel-frequency bins
+
+    n_mels: numbre of mel bands
+    fmin : lowest frequency [Hz]
+    fmax : highest frequency [Hz]
+        If `None`, use `sr / 2.0`
+    """
+    fmax = sr/2.0 if fmax is None else fmax
+    spec_bins = n_fft//2 + 1 if spec_bins is None else spec_bins
+    
+    return tf.signal.linear_to_mel_weight_matrix(
+            num_mel_bins=n_mels,
+            num_spectrogram_bins=spec_bins,
+            sample_rate=sr,
+            lower_edge_hertz=fmin,
+            upper_edge_hertz=fmax,
+        )
 
 
 def get_stft_kernels(n_dft):
