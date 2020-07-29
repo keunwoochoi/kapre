@@ -277,7 +277,7 @@ class Melspectrogram(Spectrogram):
         return_decibel_melgram=False,
         trainable_fb=False,
         htk=False,
-        norm=1,
+        norm='slaney',
         **kwargs,
     ):
 
