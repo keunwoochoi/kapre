@@ -72,7 +72,7 @@ Audio preprocessing layers
 
 ### Using Mel-spectrogram
 ```python
-from keras.models import Sequential
+from tensorflow.keras.models import Sequential
 from kapre.time_frequency import Melspectrogram
 from kapre.utils import Normalization2D
 from kapre.augmentation import AdditiveNoise
@@ -109,7 +109,7 @@ model.fit(x, y)
 Use `custom_objects` keyword argument as below.
 
 ```python
-import keras
+import tensorflow.keras as keras
 import kapre
 
 model = keras.models.Sequential()
