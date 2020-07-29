@@ -19,7 +19,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'numpy >= 1.8.0',
-        'librosa >= 0.5',
+        'librosa >= 0.7.2',
         'tensorflow >= 1.15',
     ],
     keywords='audio music deep learning keras',
