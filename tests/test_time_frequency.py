@@ -44,7 +44,7 @@ def test_spectrogram():
             Spectrogram(
                 n_dft=n_fft,
                 n_hop=hop_length,
-                input_shape=(1, len(audio_data)),
+                input_shape=(len(audio_data), 1) if image_data_format()=='channels_last' else (1, len(audio_data)),
                 power_spectrogram=2.0,
                 return_decibel_spectrogram=False,
                 trainable_kernel=False,
@@ -52,7 +52,8 @@ def test_spectrogram():
             )
         )
 
-        S = stft_model.predict(audio_data.reshape(1, 1, -1))
+        S = stft_model.predict(audio_data.reshape(1, -1, 1) if image_data_format() == 'channels_last' else audio_data.reshape(1, 1, -1))
+        
         if image_data_format() == 'channels_last':
             S = S[0, :, :, 0]
         else:
@@ -89,10 +90,10 @@ def test_spectrogram():
                 power_spectrogram=1.0,
                 return_decibel_spectrogram=False,
                 image_data_format='default',
-                input_shape=(n_ch, nsp_src),
+                input_shape=(nsp_src, n_ch) if image_data_format() == 'channels_last' else (n_ch, nsp_src),
             )
         )
-        batch_stft_kapre = model.predict(src[np.newaxis, np.newaxis, :])
+        batch_stft_kapre = model.predict(src[np.newaxis, ..., np.newaxis] if image_data_format() == 'channels_last' else src[np.newaxis, np.newaxis, ...])
 
         # check num_channel
         if image_data_format() == 'channels_last':
@@ -132,7 +133,10 @@ def test_spectrogram():
         """
         n_ch = 2
         n_dft, len_hop, nsp_src = 512, 256, 8000
-        src = np.random.uniform(-1.0, 1.0, (n_ch, nsp_src))
+        if image_data_format() == 'channels_last':
+            src = np.random.uniform(-1.0, 1.0, (nsp_src, n_ch))
+        else:    
+            src = np.random.uniform(-1.0, 1.0, (n_ch, nsp_src))
 
         model = tensorflow.keras.models.Sequential()
         model.add(
@@ -143,10 +147,10 @@ def test_spectrogram():
                 power_spectrogram=1.0,
                 return_decibel_spectrogram=False,
                 image_data_format='default',
-                input_shape=(n_ch, nsp_src),
+                input_shape=(nsp_src, n_ch) if image_data_format() == 'channels_last' else (n_ch, nsp_src)
             )
         )
-        batch_stft_kapre = model.predict(src[np.newaxis, :])
+        batch_stft_kapre = model.predict(src[np.newaxis, ...])
 
         # check num_channel
         if image_data_format() == 'channels_last':
@@ -197,7 +201,7 @@ def test_melspectrogram():
                 n_mels=n_mels,
                 n_dft=n_fft,
                 n_hop=hop_length,
-                input_shape=(1, len(audio_data)),
+                input_shape=(len(audio_data), 1) if image_data_format()=='channels_last' else (1, len(audio_data)),
                 power_melgram=2,
                 return_decibel_melgram=False,
                 trainable_kernel=False,
@@ -205,7 +209,7 @@ def test_melspectrogram():
             )
         )
 
-        S = mels_model.predict(audio_data.reshape(1, 1, -1))
+        S = mels_model.predict(audio_data.reshape(1, -1, 1) if image_data_format() == 'channels_last' else audio_data.reshape(1, 1, -1))
         if image_data_format() == 'channels_last':
             S = S[0, :, :, 0]
         else:
@@ -249,10 +253,10 @@ def test_melspectrogram():
                 power_melgram=1.0,
                 return_decibel_melgram=False,
                 image_data_format='default',
-                input_shape=(n_ch, nsp_src),
+                input_shape=(nsp_src, n_ch) if image_data_format() == 'channels_last' else (n_ch, nsp_src)
             )
         )
-        batch_melgram_kapre = model.predict(src[np.newaxis, np.newaxis, :])
+        batch_melgram_kapre = model.predict(src[np.newaxis, ..., np.newaxis] if image_data_format() == 'channels_last' else src[np.newaxis, np.newaxis, ...])
         if image_data_format() == 'channels_last':
             assert batch_melgram_kapre.shape[3] == n_ch
             assert batch_melgram_kapre.shape[1] == n_mels
@@ -275,7 +279,10 @@ def test_melspectrogram():
         n_mels = 64
         fmin, fmax = 200, sr // 2
         n_dft, len_hop, nsp_src = 512, 256, 8000
-        src = np.random.uniform(-1.0, 1.0, (n_ch, nsp_src))
+        if image_data_format() == 'channels_last':
+            src = np.random.uniform(-1.0, 1.0, (nsp_src, n_ch))
+        else:    
+            src = np.random.uniform(-1.0, 1.0, (n_ch, nsp_src))
 
         model = tensorflow.keras.models.Sequential()
         model.add(
@@ -290,10 +297,11 @@ def test_melspectrogram():
                 power_melgram=1.0,
                 return_decibel_melgram=False,
                 image_data_format='default',
-                input_shape=(n_ch, nsp_src),
+                input_shape=(nsp_src, n_ch) if image_data_format() == 'channels_last' else (n_ch, nsp_src),
             )
         )
-        batch_melgram_kapre = model.predict(src[np.newaxis, :])
+
+        batch_melgram_kapre = model.predict(src[np.newaxis, ...])
 
         if image_data_format() == 'channels_last':
             assert batch_melgram_kapre.shape[3] == n_ch
