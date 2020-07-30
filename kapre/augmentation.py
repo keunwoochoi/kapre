@@ -1,6 +1,6 @@
 import numpy as np
 from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Layer, InputSpec
+from tensorflow.keras.layers import Layer
 
 
 class AdditiveNoise(Layer):

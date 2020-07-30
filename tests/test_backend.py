@@ -1,6 +1,5 @@
 import os
 import pytest
-import kapre
 from kapre import backend as KPB
 from tensorflow.keras import backend as K
 import numpy as np
@@ -52,14 +51,6 @@ def test_get_stft_kernels():
     assert imag_kernels.shape == (n_dft, 1, 1, n_dft // 2 + 1)
     assert np.allclose(real_kernels, real_kernels_ref, atol=TOL)
     assert np.allclose(imag_kernels, imag_kernels_ref, atol=TOL)
-
-
-def test_filterbank_mel():
-    """test for backend.filterbank_mel"""
-    fbmel_ref = np.load(os.path.join(os.path.dirname(__file__), 'fbmel_8000_512.npy'))
-    fbmel = KPB.filterbank_mel(sr=8000, n_freq=512)
-    assert fbmel.shape == fbmel_ref.shape
-    assert np.allclose(fbmel, fbmel_ref, atol=TOL)
 
 
 def test_filterbank_log():
