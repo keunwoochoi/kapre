@@ -3,8 +3,6 @@ import numpy as np
 import tensorflow.keras
 import tensorflow.keras.backend as K
 from tensorflow.keras.backend import image_data_format
-import kapre
-import pdb
 import librosa
 from kapre.time_frequency import Spectrogram, Melspectrogram
 

@@ -24,7 +24,7 @@ def eps():
     return EPS
 
 
-def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None, htk=False, norm=1):
+def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None, htk=False, norm='slaney'):
     """[np] create a filterbank matrix to combine stft bins into mel-frequency bins
     use Slaney (said Librosa)
 
@@ -84,7 +84,7 @@ def get_stft_kernels(n_dft):
     return dft_real_kernels.astype(K.floatx()), dft_imag_kernels.astype(K.floatx())
 
 
-def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None, htk=False, norm=1):
+def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None, htk=False, norm='slaney'):
     """[np] """
     return mel(
         sr, (n_freq - 1) * 2, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
