@@ -1,387 +1,273 @@
-import numpy as np
-from tensorflow.keras import backend as K
+import tensorflow as tf
 from tensorflow.keras.layers import Layer
-from . import backend, backend_keras
+from . import backend
+from tensorflow.keras import backend as K
 
 
-class Spectrogram(Layer):
+def _shape_spectrum_output(spectrums, data_format):
+    """spectrums: result of tf.signal.stft or similar, i.e., (..., time, freq)."""
+    if data_format == 'channels_first':
+        pass  # probably it's already (batch, channel, time, freq)
+    else:
+        spectrums = tf.transpose(spectrums, perm=(0, 2, 3, 1))  # (batch, time, freq, channel)
+    return spectrums
+
+
+class STFT(Layer):
     """
-    ### `Spectrogram`
+    A Shor-time Fourier transform layer.
+    It uses `tf.signal.stft` to compute complex STFT. Additionally, it reshapes the output to be a proper 2D batch. E.g., (batch, time, freq, channel) if `channels_last`.
 
-    ```python
-    kapre.time_frequency.Spectrogram(n_dft=512, n_hop=None, padding='same',
-                                     power_spectrogram=2.0, return_decibel_spectrogram=False,
-                                     trainable_kernel=False, image_data_format='default',
-                                     **kwargs)
-    ```
-    Spectrogram layer that outputs spectrogram(s) in 2D image format.
 
-    #### Parameters
-     * n_dft: int > 0 [scalar]
-       - The number of DFT points, presumably power of 2.
-       - Default: ``512``
+    Args:
+        n_fft (int): Number of FFTs. Defaults to `2048` following Librosa.
+        win_length (int): Window length in sample. Defaults to `n_fft`.
+        hop_length (int): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        window_fn: A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
+        pad_end (bool): Whether to pad with zeros at the finishing end of the signal.
 
-     * n_hop: int > 0 [scalar]
-       - Hop length between frames in sample,  probably <= ``n_dft``.
-       - Default: ``None`` (``n_dft / 2`` is used)
-
-     * padding: str, ``'same'`` or ``'valid'``.
-       - Padding strategies at the ends of signal.
-       - Default: ``'same'``
-
-     * power_spectrogram: float [scalar],
-       -  ``2.0`` to get power-spectrogram, ``1.0`` to get amplitude-spectrogram.
-       -  Usually ``1.0`` or ``2.0``.
-       -  Default: ``2.0``
-
-     * return_decibel_spectrogram: bool,
-       -  Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
-       -  Recommended to use ``True``, although it's not by default.
-       -  Default: ``False``
-
-     * trainable_kernel: bool
-       -  Whether the kernels are trainable or not.
-       -  If ``True``, Kernels are initialised with DFT kernels and then trained.
-       -  Default: ``False``
-
-     * image_data_format: string, ``'channels_first'`` or ``'channels_last'``.
-       -  The returned spectrogram follows this image_data_format strategy.
-       -  If ``'default'``, it follows the current Keras session's setting.
-       -  Setting is in ``./keras/keras.json``.
-       -  Default: ``'default'``
-
-    #### Notes
-     * The input should be a 2D array, ``(audio_channel, audio_length)``.
-     * E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
-     * It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
-     * The input shape is not related to keras `image_data_format()` config.
-
-    #### Returns
-
-    A Keras layer
-
-     * abs(Spectrogram) in a shape of 2D data, i.e.,
-     * `(None, n_channel, n_freq, n_time)` if `'channels_first'`,
-     * `(None, n_freq, n_time, n_channel)` if `'channels_last'`,
-
+        **kwargs: Keyword args for keras layer (e.g., `name`)
 
     """
 
     def __init__(
-        self,
-        n_dft=512,
-        n_hop=None,
-        padding='same',
-        power_spectrogram=2.0,
-        return_decibel_spectrogram=False,
-        trainable_kernel=False,
-        image_data_format='default',
-        **kwargs,
+            self,
+            n_fft=2048,
+            win_length=None,
+            hop_length=None,
+            window_fn=None,
+            pad_end=False,
+            input_data_format='default',
+            output_data_format='default',
+            **kwargs,
     ):
-        assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), (
-            'n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft
-        )
-        assert isinstance(trainable_kernel, bool)
-        assert isinstance(return_decibel_spectrogram, bool)
-        assert padding in ('same', 'valid')
-        if n_hop is None:
-            n_hop = n_dft // 2
+        super(STFT, self).__init__(**kwargs)
 
-        assert image_data_format in ('default', 'channels_first', 'channels_last')
-        if image_data_format == 'default':
-            self.image_data_format = K.image_data_format()
-        else:
-            self.image_data_format = image_data_format
+        if win_length is None:
+            win_length = n_fft
+        if hop_length is None:
+            hop_length = win_length // 4
+        if window_fn is None:
+            window_fn = tf.signal.hann_window
 
-        self.n_dft = n_dft
-        assert n_dft % 2 == 0
-        self.n_filter = n_dft // 2 + 1
-        self.trainable_kernel = trainable_kernel
-        self.n_hop = n_hop
-        self.padding = padding
-        self.power_spectrogram = float(power_spectrogram)
-        self.return_decibel_spectrogram = return_decibel_spectrogram
-        super(Spectrogram, self).__init__(**kwargs)
+        self.n_fft = n_fft
+        self.win_length = win_length
+        self.hop_length = hop_length
+        self.window_fn = window_fn
+        self.pad_end = pad_end
 
-    def build(self, input_shape):
-        self.n_ch = input_shape[1]
-        self.len_src = input_shape[2]
-        self.is_mono = self.n_ch == 1
-        if self.image_data_format == 'channels_first':
-            self.ch_axis_idx = 1
-        else:
-            self.ch_axis_idx = 3
-        if self.len_src is not None:
-            assert self.len_src >= self.n_dft, 'Hey! The input is too short!'
-
-        self.n_frame = conv_output_length(self.len_src, self.n_dft, self.padding, self.n_hop)
-
-        dft_real_kernels, dft_imag_kernels = backend.get_stft_kernels(self.n_dft)
-        self.dft_real_kernels = K.variable(dft_real_kernels, dtype=K.floatx(), name="real_kernels")
-        self.dft_imag_kernels = K.variable(dft_imag_kernels, dtype=K.floatx(), name="imag_kernels")
-        # kernels shapes: (filter_length, 1, input_dim, nb_filter)?
-        if self.trainable_kernel:
-            self.trainable_weights.append(self.dft_real_kernels)
-            self.trainable_weights.append(self.dft_imag_kernels)
-        else:
-            self.non_trainable_weights.append(self.dft_real_kernels)
-            self.non_trainable_weights.append(self.dft_imag_kernels)
-
-        super(Spectrogram, self).build(input_shape)
-        # self.built = True
-
-    def compute_output_shape(self, input_shape):
-        if self.image_data_format == 'channels_first':
-            return input_shape[0], self.n_ch, self.n_filter, self.n_frame
-        else:
-            return input_shape[0], self.n_filter, self.n_frame, self.n_ch
+        idt, odt = input_data_format, output_data_format
+        self.output_data_format = K.image_data_format() if odt == 'default' else odt
+        self.input_data_format = K.image_data_format() if idt == 'default' else idt
 
     def call(self, x):
-        output = self._spectrogram_mono(x[:, 0:1, :])
-        if self.is_mono is False:
-            for ch_idx in range(1, self.n_ch):
-                output = K.concatenate(
-                    (output, self._spectrogram_mono(x[:, ch_idx : ch_idx + 1, :])),
-                    axis=self.ch_axis_idx,
-                )
-        if self.power_spectrogram != 2.0:
-            output = K.pow(K.sqrt(output), self.power_spectrogram)
-        if self.return_decibel_spectrogram:
-            output = backend_keras.amplitude_to_decibel(output)
-        return output
+        """
+        Compute STFT of the input signal. If the `time` axis is not the last axis of `x`, it should be transposed first.
+
+        Args:
+            x (float32/float64 Tensor): batch of audio signals, [..., samples].
+
+        Return:
+            A STFT representation of x
+            Shape: 2D batch shape. I.e., (batch, time, freq, ch) or (batch. ch, time, freq)
+            Type: complex64/complex128 STFT values where fft_unique_bins is fft_length // 2 + 1
+            (the unique components of the FFT).
+        """
+        signals = x  # (batch, ch, time) if input_data_format == 'channels_first'.
+        # (batch, time, ch) if input_data_format == 'channels_last'.
+
+        # this is needed because tf.signal.stft lives in channels_first land.
+        if self.input_data_format == 'channels_last':
+            signals = tf.transpose(signals, perm=(0, 2, 1))  # (batch, ch, time)
+
+        stfts = tf.signal.stft(
+            signals=signals,
+            frame_length=self.win_length,
+            frame_step=self.hop_length,
+            fft_length=self.n_fft,
+            window_fn=self.window_fn,
+            pad_end=self.pad_end,
+            name='%s_tf.signal.stft' % self.name
+        )  # (batch, ch, time, freq)
+
+        if self.output_data_format == 'channels_last':
+            stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
+
+        return stfts
 
     def get_config(self):
         config = {
-            'n_dft': self.n_dft,
-            'n_hop': self.n_hop,
-            'padding': self.padding,
-            'power_spectrogram': self.power_spectrogram,
-            'return_decibel_spectrogram': self.return_decibel_spectrogram,
-            'trainable_kernel': self.trainable_kernel,
-            'image_data_format': self.image_data_format,
+            'n_fft': self.n_fft,
+            'win_length': self.win_length,
+            'hop_length': self.hop_length,
+            'window_fn': self.window_fn,
+            'pad_end': self.pad_end,
+            'input_data_format': self.input_data_format,
+            'output_data_format': self.output_data_format,
         }
-        base_config = super(Spectrogram, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
-
-    def _spectrogram_mono(self, x):
-        '''x.shape : (None, 1, len_src),
-        returns 2D batch of a mono power-spectrogram'''
-        x = K.permute_dimensions(x, [0, 2, 1])
-        x = K.expand_dims(x, 3)  # add a dummy dimension (channel axis)
-        subsample = (self.n_hop, 1)
-        output_real = K.conv2d(
-            x,
-            self.dft_real_kernels,
-            strides=subsample,
-            padding=self.padding,
-            data_format='channels_last',
-        )
-        output_imag = K.conv2d(
-            x,
-            self.dft_imag_kernels,
-            strides=subsample,
-            padding=self.padding,
-            data_format='channels_last',
-        )
-        output = output_real ** 2 + output_imag ** 2
-        # now shape is (batch_sample, n_frame, 1, freq)
-        if self.image_data_format == 'channels_last':
-            output = K.permute_dimensions(output, [0, 3, 1, 2])
-        else:
-            output = K.permute_dimensions(output, [0, 2, 3, 1])
-        return output
+        return config
 
 
-class Melspectrogram(Spectrogram):
+class Magnitude(Layer):
+    def call(self, x):
+        return tf.abs(x)
+
+
+class Phase(Layer):
+    def call(self, x):
+        return tf.math.angle(x)
+
+
+class MagnitudeToDecibel(Layer):
+    def __init__(self, amin=None, dynamic_range=120.0, **kwargs):
+        super(MagnitudeToDecibel, self).__init__(**kwargs)
+        self.amin = amin
+        self.dynamic_range = dynamic_range
+
+    def call(self, x):
+        return backend.amplitude_to_decibel(x, amin=self.amin, dynamic_range=self.dynamic_range)
+
+    def get_config(self):
+        config = {
+            'amin': self.amin,
+            'dynamic_range': self.dynamic_range
+        }
+        return config
+
+
+class ApplyFilterbank(Layer):
     """
-    ### `Melspectrogram`
-    ```python
-    kapre.time_frequency.Melspectrogram(sr=22050, n_mels=128, fmin=0.0, fmax=None,
-                                        power_melgram=1.0, return_decibel_melgram=False,
-                                        trainable_fb=False, **kwargs)
-    ```
+    ### `Filterbank`
 
-    Mel-spectrogram layer that outputs mel-spectrogram(s) in 2D image format.
-
-    Its base class is ``Spectrogram``.
-
-    Mel-spectrogram is an efficient representation using the property of human
-    auditory system -- by compressing frequency axis into mel-scale axis.
-
-    #### Parameters
-     * sr: integer > 0 [scalar]
-       - sampling rate of the input audio signal.
-       - Default: ``22050``
-
-     * n_mels: int > 0 [scalar]
-       - The number of mel bands.
-       - Default: ``128``
-
-     * fmin: float > 0 [scalar]
-       - Minimum frequency to include in Mel-spectrogram.
-       - Default: ``0.0``
-
-     * fmax: float > ``fmin`` [scalar]
-       - Maximum frequency to include in Mel-spectrogram.
-       - If `None`, it is inferred as ``sr / 2``.
-       - Default: `None`
-
-     * power_melgram: float [scalar]
-       - Power of ``2.0`` if power-spectrogram,
-       - ``1.0`` if amplitude spectrogram.
-       - Default: ``1.0``
-
-     * return_decibel_melgram: bool
-       - Whether to return in decibel or not, i.e. returns log10(amplitude spectrogram) if ``True``.
-       - Recommended to use ``True``, although it's not by default.
-       - Default: ``False``
-
-     * trainable_fb: bool
-       - Whether the spectrogram -> mel-spectrogram filterbanks are trainable.
-       - If ``True``, the frequency-to-mel matrix is initialised with mel frequencies but trainable.
-       - If ``False``, it is initialised and then frozen.
-       - Default: `False`
-
-     * htk: bool
-       - Check out Librosa's `mel-spectrogram` or `mel` option.
-
-     * norm: float [scalar]
-       - Check out Librosa's `mel-spectrogram` or `mel` option.
-
-     * **kwargs:
-       - The keyword arguments of ``Spectrogram`` such as ``n_dft``, ``n_hop``,
-       - ``padding``, ``trainable_kernel``, ``image_data_format``.
+    `kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
+                                 bins_per_octave=12, image_data_format='default', **kwargs)`
 
     #### Notes
-     * The input should be a 2D array, ``(audio_channel, audio_length)``.
-    E.g., ``(1, 44100)`` for mono signal, ``(2, 44100)`` for stereo signal.
-     * It supports multichannel signal input, so ``audio_channel`` can be any positive integer.
-     * The input shape is not related to keras `image_data_format()` config.
+        Input/output are 2D image format.
+        E.g., if channel_first,
+            - input_shape: ``(None, n_ch, time, n_freq)``
+            - output_shape: ``(None, n_ch, time, n_new_bins)``
 
-    #### Returns
 
-    A Keras layer
-     * abs(mel-spectrogram) in a shape of 2D data, i.e.,
-     * `(None, n_channel, n_mels, n_time)` if `'channels_first'`,
-     * `(None, n_mels, n_time, n_channel)` if `'channels_last'`,
+    #### Parameters
+    * n_fbs: int
+       - Number of filterbanks
+
+    * sr: int
+        - sampling rate. It is used to initialize ``freq_to_mel``.
+
+    * init: str
+        - if ``'mel'``, init with mel center frequencies and stds.
+
+    * fmin: float
+        - min frequency of filterbanks.
+        - If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
+
+    * fmax: float
+        - max frequency of filterbanks.
+        - If `init == 'log'`, fmax is ignored.
+
+    * trainable_fb: bool,
+        - Whether the filterbanks are trainable or not.
 
     """
 
     def __init__(
-        self,
-        sr=22050,
-        n_mels=128,
-        fmin=0.0,
-        fmax=None,
-        power_melgram=1.0,
-        return_decibel_melgram=False,
-        trainable_fb=False,
-        htk=False,
-        norm='slaney',
-        **kwargs,
+            self,
+            filterbank,
+            data_format='default',
+            **kwargs,
     ):
-
-        super(Melspectrogram, self).__init__(**kwargs)
-        assert sr > 0
-        assert fmin >= 0.0
-        if fmax is None:
-            fmax = float(sr) / 2
-        assert fmax > fmin
-        assert isinstance(return_decibel_melgram, bool)
-        if 'power_spectrogram' in kwargs:
-            assert (
-                kwargs['power_spectrogram'] == 2.0
-            ), 'In Melspectrogram, power_spectrogram should be set as 2.0.'
-
-        self.sr = int(sr)
-        self.n_mels = n_mels
-        self.fmin = fmin
-        self.fmax = fmax
-        self.return_decibel_melgram = return_decibel_melgram
-        self.trainable_fb = trainable_fb
-        self.power_melgram = power_melgram
-        self.htk = htk
-        self.norm = norm
-
-    def build(self, input_shape):
-        super(Melspectrogram, self).build(input_shape)
-        self.built = False
-        # compute freq2mel matrix -->
-        mel_basis = backend.mel(
-            self.sr, self.n_dft, self.n_mels, self.fmin, self.fmax, self.htk, self.norm
-        )  # (128, 1025) (mel_bin, n_freq)
-        mel_basis = np.transpose(mel_basis)
-
-        self.freq2mel = K.variable(mel_basis, dtype=K.floatx())
-        if self.trainable_fb:
-            self.trainable_weights.append(self.freq2mel)
+        self.filterbank = filterbank
+        if data_format == 'default':
+            self.data_format = K.image_data_format()
         else:
-            self.non_trainable_weights.append(self.freq2mel)
-        self.built = True
+            self.data_format = data_format
 
-    def compute_output_shape(self, input_shape):
-        if self.image_data_format == 'channels_first':
-            return input_shape[0], self.n_ch, self.n_mels, self.n_frame
+        if self.data_format == 'channels_first':
+            self.freq_axis = 3
         else:
-            return input_shape[0], self.n_mels, self.n_frame, self.n_ch
+            self.freq_axis = 2
+        super(ApplyFilterbank, self).__init__(**kwargs)
 
     def call(self, x):
-        power_spectrogram = super(Melspectrogram, self).call(x)
-        # now,  channels_first: (batch_sample, n_ch, n_freq, n_time)
-        #       channels_last: (batch_sample, n_freq, n_time, n_ch)
-        if self.image_data_format == 'channels_first':
-            power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 1, 3, 2])
-        else:
-            power_spectrogram = K.permute_dimensions(power_spectrogram, [0, 3, 2, 1])
-        # now, whatever image_data_format, (batch_sample, n_ch, n_time, n_freq)
-        output = K.dot(power_spectrogram, self.freq2mel)
-        if self.image_data_format == 'channels_first':
-            output = K.permute_dimensions(output, [0, 1, 3, 2])
-        else:
-            output = K.permute_dimensions(output, [0, 3, 2, 1])
-        if self.power_melgram != 2.0:
-            output = K.pow(K.sqrt(output), self.power_melgram)
-        if self.return_decibel_melgram:
-            output = backend_keras.amplitude_to_decibel(output)
+        # x: 2d batch input
+        output = K.dot(x, self.filterbank, axes=(self.freq_axis, 0))
         return output
 
     def get_config(self):
         config = {
-            'sr': self.sr,
-            'n_mels': self.n_mels,
-            'fmin': self.fmin,
-            'fmax': self.fmax,
-            'trainable_fb': self.trainable_fb,
-            'power_melgram': self.power_melgram,
-            'return_decibel_melgram': self.return_decibel_melgram,
-            'htk': self.htk,
-            'norm': self.norm,
+            'filterbank': self.filterbank,
+            'data_format': self.data_format,
         }
-        base_config = super(Melspectrogram, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return config
 
 
-def conv_output_length(input_length, filter_size, padding, stride, dilation=1):
-    """Determines output length of a convolution given input length.
-    # Arguments
-        input_length: integer.
-        filter_size: integer.
-        padding: one of `"same"`, `"valid"`, `"full"`.
-        stride: integer.
-        dilation: dilation rate, integer.
-    # Returns
-        The output length (integer).
+class Delta(Layer):
     """
-    if input_length is None:
-        return None
-    assert padding in {'same', 'valid', 'full', 'causal'}
-    dilated_filter_size = (filter_size - 1) * dilation + 1
-    if padding == 'same':
-        output_length = input_length
-    elif padding == 'valid':
-        output_length = input_length - dilated_filter_size + 1
-    elif padding == 'causal':
-        output_length = input_length
-    elif padding == 'full':
-        output_length = input_length + dilated_filter_size - 1
-    return (output_length + stride - 1) // stride
+    ### Delta
+
+    ```python
+    kapre.delta.Delta(win_length, mode, **kwargs)
+    ```
+    Calculates delta - local estimate of the derivative along time axis.
+    See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
+
+    #### Parameters
+
+    * win_length: int
+        - Window length of the derivative estimation
+        - Default: 5
+
+    * mode: str
+        - It specifies pad mode of `tf.pad`. Case-insensitive
+        - Default: 'symmetric'
+        - {'symmetric', 'reflect', 'constant'}
+
+
+    #### Returns
+
+    A tensor with the same shape as input data.
+
+    """
+
+    def __init__(
+            self, win_length=5, mode='symmetric', data_format='default', **kwargs
+    ):
+
+        assert data_format in ('default', 'channels_first', 'channels_last')
+        assert win_length >= 3
+        if win_length % 2 != 1:
+            raise ValueError('win_length is expected to be an odd number, but it is %d' % win_length)
+        assert mode.lower() in ('symmetric', 'reflect', 'constant')
+
+        if data_format == 'default':
+            self.data_format = K.image_data_format()
+        else:
+            self.data_format = data_format
+
+        self.win_length = win_length
+        self.mode = mode
+        super(Delta, self).__init__(**kwargs)
+        self.n = (self.win_length - 1) // 2  # half window length
+        self.denom = 2 * sum([_n ** 2 for _n in range(1, self.n + 1, 1)])  # denominator
+
+    def call(self, x):
+        if self.data_format == 'channels_first':
+            x = K.permute_dimensions(x, (0, 2, 3, 1))
+
+        x = tf.pad(x, tf.constant([[0, 0], [0, 0], [self.n, self.n], [0, 0]]), mode=self.mode)  # pad over time
+        kernel = K.arange(-self.n, self.n + 1, 1, dtype=K.floatx())
+        kernel = K.reshape(kernel, (1, kernel.shape[-1], 1, 1))  # (freq, time)
+
+        x = K.conv2d(x, kernel, 1, data_format='channels_last') / self.denom
+
+        if self.data_format == 'channels_first':
+            x = K.permute_dimensions(x, (0, 3, 1, 2))
+
+        return x
+
+    def get_config(self):
+        config = {'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format}
+
+        return config
