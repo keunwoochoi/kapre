@@ -23,15 +23,8 @@ else:
 
 
 def amplitude_to_decibel(x, amin=None, dynamic_range=120.0):
-    """[K] Convert (linear) amplitude to decibel (log10(x)).
+    """
 
-    Parameters
-    ----------
-    x: Keras *batch* tensor or variable.
-
-    amin: minimum amplitude. amplitude smaller than `amin` is set to this.
-
-    dynamic_range: dynamic_range in decibel
 
     """
     if amin is None:
