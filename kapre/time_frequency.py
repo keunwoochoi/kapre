@@ -16,30 +16,41 @@ def _shape_spectrum_output(spectrums, data_format):
 class STFT(Layer):
     """
     A Shor-time Fourier transform layer.
-    It uses `tf.signal.stft` to compute complex STFT. Additionally, it reshapes the output to be a proper 2D batch. E.g., (batch, time, freq, channel) if `channels_last`.
-
+    It uses `tf.signal.stft` to compute complex STFT. Additionally, it reshapes the output to be a proper 2D batch.
+    If `channels_last`, the output shape is (batch, time, freq, channel)
+    If `channels_first`, the output shape is (batch, channel, time, freq)
 
     Args:
-        n_fft (int): Number of FFTs. Defaults to `2048` following Librosa.
-        win_length (int): Window length in sample. Defaults to `n_fft`.
-        hop_length (int): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
-        window_fn: A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
+        n_fft (int): Number of FFTs. Defaults to `2048`
+        win_length (int or None): Window length in sample. Defaults to `n_fft`.
+        hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        window_fn (function or None): A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
         pad_end (bool): Whether to pad with zeros at the finishing end of the signal.
+        input_data_format (str): the audio data format of input waveform batch.
+            `'channels_last'` if it's `(batch, time, channels)`
+            `'channels_first'` if it's `(batch, channels, time)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        output_data_format (str): the data format of output mel spectrogram.
+            `'channels_last'` if you want `(batch, time, frequency, channels)`
+            `'channels_first'` if you want `(batch, channels, time, frequency)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
 
-        **kwargs: Keyword args for keras layer (e.g., `name`)
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
     """
 
+    # TODO: add pad_begin and pad zeros manually
+
     def __init__(
-            self,
-            n_fft=2048,
-            win_length=None,
-            hop_length=None,
-            window_fn=None,
-            pad_end=False,
-            input_data_format='default',
-            output_data_format='default',
-            **kwargs,
+        self,
+        n_fft=2048,
+        win_length=None,
+        hop_length=None,
+        window_fn=None,
+        pad_end=False,
+        input_data_format='default',
+        output_data_format='default',
+        **kwargs,
     ):
         super(STFT, self).__init__(**kwargs)
 
@@ -65,13 +76,13 @@ class STFT(Layer):
         Compute STFT of the input signal. If the `time` axis is not the last axis of `x`, it should be transposed first.
 
         Args:
-            x (float32/float64 Tensor): batch of audio signals, [..., samples].
+            x (float Tensor): batch of audio signals, (batch, ch, time) or (batch, time, ch) based on input_data_format
 
         Return:
             A STFT representation of x
-            Shape: 2D batch shape. I.e., (batch, time, freq, ch) or (batch. ch, time, freq)
-            Type: complex64/complex128 STFT values where fft_unique_bins is fft_length // 2 + 1
-            (the unique components of the FFT).
+                Shape: 2D batch shape. I.e., (batch, time, freq, ch) or (batch. ch, time, freq)
+                Type: complex64/complex128 STFT values where fft_unique_bins is fft_length // 2 + 1
+                (the unique components of the FFT).
         """
         signals = x  # (batch, ch, time) if input_data_format == 'channels_first'.
         # (batch, time, ch) if input_data_format == 'channels_last'.
@@ -87,7 +98,7 @@ class STFT(Layer):
             fft_length=self.n_fft,
             window_fn=self.window_fn,
             pad_end=self.pad_end,
-            name='%s_tf.signal.stft' % self.name
+            name='%s_tf.signal.stft' % self.name,
         )  # (batch, ch, time, freq)
 
         if self.output_data_format == 'channels_last':
@@ -96,7 +107,8 @@ class STFT(Layer):
         return stfts
 
     def get_config(self):
-        config = {
+        config = super(ApplyFilterbank, self).get_config()
+        config.update({
             'n_fft': self.n_fft,
             'win_length': self.win_length,
             'hop_length': self.hop_length,
@@ -104,79 +116,65 @@ class STFT(Layer):
             'pad_end': self.pad_end,
             'input_data_format': self.input_data_format,
             'output_data_format': self.output_data_format,
-        }
+        })
         return config
 
 
 class Magnitude(Layer):
+    """Compute the magnitude of the complex input, resulting in a float tensor"""
+
     def call(self, x):
         return tf.abs(x)
 
 
 class Phase(Layer):
+    """Compute the phase of the complex input in radian, resulting in a float tensor"""
+
     def call(self, x):
         return tf.math.angle(x)
 
 
 class MagnitudeToDecibel(Layer):
-    def __init__(self, amin=None, dynamic_range=120.0, **kwargs):
+    """Wrap `backend.magnitude_to_decibel` to compute decibel of the input magnitude.
+    It's basically 10 * log10(x) with some offset and noise floor.
+    """
+
+    def __init__(self, ref_value=1.0, amin=1e-5, dynamic_range=80.0, **kwargs):
         super(MagnitudeToDecibel, self).__init__(**kwargs)
+        self.ref_value = ref_value
         self.amin = amin
         self.dynamic_range = dynamic_range
 
     def call(self, x):
-        return backend.amplitude_to_decibel(x, amin=self.amin, dynamic_range=self.dynamic_range)
+        return backend.magnitude_to_decibel(
+            x, ref_value=self.ref_value, amin=self.amin, dynamic_range=self.dynamic_range
+        )
 
     def get_config(self):
-        config = {
+        config = super(MagnitudeToDecibel, self).get_config()
+
+        config.update({
             'amin': self.amin,
-            'dynamic_range': self.dynamic_range
-        }
+            'dynamic_range': self.dynamic_range,
+            'ref_value': self.ref_value,
+        })
         return config
 
 
 class ApplyFilterbank(Layer):
     """
-    ### `Filterbank`
-
-    `kapre.filterbank.Filterbank(n_fbs, trainable_fb, sr=None, init='mel', fmin=0., fmax=None,
-                                 bins_per_octave=12, image_data_format='default', **kwargs)`
-
-    #### Notes
-        Input/output are 2D image format.
-        E.g., if channel_first,
-            - input_shape: ``(None, n_ch, time, n_freq)``
-            - output_shape: ``(None, n_ch, time, n_new_bins)``
+    Apply a filterbank to the input spectrograms.
 
 
-    #### Parameters
-    * n_fbs: int
-       - Number of filterbanks
-
-    * sr: int
-        - sampling rate. It is used to initialize ``freq_to_mel``.
-
-    * init: str
-        - if ``'mel'``, init with mel center frequencies and stds.
-
-    * fmin: float
-        - min frequency of filterbanks.
-        - If `init == 'log'`, fmin should be > 0. Use `None` if you got no idea.
-
-    * fmax: float
-        - max frequency of filterbanks.
-        - If `init == 'log'`, fmax is ignored.
-
-    * trainable_fb: bool,
-        - Whether the filterbanks are trainable or not.
+    Args:
+        filterbank (tensor): filterbank tensor in a shape of (n_freq, n_filterbanks)
+        data_format (str): specifies the data format of batch input/output
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
     """
 
     def __init__(
-            self,
-            filterbank,
-            data_format='default',
-            **kwargs,
+        self, filterbank, data_format='default', **kwargs,
     ):
         self.filterbank = filterbank
         if data_format == 'default':
@@ -191,54 +189,46 @@ class ApplyFilterbank(Layer):
         super(ApplyFilterbank, self).__init__(**kwargs)
 
     def call(self, x):
-        # x: 2d batch input
-        output = K.dot(x, self.filterbank, axes=(self.freq_axis, 0))
+
+        # x: 2d batch input. (b, t, fr, ch) or (b, ch, t, fr)
+        output = tf.tensordot(x, self.filterbank, axes=(self.freq_axis, 0))
+        # ch_last -> (b, t, ch, new_fr). ch_first -> (b, ch, t, new_fr)
+        if self.data_format == 'channels_last':
+            output = tf.transpose(output, (0, 1, 3, 2))
         return output
 
     def get_config(self):
-        config = {
-            'filterbank': self.filterbank,
+        config = super(ApplyFilterbank, self).get_config()
+        config.update({
+            # 'filterbank': self.filterbank,
             'data_format': self.data_format,
-        }
+        })
         return config
 
 
 class Delta(Layer):
-    """
-    ### Delta
-
-    ```python
-    kapre.delta.Delta(win_length, mode, **kwargs)
-    ```
-    Calculates delta - local estimate of the derivative along time axis.
+    """Calculates delta, a local estimate of the derivative along time axis.
     See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
 
-    #### Parameters
-
-    * win_length: int
-        - Window length of the derivative estimation
-        - Default: 5
-
-    * mode: str
-        - It specifies pad mode of `tf.pad`. Case-insensitive
-        - Default: 'symmetric'
-        - {'symmetric', 'reflect', 'constant'}
+    Args:
+        win_length (int): Window length of the derivative estimation. Defaults to 5
+        mode (str): Specifies pad mode of `tf.pad`. Case-insensitive. Defaults to 'symmetric'.
+            Can be 'symmetric', 'reflect', 'constant', or whatever `tf.pad` supports.
 
 
-    #### Returns
-
-    A tensor with the same shape as input data.
+    Returns:
+        A tensor with the same shape as input data.
 
     """
 
-    def __init__(
-            self, win_length=5, mode='symmetric', data_format='default', **kwargs
-    ):
+    def __init__(self, win_length=5, mode='symmetric', data_format='default', **kwargs):
 
         assert data_format in ('default', 'channels_first', 'channels_last')
         assert win_length >= 3
         if win_length % 2 != 1:
-            raise ValueError('win_length is expected to be an odd number, but it is %d' % win_length)
+            raise ValueError(
+                'win_length is expected to be an odd number, but it is %d' % win_length
+            )
         assert mode.lower() in ('symmetric', 'reflect', 'constant')
 
         if data_format == 'default':
@@ -248,26 +238,33 @@ class Delta(Layer):
 
         self.win_length = win_length
         self.mode = mode
-        super(Delta, self).__init__(**kwargs)
         self.n = (self.win_length - 1) // 2  # half window length
         self.denom = 2 * sum([_n ** 2 for _n in range(1, self.n + 1, 1)])  # denominator
+        super(Delta, self).__init__(**kwargs)
 
     def call(self, x):
+        """
+        Args:
+            x (tensor): a 2d batch (b, t, f, ch) or (b, ch, t, f)
+
+        """
         if self.data_format == 'channels_first':
             x = K.permute_dimensions(x, (0, 2, 3, 1))
 
-        x = tf.pad(x, tf.constant([[0, 0], [0, 0], [self.n, self.n], [0, 0]]), mode=self.mode)  # pad over time
+        x = tf.pad(
+            x, tf.constant([[0, 0], [self.n, self.n], [0, 0], [0, 0]]), mode=self.mode
+        )  # pad over time
         kernel = K.arange(-self.n, self.n + 1, 1, dtype=K.floatx())
-        kernel = K.reshape(kernel, (1, kernel.shape[-1], 1, 1))  # (freq, time)
+        kernel = K.reshape(kernel, (-1, 1, 1, 1))  # time, freq, in_ch, out_ch
 
-        x = K.conv2d(x, kernel, 1, data_format='channels_last') / self.denom
-
+        x = K.conv2d(x, kernel, data_format='channels_last') / self.denom
         if self.data_format == 'channels_first':
             x = K.permute_dimensions(x, (0, 3, 1, 2))
 
         return x
 
     def get_config(self):
-        config = {'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format}
+        config = super(Delta, self).get_config()
+        config.update({'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format})
 
         return config

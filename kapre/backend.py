@@ -1,66 +1,75 @@
-"""
-Kapre backend functions
-=======================
-
-|  Some backend functions that mainly use numpy.
-|  Functions with Keras' backend is in ``backend_keras.py``.
-
-Notes
------
-    * Don't forget to use ``K.float()``! Otherwise numpy uses float64.
-    * Some functions are copied-and-pasted from librosa (to reduce dependency), but
-        later I realised it'd be better to just use it.
-"""
 from tensorflow.keras import backend as K
 import tensorflow as tf
 import numpy as np
 import librosa
 
-if K.image_data_format() == 'channels_first':
-    CH_AXIS = 1
-else:
-    CH_AXIS = 3
 
+def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
+    """
+    Similar to `librosa.amplitude_to_db` with `ref=1.0` and `top_db=dynamic_range`
 
-def amplitude_to_decibel(x, amin=None, dynamic_range=120.0):
+    Args:
+        x (tensor): float tensor. Can be batch or not. Something like magnitude of STFT.
+        ref_value (float): an input value that would become 0 dB in the result.
+            For spectrogram magnitudes, ref_value=1.0 usually make the decibel-sclaed output to be around zero
+            if the input audio was in [-1, 1].
+        amin (float): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin.
+        dynamic_range (float): range of the resulting value. E.g., if the maximum magnitude is 30 dB,
+            the noise floor of the output would become (30 - dynamic_range) dB
+
     """
 
+    def _log10(x):
+        return tf.math.log(x) / tf.math.log(tf.constant(10, dtype=x.dtype))
 
-    """
-    if amin is None:
-        amin = K.epsilon()
-
-    log_spec = 10 * tf.math.log(tf.maximum(x, amin)) / tf.math.log(tf.constant(10, dtype=x.dtype))
-    if K.ndim(x) > 1:
-        axis = tuple(range(K.ndim(x))[1:])
+    if K.ndim(x) > 1:  # we assume x is batch in this case
+        max_axis = tuple(range(K.ndim(x))[1:])
     else:
-        axis = None
+        max_axis = None
 
-    log_spec = log_spec - tf.math.reduce_max(log_spec, axis=axis, keepdims=True)  # [-?, 0]
-    log_spec = tf.math.maximum(log_spec, -1 * dynamic_range)  # [-120, 0]
+    if amin is None:
+        amin = 1e-5
+
+    log_spec = 10.0 * _log10(tf.math.maximum(x, amin))
+    log_spec = log_spec - 10.0 * _log10(tf.math.maximum(amin, ref_value))
+
+    log_spec = tf.math.maximum(
+        log_spec, tf.math.reduce_max(log_spec, axis=max_axis, keepdims=True) - dynamic_range
+    )
+
     return log_spec
 
 
-def filterbank_mel(sample_rate, n_freq, n_mels=128, f_min=0.0, f_max=None, htk=False, norm='slaney'):
+def filterbank_mel(
+    sample_rate, n_freq, n_mels=128, f_min=0.0, f_max=None, htk=False, norm='slaney'
+):
     """A wrapper for librosa.filters.mel that additionally does transpose and tensor conversion
 
     Args:
-        n_mels: numbre of mel bands
-        f_min : lowest frequency [Hz]
-        f_max : highest frequency [Hz]
+        sample_rate (int): sample rate of the input audio
+        n_freq (int): number of frequency bins in the input STFT magnitude.
+        n_mels (int): the number of mel bands
+        f_min (float): lowest frequency that is going to be included in the mel filterbank (Hertz)
+        f_max (float): highest frequency that is going to be included in the mel filterbank (Hertz)
+        htk (bool): whether to use `htk` formula or not
+        norm: The default, 'slaney', would normalize the the mel weights by the width of the mel band.
 
     Return:
-        filterbank (tensor): (n_freq, n_mels)
+        Mel filterbank tensor. Shape=(n_freq, n_mels)
     """
     filterbank = librosa.filters.mel(
-        sr=sample_rate, n_fft=(n_freq - 1) * 2, n_mels=n_mels, fmin=f_min, fmax=f_max, htk=htk, norm=norm
+        sr=sample_rate,
+        n_fft=(n_freq - 1) * 2,
+        n_mels=n_mels,
+        fmin=f_min,
+        fmax=f_max,
+        htk=htk,
+        norm=norm,
     ).astype(K.floatx())
     return tf.convert_to_tensor(filterbank.T)
 
 
-def filterbank_log(
-        sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=None, spread=0.125
-):
+def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=None, spread=0.125):
     """Approximate a constant-Q filter bank for a fixed-window STFT.
 
     Each filter is a log-normal window centered at the corresponding frequency.
@@ -68,31 +77,16 @@ def filterbank_log(
     Note: `logfrequency` in librosa 0.4 (deprecated), so copy-and-pasted,
         `tuning` was removed, `n_freq` instead of `n_fft`.
 
-    Parameters
-    ----------
-    sample_rate : number > 0 [scalar]
-        audio sampling rate
+    Args:
+        sample_rate (int): audio sampling rate
+        n_freq (int): number of the input frequency bins. E.g., `n_fft / 2 + 1`
+        n_bins (int): number of the resulting log-frequency bins.  Defaults to 84 (7 octaves).
+        bins_per_octave (int): number of bins per octave. Defaults to 12 (semitones).
+        f_min (float): lowest frequency that is going to be included in the log filterbank. Defaults to `C1 ~= 32.70`
+        spread (float): spread of each filter, as a fraction of a bin.
 
-    n_freq : int > 0 [scalar]
-        number of frequency bins
-
-    n_bins : int > 0 [scalar]
-        Number of bins.  Defaults to 84 (7 octaves).
-
-    bins_per_octave : int > 0 [scalar]
-        Number of bins per octave. Defaults to 12 (semitones).
-
-    f_min : float > 0 [scalar]
-        Minimum frequency bin. Defaults to `C1 ~= 32.70`
-
-    spread : float > 0 [scalar]
-        Spread of each filter, as a fraction of a bin.
-
-    Returns
-    -------
-        C : tensor[shape=(n_freq, n_bins)]
-            log-frequency filter bank.
-
+    Returns:
+        log-frequency filterbank tensor. Shape=(n_freq, n_bins)
     """
 
     if f_min is None:
@@ -100,11 +94,13 @@ def filterbank_log(
 
     f_max = f_min * 2 ** (n_bins / bins_per_octave)
     if f_max > sample_rate // 2:
-        raise RuntimeError('Maximum frequency of log filterbank should be lower or equal to the maximum'
-                           'frequency of the input, but f_max=%f and maximum frequency is %f. '
-                           'Fix it by reducing n_bins, increasing bins_per_octave, reduce f_min.\n'
-                           'You can also do it by increasing sample_rate but it means you need to upsample'
-                           'the input data, too.' % (f_max, sample_rate))
+        raise RuntimeError(
+            'Maximum frequency of log filterbank should be lower or equal to the maximum'
+            'frequency of the input, but f_max=%f and maximum frequency is %f. '
+            'Fix it by reducing n_bins, increasing bins_per_octave, reduce f_min.\n'
+            'You can also do it by increasing sample_rate but it means you need to upsample'
+            'the input data, too.' % (f_max, sample_rate)
+        )
 
     # What's the shape parameter for our log-normal filters?
     sigma = float(spread) / bins_per_octave
