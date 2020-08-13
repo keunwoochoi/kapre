@@ -64,14 +64,13 @@ pip install git+https://github.com/keunwoochoi/kapre.git
 ([↑up to contents](#contents))
 
 Audio preprocessing layers
-* `Spectrogram`, `Melspectrogram` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* `AmplitudeToDB`, `Normalization2D` in [utils.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/utils.py)
-* `Filterbank` in [filterbank.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* `AdditiveNoise` in [augmentation.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/augmentation.py)
+* `STFT`, `Magnitude`, `Phase`, `MagnitudeToDecibel`, `ApplyFilterbank`, `Delta` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+* melspectrogram and log-frequency STFT are composed using time-frequency layers as in [composed.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/composed.py).
+See `get_melspectrogram_layer` and `get_log_frequency_spectrogram_layer`. 
 
 ## One-shot example
 ([↑up to contents](#contents))
-
+# TODO - to be updated
 * More examples on [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
 ### Using Mel-spectrogram
