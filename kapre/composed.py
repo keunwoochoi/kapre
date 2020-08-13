@@ -69,16 +69,18 @@ def get_melspectrogram_layer(
 
     stft_to_stftm = Magnitude()
 
-    _mel_filterbank = backend.filterbank_mel(
-        sample_rate=sample_rate,
-        n_freq=n_fft // 2 + 1,
-        n_mels=n_mels,
-        f_min=mel_f_min,
-        f_max=mel_f_max,
-        htk=mel_htk,
-        norm=mel_norm,
+    kwargs = {
+        'sample_rate': sample_rate,
+        'n_freq': n_fft // 2 + 1,
+        'n_mels': n_mels,
+        'f_min': mel_f_min,
+        'f_max': mel_f_max,
+        'htk': mel_htk,
+        'norm': mel_norm,
+    }
+    stftm_to_melgram = ApplyFilterbank(
+        type='mel', filterbank_kwargs=kwargs, data_format=output_data_format
     )
-    stftm_to_melgram = ApplyFilterbank(filterbank=_mel_filterbank, data_format=output_data_format)
 
     layers = [waveform_to_stft, stft_to_stftm, stftm_to_melgram]
     if return_decibel:
@@ -98,7 +100,7 @@ def get_log_frequency_spectrogram_layer(
     window_fn=None,
     pad_end=False,
     sample_rate=22050,
-    log_n_bins=128,
+    log_n_bins=84,
     log_f_min=None,
     log_bins_per_octave=12,
     log_spread=0.125,
@@ -161,7 +163,18 @@ def get_log_frequency_spectrogram_layer(
         f_min=log_f_min,
         spread=log_spread,
     )
-    stftm_to_loggram = ApplyFilterbank(filterbank=_log_filterbank, data_format=output_data_format)
+    kwargs = {
+        'sample_rate': sample_rate,
+        'n_freq': n_fft // 2 + 1,
+        'n_bins': log_n_bins,
+        'bins_per_octave': log_bins_per_octave,
+        'f_min': log_f_min,
+        'spread': log_spread,
+    }
+
+    stftm_to_loggram = ApplyFilterbank(
+        type='log', filterbank_kwargs=kwargs, data_format=output_data_format
+    )
 
     layers = [waveform_to_stft, stft_to_stftm, stftm_to_loggram]
 

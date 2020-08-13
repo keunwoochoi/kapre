@@ -96,10 +96,11 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
     if f_max > sample_rate // 2:
         raise RuntimeError(
             'Maximum frequency of log filterbank should be lower or equal to the maximum'
-            'frequency of the input, but f_max=%f and maximum frequency is %f. '
-            'Fix it by reducing n_bins, increasing bins_per_octave, reduce f_min.\n'
+            'frequency of the input (defined by its sample rate), '
+            'but f_max=%f and maximum frequency is %f. \n'
+            'Fix it by reducing n_bins, increasing bins_per_octave and/or reducing f_min.\n'
             'You can also do it by increasing sample_rate but it means you need to upsample'
-            'the input data, too.' % (f_max, sample_rate)
+            'the input audio data, too.' % (f_max, sample_rate)
         )
 
     # What's the shape parameter for our log-normal filters?

@@ -192,7 +192,22 @@ def test_melspectrogram_correctness(
     )  # decibel is evaluated with relative tolerance
 
 
+def test_log_spectrogram_runnable():
+    """test if log spectrogram layer works well"""
+    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=True)
+    _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=False)
+
+
+@pytest.mark.xfail
+def test_log_spectrogram_fail():
+    """test if log spectrogram layer works well"""
+    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=True, log_n_bins=200)
+
+
 def test_delta():
+    """test delta layer"""
     specgrams = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
     specgrams = np.reshape(specgrams, (1, -1, 1, 1))  # (b, t, f, ch)
     delta_model = tensorflow.keras.models.Sequential()
@@ -206,7 +221,13 @@ def test_delta():
 
 
 def test_save_load():
+    """test saving/loading of models that has stft, melspectorgrma, and log frequency."""
+
     def _test(layer, input_batch, allclose_func, atol=1e-4):
+        """test a model with `layer` with the given `input_batch`.
+        The model prediction result is compared using `allclose_func` which may depend on the
+        data type of the model output (e.g., float or complex).
+        """
         model = tensorflow.keras.models.Sequential()
         model.add(layer)
 
@@ -214,7 +235,6 @@ def test_save_load():
 
         os_temp_dir = tempfile.gettempdir()
         model_temp_dir = tempfile.TemporaryDirectory(dir=os_temp_dir)
-        import ipdb; ipdb.set_trace()
         model.save(filepath=model_temp_dir.name)
 
         new_model = tf.keras.models.load_model(model_temp_dir.name)

@@ -107,16 +107,18 @@ class STFT(Layer):
         return stfts
 
     def get_config(self):
-        config = super(ApplyFilterbank, self).get_config()
-        config.update({
-            'n_fft': self.n_fft,
-            'win_length': self.win_length,
-            'hop_length': self.hop_length,
-            'window_fn': self.window_fn,
-            'pad_end': self.pad_end,
-            'input_data_format': self.input_data_format,
-            'output_data_format': self.output_data_format,
-        })
+        config = super(STFT, self).get_config()
+        config.update(
+            {
+                'n_fft': self.n_fft,
+                'win_length': self.win_length,
+                'hop_length': self.hop_length,
+                'window_fn': self.window_fn,
+                'pad_end': self.pad_end,
+                'input_data_format': self.input_data_format,
+                'output_data_format': self.output_data_format,
+            }
+        )
         return config
 
 
@@ -152,12 +154,9 @@ class MagnitudeToDecibel(Layer):
 
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
-
-        config.update({
-            'amin': self.amin,
-            'dynamic_range': self.dynamic_range,
-            'ref_value': self.ref_value,
-        })
+        config.update(
+            {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
+        )
         return config
 
 
@@ -174,9 +173,16 @@ class ApplyFilterbank(Layer):
     """
 
     def __init__(
-        self, filterbank, data_format='default', **kwargs,
+        self, type, filterbank_kwargs, data_format='default', **kwargs,
     ):
-        self.filterbank = filterbank
+        self.type = type
+        self.filterbank_kwargs = filterbank_kwargs
+
+        if type == 'log':
+            self.filterbank = _log_filterbank = backend.filterbank_log(**filterbank_kwargs)
+        elif type == 'mel':
+            self.filterbank = _mel_filterbank = backend.filterbank_mel(**filterbank_kwargs)
+
         if data_format == 'default':
             self.data_format = K.image_data_format()
         else:
@@ -199,10 +205,13 @@ class ApplyFilterbank(Layer):
 
     def get_config(self):
         config = super(ApplyFilterbank, self).get_config()
-        config.update({
-            # 'filterbank': self.filterbank,
-            'data_format': self.data_format,
-        })
+        config.update(
+            {
+                'type': self.type,
+                'filterbank_kwargs': self.filterbank_kwargs,
+                'data_format': self.data_format,
+            }
+        )
         return config
 
 
@@ -265,6 +274,8 @@ class Delta(Layer):
 
     def get_config(self):
         config = super(Delta, self).get_config()
-        config.update({'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format})
+        config.update(
+            {'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format}
+        )
 
         return config
