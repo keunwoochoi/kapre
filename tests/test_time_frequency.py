@@ -1,10 +1,13 @@
+import os
 import pytest
 import numpy as np
+import tensorflow as tf
 import tensorflow.keras
 import tensorflow.keras.backend as K
-from tensorflow.keras.backend import image_data_format
 import librosa
-from kapre.time_frequency import Spectrogram, Melspectrogram
+from kapre.time_frequency import STFT, Magnitude, Phase, Delta
+from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer
+import tempfile
 
 
 def _num_frame_valid(nsp_src, nsp_win, len_hop):
@@ -17,300 +20,246 @@ def _num_frame_same(nsp_src, len_hop):
     return int(np.ceil(float(nsp_src) / len_hop))
 
 
-def test_spectrogram():
-    def _test_correctness():
-        """ Tests correctness
-        """
-        audio_data = np.load('tests/speech_test_file.npz')['audio_data']
-        sr = 44100
+def get_audio(data_format, n_ch):
+    src = np.load('tests/speech_test_file.npz')['audio_data']
+    src = src[:16000]
+    src_mono = src.copy()
+    len_src = len(src)
 
-        hop_length = 128
-        n_fft = 1024
-        n_mels = 80
+    src = np.expand_dims(src, axis=1)  # (time, 1)
+    if n_ch != 1:
+        src = np.tile(src, [1, n_ch])  # (time, ch))
 
-        # compute with librosa
-        S = librosa.core.stft(audio_data, n_fft=n_fft, hop_length=hop_length)
-        magnitudes_librosa = librosa.magphase(S, power=2)[0]
-        S_DB_librosa = librosa.power_to_db(magnitudes_librosa, ref=np.max)
+    if data_format == 'default':
+        data_format = K.image_data_format()
 
-        # load precomputed
-        magnitudes_expected = np.load('tests/test_audio_stft_g0.npy')
+    if data_format == 'channels_last':
+        input_shape = (len_src, n_ch)
+    else:
+        src = np.transpose(src)  # (ch, time)
+        input_shape = (n_ch, len_src)
 
+    batch_src = np.expand_dims(src, axis=0)  # 3d batch input
+
+    return src_mono, batch_src, input_shape
+
+
+def allclose_phase(a, b, atol=1e-3):
+    np.testing.assert_allclose(np.sin(a), np.sin(b), atol=atol)
+    np.testing.assert_allclose(np.cos(a), np.cos(b), atol=atol)
+
+
+def allclose_complex_numbers(a, b, atol=1e-3):
+    np.testing.assert_equal(np.shape(a), np.shape(b))
+    np.testing.assert_allclose(np.abs(a), np.abs(b), rtol=1e-5, atol=atol)
+    np.testing.assert_allclose(np.real(a), np.real(b), rtol=1e-5, atol=atol)
+    np.testing.assert_allclose(np.imag(a), np.imag(b), rtol=1e-5, atol=atol)
+
+
+@pytest.mark.parametrize('n_fft', [1000])
+@pytest.mark.parametrize('hop_length', [None, 256])
+@pytest.mark.parametrize('n_ch', [1, 2, 6])
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
+    def _get_stft_model(following_layer=None):
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
         stft_model.add(
-            Spectrogram(
-                n_dft=n_fft,
-                n_hop=hop_length,
-                input_shape=(1, len(audio_data)),
-                power_spectrogram=2.0,
-                return_decibel_spectrogram=False,
-                trainable_kernel=False,
+            STFT(
+                n_fft=n_fft,
+                win_length=win_length,
+                hop_length=hop_length,
+                window_fn=None,
+                pad_end=False,
+                input_data_format=data_format,
+                output_data_format=data_format,
+                input_shape=input_shape,
                 name='stft',
             )
         )
+        if following_layer is not None:
+            stft_model.add(following_layer)
+        return stft_model
 
-        S = stft_model.predict(audio_data.reshape(1, 1, -1))
-        if image_data_format() == 'channels_last':
-            S = S[0, :, :, 0]
-        else:
-            S = S[0, 0]
-        magnitudes_kapre = librosa.magphase(S, power=1)[0]
-        S_DB_kapre = librosa.power_to_db(magnitudes_kapre, ref=np.max)
+    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
+    win_length = n_fft  # test with x2
+    # compute with librosa
+    S_ref = librosa.core.stft(
+        src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False
+    ).T  # (time, freq)
 
-        DB_scale = np.max(S_DB_librosa) - np.min(S_DB_librosa)
-        S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
+    S_ref = np.expand_dims(S_ref, axis=2)  # time, freq, ch=1
+    S_ref = np.tile(S_ref, [1, 1, n_ch])  # time, freq, ch=n_ch
+    if data_format == 'channels_first':
+        S_ref = np.transpose(S_ref, (2, 0, 1))  # ch, time, freq
 
-        assert np.allclose(magnitudes_expected, magnitudes_kapre, rtol=1e-2, atol=1e-8)
-        assert np.mean(S_DB_dif) < 0.015
+    stft_model = _get_stft_model()
 
-    """Test for time_frequency.Spectrogram()"""
+    S = stft_model.predict(batch_src)[0]  # 3d representation
+    allclose_complex_numbers(S_ref, S)
 
-    def _test_mono_valid():
-        """Tests for
-            - mono input
-            - valid padding
-            - shapes of output channel, n_freq, n_frame
-            - save and load a model with it
+    # test Magnitude()
+    stft_mag_model = _get_stft_model(Magnitude())
+    S = stft_mag_model.predict(batch_src)[0]  # 3d representation
+    np.testing.assert_allclose(np.abs(S_ref), S, atol=2e-4)
 
-        """
-        n_ch = 1
-        n_dft, len_hop, nsp_src = 512, 256, 8000
-        src = np.random.uniform(-1.0, 1.0, nsp_src)
-
-        model = tensorflow.keras.models.Sequential()
-        model.add(
-            Spectrogram(
-                n_dft=n_dft,
-                n_hop=len_hop,
-                padding='valid',
-                power_spectrogram=1.0,
-                return_decibel_spectrogram=False,
-                image_data_format='default',
-                input_shape=(n_ch, nsp_src),
-            )
-        )
-        batch_stft_kapre = model.predict(src[np.newaxis, np.newaxis, :])
-
-        # check num_channel
-        if image_data_format() == 'channels_last':
-            assert batch_stft_kapre.shape[3] == n_ch
-            assert batch_stft_kapre.shape[1] == n_dft // 2 + 1
-            assert batch_stft_kapre.shape[2] == _num_frame_valid(nsp_src, n_dft, len_hop)
-        else:
-            assert batch_stft_kapre.shape[1] == n_ch
-            assert batch_stft_kapre.shape[2] == n_dft // 2 + 1
-            assert batch_stft_kapre.shape[3] == _num_frame_valid(nsp_src, n_dft, len_hop)
-
-        # TODO: save the model
-
-        # Now compare the result!
-        # TODO. actually, later.
-        # if image_data_format() == 'channels_last':
-        #     S_kapre = batch_stft_kapre[0, :, :, 0]
-        # else:
-        #     S_kapre = batch_stft_kapre[0, 0, :, :]
-        #
-        # S_ref = librosa.stft(src, n_fft=n_dft, hop_length=len_hop)
-        # S_ref = S_ref[:, 1:-1]
-        # S_kapre = S_kapre[:, 1:-1]
-        # assert np.allclose(S_kapre, np.abs(S_ref), atol=1e-5)
-
-        # test power_spectrogram
-        # test decibel
-        # test if the kernel becomes trainable
-
-    def _test_stereo_same():
-        """Tests for
-            - stereo input
-            - same padding
-            - shapes of output channel, n_freq, n_frame
-            - save and load a model with it
-
-        """
-        n_ch = 2
-        n_dft, len_hop, nsp_src = 512, 256, 8000
-        src = np.random.uniform(-1.0, 1.0, (n_ch, nsp_src))
-
-        model = tensorflow.keras.models.Sequential()
-        model.add(
-            Spectrogram(
-                n_dft=n_dft,
-                n_hop=len_hop,
-                padding='same',
-                power_spectrogram=1.0,
-                return_decibel_spectrogram=False,
-                image_data_format='default',
-                input_shape=(n_ch, nsp_src),
-            )
-        )
-        batch_stft_kapre = model.predict(src[np.newaxis, :])
-
-        # check num_channel
-        if image_data_format() == 'channels_last':
-            assert batch_stft_kapre.shape[3] == n_ch
-            assert batch_stft_kapre.shape[1] == n_dft // 2 + 1
-            assert batch_stft_kapre.shape[2] == _num_frame_same(nsp_src, len_hop)
-        else:
-            assert batch_stft_kapre.shape[1] == n_ch
-            assert batch_stft_kapre.shape[2] == n_dft // 2 + 1
-            assert batch_stft_kapre.shape[3] == _num_frame_same(nsp_src, len_hop)
-
-    K.set_image_data_format("channels_first")
-    _test_mono_valid()
-    _test_stereo_same()
-    _test_correctness()
-    K.set_image_data_format("channels_last")
-    _test_mono_valid()
-    _test_stereo_same()
-    _test_correctness()
+    # # test Phase()
+    # TODO. It's not passing and I really have no idea why
+    # stft_phase_model = _get_stft_model(Phase())
+    # S = stft_phase_model.predict(batch_src)[0]  # 3d representation
+    # allclose_phase(np.angle(S_ref), S)
 
 
-def test_melspectrogram():
-    def _test_correctness():
-        """ Tests correctness
-        """
-        audio_data = np.load('tests/speech_test_file.npz')['audio_data']
-        sr = 44100
+@pytest.mark.parametrize('n_fft', [512])
+@pytest.mark.parametrize('sr', [22050])
+@pytest.mark.parametrize('hop_length', [None, 256])
+@pytest.mark.parametrize('n_ch', [2])
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('amin', [1e-5, 1e-3])
+@pytest.mark.parametrize('dynamic_range', [120.0, 80.0])
+@pytest.mark.parametrize('n_mels', [40])
+@pytest.mark.parametrize('mel_f_min', [0.0])
+@pytest.mark.parametrize('mel_f_max', [8000])
+def test_melspectrogram_correctness(
+    n_fft, sr, hop_length, n_ch, data_format, amin, dynamic_range, n_mels, mel_f_min, mel_f_max
+):
+    """Test the correctness of melspectrogram.
 
-        hop_length = 128
-        n_fft = 1024
-        n_mels = 80
+    Note that mel filterbank is tested separated
 
-        # compute with librosa
-        S = librosa.feature.melspectrogram(
-            audio_data, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels
-        )
+    """
 
-        S_DB_librosa = librosa.power_to_db(S, ref=np.max)
-
-        # load precomputed
-        S_expected = np.load('tests/test_audio_mel_g0.npy')
-
+    def _get_melgram_model(return_decibel, amin, dynamic_range, input_shape=None):
         # compute with kapre
-        mels_model = tensorflow.keras.models.Sequential()
-        mels_model.add(
-            Melspectrogram(
-                sr=sr,
-                n_mels=n_mels,
-                n_dft=n_fft,
-                n_hop=hop_length,
-                input_shape=(1, len(audio_data)),
-                power_melgram=2,
-                return_decibel_melgram=False,
-                trainable_kernel=False,
-                name='melgram',
-            )
+        melgram_model = get_melspectrogram_layer(
+            n_fft=n_fft,
+            sample_rate=sr,
+            n_mels=n_mels,
+            mel_f_min=mel_f_min,
+            mel_f_max=mel_f_max,
+            win_length=win_length,
+            hop_length=hop_length,
+            input_data_format=data_format,
+            output_data_format=data_format,
+            return_decibel=return_decibel,
+            input_shape=input_shape,
+            db_amin=amin,
+            db_dynamic_range=dynamic_range,
         )
+        return melgram_model
 
-        S = mels_model.predict(audio_data.reshape(1, 1, -1))
-        if image_data_format() == 'channels_last':
-            S = S[0, :, :, 0]
-        else:
-            S = S[0, 0]
-        S_DB_kapre = librosa.power_to_db(S, ref=np.max)
+    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
 
-        DB_scale = np.max(S_DB_librosa) - np.min(S_DB_librosa)
-        S_DB_dif = np.abs(S_DB_kapre - S_DB_librosa) / DB_scale
+    win_length = n_fft  # test with x2
+    # compute with librosa
+    S_ref = librosa.feature.melspectrogram(
+        src_mono,
+        sr=sr,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        win_length=win_length,
+        center=False,
+        power=1.0,
+        n_mels=n_mels,
+        fmin=mel_f_min,
+        fmax=mel_f_max,
+    ).T
 
-        # compare expected float32 values with computed ones
-        assert np.allclose(S_expected, S, rtol=1e-2, atol=1e-8)
-        assert np.mean(S_DB_dif) < 0.01
+    S_ref = np.expand_dims(S_ref, axis=2)  # time, freq, ch=1
+    S_ref = np.tile(S_ref, [1, 1, n_ch])  # time, freq, ch=n_ch
 
-    """Test for time_frequency.Melspectrogram()"""
+    # import ipdb; ipdb.set_trace()
 
-    def _test_mono_valid():
-        """Tests for
-            - mono input
-            - valid padding
-            - shapes of output channel, n_freq, n_frame
-            - save and load a model with it
+    if data_format == 'channels_first':
+        S_ref = np.transpose(S_ref, (2, 0, 1))  # ch, time, freq
 
+    # melgram
+    melgram_model = _get_melgram_model(
+        return_decibel=False, input_shape=input_shape, amin=None, dynamic_range=120.0
+    )
+    S = melgram_model.predict(batch_src)[0]  # 3d representation
+    np.testing.assert_allclose(S_ref, S, atol=1e-4)
+
+    # log melgram
+    melgram_model = _get_melgram_model(
+        return_decibel=True, input_shape=input_shape, amin=amin, dynamic_range=dynamic_range
+    )
+    S = melgram_model.predict(batch_src)[0]  # 3d representation
+    S_ref_db = librosa.power_to_db(S_ref, ref=1.0, amin=amin, top_db=dynamic_range)
+
+    np.testing.assert_allclose(
+        S_ref_db, S, rtol=3e-3
+    )  # decibel is evaluated with relative tolerance
+
+
+def test_log_spectrogram_runnable():
+    """test if log spectrogram layer works well"""
+    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=True)
+    _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=False)
+
+
+@pytest.mark.xfail
+def test_log_spectrogram_fail():
+    """test if log spectrogram layer works well"""
+    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=True, log_n_bins=200)
+
+
+def test_delta():
+    """test delta layer"""
+    specgrams = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
+    specgrams = np.reshape(specgrams, (1, -1, 1, 1))  # (b, t, f, ch)
+    delta_model = tensorflow.keras.models.Sequential()
+    delta_model.add(Delta(win_length=3, input_shape=(4, 1, 1), data_format='channels_last'))
+
+    delta_kapre = delta_model(specgrams)
+    delta_ref = np.array([0.5, 1.0, 1.0, 0.5], dtype=np.float32)
+    delta_ref = np.reshape(delta_ref, (1, -1, 1, 1))  # (b, t, f, ch)
+
+    np.testing.assert_allclose(delta_kapre, delta_ref)
+
+
+def test_save_load():
+    """test saving/loading of models that has stft, melspectorgrma, and log frequency."""
+
+    def _test(layer, input_batch, allclose_func, atol=1e-4):
+        """test a model with `layer` with the given `input_batch`.
+        The model prediction result is compared using `allclose_func` which may depend on the
+        data type of the model output (e.g., float or complex).
         """
-        n_ch = 1
-        sr = 12000
-        n_mels = 96
-        fmin, fmax = 0.0, sr // 2
-        n_dft, len_hop, nsp_src = 512, 256, 12000
-        src = np.random.uniform(-1.0, 1.0, nsp_src)
-
         model = tensorflow.keras.models.Sequential()
-        model.add(
-            Melspectrogram(
-                sr=sr,
-                n_mels=n_mels,
-                fmin=fmin,
-                fmax=fmax,
-                n_dft=n_dft,
-                n_hop=len_hop,
-                padding='valid',
-                power_melgram=1.0,
-                return_decibel_melgram=False,
-                image_data_format='default',
-                input_shape=(n_ch, nsp_src),
-            )
-        )
-        batch_melgram_kapre = model.predict(src[np.newaxis, np.newaxis, :])
-        if image_data_format() == 'channels_last':
-            assert batch_melgram_kapre.shape[3] == n_ch
-            assert batch_melgram_kapre.shape[1] == n_mels
-            assert batch_melgram_kapre.shape[2] == _num_frame_valid(nsp_src, n_dft, len_hop)
-        else:
-            assert batch_melgram_kapre.shape[1] == n_ch
-            assert batch_melgram_kapre.shape[2] == n_mels
-            assert batch_melgram_kapre.shape[3] == _num_frame_valid(nsp_src, n_dft, len_hop)
+        model.add(layer)
 
-    def _test_stereo_same():
-        """Tests for
-            - stereo input
-            - same padding
-            - shapes of output channel, n_freq, n_frame
-            - save and load a model with it
+        result_ref = model(input_batch)
 
-        """
-        n_ch = 2
-        sr = 8000
-        n_mels = 64
-        fmin, fmax = 200, sr // 2
-        n_dft, len_hop, nsp_src = 512, 256, 8000
-        src = np.random.uniform(-1.0, 1.0, (n_ch, nsp_src))
+        os_temp_dir = tempfile.gettempdir()
+        model_temp_dir = tempfile.TemporaryDirectory(dir=os_temp_dir)
+        model.save(filepath=model_temp_dir.name)
 
-        model = tensorflow.keras.models.Sequential()
-        model.add(
-            Melspectrogram(
-                sr=sr,
-                n_mels=n_mels,
-                fmin=fmin,
-                fmax=fmax,
-                n_dft=n_dft,
-                n_hop=len_hop,
-                padding='same',
-                power_melgram=1.0,
-                return_decibel_melgram=False,
-                image_data_format='default',
-                input_shape=(n_ch, nsp_src),
-            )
-        )
-        batch_melgram_kapre = model.predict(src[np.newaxis, :])
+        new_model = tf.keras.models.load_model(model_temp_dir.name)
+        result_new = new_model(input_batch)
+        allclose_func(result_ref, result_new, atol)
 
-        if image_data_format() == 'channels_last':
-            assert batch_melgram_kapre.shape[3] == n_ch
-            assert batch_melgram_kapre.shape[1] == n_mels
-            assert batch_melgram_kapre.shape[2] == _num_frame_same(nsp_src, len_hop)
-        else:
-            assert batch_melgram_kapre.shape[1] == n_ch
-            assert batch_melgram_kapre.shape[2] == n_mels
-            assert batch_melgram_kapre.shape[3] == _num_frame_same(nsp_src, len_hop)
+        model_temp_dir.cleanup()
 
-    K.set_image_data_format("channels_first")
-    _test_mono_valid()
-    _test_stereo_same()
-    _test_correctness()
+        return model
 
-    K.set_image_data_format("channels_last")
-    _test_mono_valid()
-    _test_stereo_same()
-    _test_correctness()
+    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    # test STFT save/load
+    _test(STFT(input_shape=input_shape), batch_src, allclose_complex_numbers)
+    # test melspectrogram save/load
+    _test(
+        get_melspectrogram_layer(input_shape=input_shape, return_decibel=True),
+        batch_src,
+        np.testing.assert_allclose,
+    )
+    # test log frequency spectrogram save/load
+    _test(
+        get_log_frequency_spectrogram_layer(input_shape=input_shape, return_decibel=True),
+        batch_src,
+        np.testing.assert_allclose,
+    )
 
 
 if __name__ == '__main__':

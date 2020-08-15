@@ -1,134 +1,107 @@
-"""
-
-Kapre backend functions
-=======================\
-
-|  Some backend functions that mainly use numpy.
-|  Functions with Keras' backend is in ``backend_keras.py``.
-
-Notes
------
-    * Don't forget to use ``K.float()``! Otherwise numpy uses float64.
-    * Some functions are copied-and-pasted from librosa (to reduce dependency), but
-        later I realised it'd be better to just use it.
-    * TODO: remove copied code and use librosa.
-"""
 from tensorflow.keras import backend as K
+import tensorflow as tf
 import numpy as np
 import librosa
 
-EPS = 1e-7
 
-
-def eps():
-    return EPS
-
-
-def mel(sr, n_dft, n_mels=128, fmin=0.0, fmax=None, htk=False, norm='slaney'):
-    """[np] create a filterbank matrix to combine stft bins into mel-frequency bins
-    use Slaney (said Librosa)
-
-    n_mels: numbre of mel bands
-    fmin : lowest frequency [Hz]
-    fmax : highest frequency [Hz]
-        If `None`, use `sr / 2.0`
+def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
     """
-    return librosa.filters.mel(
-        sr=sr, n_fft=n_dft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
-    ).astype(K.floatx())
+    Similar to `librosa.amplitude_to_db` with `ref=1.0` and `top_db=dynamic_range`
 
-
-def get_stft_kernels(n_dft):
-    """[np] Return dft kernels for real/imagnary parts assuming
-        the input . is real.
-    An asymmetric hann window is used (scipy.signal.hann).
-
-    Parameters
-    ----------
-    n_dft : int > 0 and power of 2 [scalar]
-        Number of dft components.
-
-    Returns
-    -------
-        |  dft_real_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
-        |  dft_imag_kernels : np.ndarray [shape=(nb_filter, 1, 1, n_win)]
-
-    * nb_filter = n_dft/2 + 1
-    * n_win = n_dft
+    Args:
+        x (tensor): float tensor. Can be batch or not. Something like magnitude of STFT.
+        ref_value (float): an input value that would become 0 dB in the result.
+            For spectrogram magnitudes, ref_value=1.0 usually make the decibel-sclaed output to be around zero
+            if the input audio was in [-1, 1].
+        amin (float): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin.
+        dynamic_range (float): range of the resulting value. E.g., if the maximum magnitude is 30 dB,
+            the noise floor of the output would become (30 - dynamic_range) dB
 
     """
-    assert n_dft > 1 and ((n_dft & (n_dft - 1)) == 0), (
-        'n_dft should be > 1 and power of 2, but n_dft == %d' % n_dft
+
+    def _log10(x):
+        return tf.math.log(x) / tf.math.log(tf.constant(10, dtype=x.dtype))
+
+    if K.ndim(x) > 1:  # we assume x is batch in this case
+        max_axis = tuple(range(K.ndim(x))[1:])
+    else:
+        max_axis = None
+
+    if amin is None:
+        amin = 1e-5
+
+    log_spec = 10.0 * _log10(tf.math.maximum(x, amin))
+    log_spec = log_spec - 10.0 * _log10(tf.math.maximum(amin, ref_value))
+
+    log_spec = tf.math.maximum(
+        log_spec, tf.math.reduce_max(log_spec, axis=max_axis, keepdims=True) - dynamic_range
     )
 
-    nb_filter = int(n_dft // 2 + 1)
-
-    # prepare DFT filters
-    timesteps = np.array(range(n_dft))
-    w_ks = np.arange(nb_filter) * 2 * np.pi / float(n_dft)
-    dft_real_kernels = np.cos(w_ks.reshape(-1, 1) * timesteps.reshape(1, -1))
-    dft_imag_kernels = -np.sin(w_ks.reshape(-1, 1) * timesteps.reshape(1, -1))
-
-    # windowing DFT filters
-    dft_window = librosa.filters.get_window('hann', n_dft, fftbins=True)  # _hann(n_dft, sym=False)
-    dft_window = dft_window.astype(K.floatx())
-    dft_window = dft_window.reshape((1, -1))
-    dft_real_kernels = np.multiply(dft_real_kernels, dft_window)
-    dft_imag_kernels = np.multiply(dft_imag_kernels, dft_window)
-
-    dft_real_kernels = dft_real_kernels.transpose()
-    dft_imag_kernels = dft_imag_kernels.transpose()
-    dft_real_kernels = dft_real_kernels[:, np.newaxis, np.newaxis, :]
-    dft_imag_kernels = dft_imag_kernels[:, np.newaxis, np.newaxis, :]
-
-    return dft_real_kernels.astype(K.floatx()), dft_imag_kernels.astype(K.floatx())
+    return log_spec
 
 
-def filterbank_mel(sr, n_freq, n_mels=128, fmin=0.0, fmax=None, htk=False, norm='slaney'):
-    """[np] """
-    return mel(
-        sr, (n_freq - 1) * 2, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
+def filterbank_mel(
+    sample_rate, n_freq, n_mels=128, f_min=0.0, f_max=None, htk=False, norm='slaney'
+):
+    """A wrapper for librosa.filters.mel that additionally does transpose and tensor conversion
+
+    Args:
+        sample_rate (int): sample rate of the input audio
+        n_freq (int): number of frequency bins in the input STFT magnitude.
+        n_mels (int): the number of mel bands
+        f_min (float): lowest frequency that is going to be included in the mel filterbank (Hertz)
+        f_max (float): highest frequency that is going to be included in the mel filterbank (Hertz)
+        htk (bool): whether to use `htk` formula or not
+        norm: The default, 'slaney', would normalize the the mel weights by the width of the mel band.
+
+    Return:
+        Mel filterbank tensor. Shape=(n_freq, n_mels)
+    """
+    filterbank = librosa.filters.mel(
+        sr=sample_rate,
+        n_fft=(n_freq - 1) * 2,
+        n_mels=n_mels,
+        fmin=f_min,
+        fmax=f_max,
+        htk=htk,
+        norm=norm,
     ).astype(K.floatx())
+    return tf.convert_to_tensor(filterbank.T)
 
 
-def filterbank_log(
-    sr, n_freq, n_bins=84, bins_per_octave=12, fmin=None, spread=0.125
-):  # pragma: no cover
-    """[np] Approximate a constant-Q filter bank for a fixed-window STFT.
+def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=None, spread=0.125):
+    """Approximate a constant-Q filter bank for a fixed-window STFT.
 
     Each filter is a log-normal window centered at the corresponding frequency.
 
     Note: `logfrequency` in librosa 0.4 (deprecated), so copy-and-pasted,
         `tuning` was removed, `n_freq` instead of `n_fft`.
 
-    Parameters
-    ----------
-    sr : number > 0 [scalar]
-        audio sampling rate
+    Args:
+        sample_rate (int): audio sampling rate
+        n_freq (int): number of the input frequency bins. E.g., `n_fft / 2 + 1`
+        n_bins (int): number of the resulting log-frequency bins.  Defaults to 84 (7 octaves).
+        bins_per_octave (int): number of bins per octave. Defaults to 12 (semitones).
+        f_min (float): lowest frequency that is going to be included in the log filterbank. Defaults to `C1 ~= 32.70`
+        spread (float): spread of each filter, as a fraction of a bin.
 
-    n_freq : int > 0 [scalar]
-        number of frequency bins
-
-    n_bins : int > 0 [scalar]
-        Number of bins.  Defaults to 84 (7 octaves).
-
-    bins_per_octave : int > 0 [scalar]
-        Number of bins per octave. Defaults to 12 (semitones).
-
-    fmin : float > 0 [scalar]
-        Minimum frequency bin. Defaults to `C1 ~= 32.70`
-
-    spread : float > 0 [scalar]
-        Spread of each filter, as a fraction of a bin.
-
-    Returns
-    -------
-    C : np.ndarray [shape=(n_bins, 1 + n_fft/2)]
-        log-frequency filter bank.
+    Returns:
+        log-frequency filterbank tensor. Shape=(n_freq, n_bins)
     """
 
-    if fmin is None:
-        fmin = 32.70319566
+    if f_min is None:
+        f_min = 32.70319566
+
+    f_max = f_min * 2 ** (n_bins / bins_per_octave)
+    if f_max > sample_rate // 2:
+        raise RuntimeError(
+            'Maximum frequency of log filterbank should be lower or equal to the maximum'
+            'frequency of the input (defined by its sample rate), '
+            'but f_max=%f and maximum frequency is %f. \n'
+            'Fix it by reducing n_bins, increasing bins_per_octave and/or reducing f_min.\n'
+            'You can also do it by increasing sample_rate but it means you need to upsample'
+            'the input audio data, too.' % (f_max, sample_rate)
+        )
 
     # What's the shape parameter for our log-normal filters?
     sigma = float(spread) / bins_per_octave
@@ -137,11 +110,11 @@ def filterbank_log(
     basis = np.zeros((n_bins, n_freq))
 
     # Get log frequencies of bins
-    log_freqs = np.log2(librosa.fft_frequencies(sr, (n_freq - 1) * 2)[1:])
+    log_freqs = np.log2(librosa.fft_frequencies(sample_rate, (n_freq - 1) * 2)[1:])
 
     for i in range(n_bins):
         # What's the center (median) frequency of this filter?
-        c_freq = fmin * (2.0 ** (float(i) / bins_per_octave))
+        c_freq = f_min * (2.0 ** (float(i) / bins_per_octave))
 
         # Place a log-normal window around c_freq
         basis[i, 1:] = np.exp(
@@ -150,5 +123,6 @@ def filterbank_log(
 
     # Normalize the filters
     basis = librosa.util.normalize(basis, norm=1, axis=1)
+    basis = basis.astype(K.floatx())
 
-    return basis.astype(K.floatx())
+    return tf.convert_to_tensor(basis.T)
