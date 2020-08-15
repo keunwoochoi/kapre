@@ -1,4 +1,4 @@
-# kapre
+# Kapre
 Tensorflow.Keras Audio Preprocessors. Written and maintained by Keunwoo Choi.
 
 Why bother to save STFT/melspectrograms to your storage? Just do it on-the-fly on-GPU.
@@ -87,7 +87,8 @@ model = Sequential()
 # A STFT layer
 model.add(STFT(n_fft=2048, win_length=2018, hop_length=1024,
                window_fn=None, pad_end=False,
-               input_data_format='channels_last', output_data_format='channels_last'))
+               input_data_format='channels_last', output_data_format='channels_last',
+               input_shape=input_shape))
 # Alternatively, you may want to use a melspectrogram layer
 # melgram_layer = get_melspectrogram_layer()
 # or log-frequency layer
