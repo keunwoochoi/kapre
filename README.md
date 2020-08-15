@@ -42,11 +42,9 @@ Keras Audio Preprocessors.
     - pip version is updated
 
 ## Installation
-
-Kapre is now working with tensorflow >= 2.0
  
 ```sh
-pip install git+https://github.com/keunwoochoi/kapre.git
+pip install kapre
 ```
 
 ## Usage
