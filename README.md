@@ -77,7 +77,7 @@ See `get_melspectrogram_layer` and `get_log_frequency_spectrogram_layer`.
 ```python
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, BatchNormalization, ReLU, GlobalAveragePooling2D, Dense, Softmax
-from kapre.time_frequency import STFT
+from kapre.time_frequency import STFT, Magnitude, MagnitudeToDecibel
 from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer
 
 # 6 channels (!), maybe 1-sec audio signal, for an example.
@@ -89,6 +89,8 @@ model.add(STFT(n_fft=2048, win_length=2018, hop_length=1024,
                window_fn=None, pad_end=False,
                input_data_format='channels_last', output_data_format='channels_last',
                input_shape=input_shape))
+model.add(Magnitude())
+model.add(MagnitudeToDecibel())
 # Alternatively, you may want to use a melspectrogram layer
 # melgram_layer = get_melspectrogram_layer()
 # or log-frequency layer
