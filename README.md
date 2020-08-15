@@ -1,22 +1,13 @@
 # Kapre
-Tensorflow.Keras Audio Preprocessors. Written and maintained by Keunwoo Choi.
+Keras Audio Preprocessors.
 
-Why bother to save STFT/melspectrograms to your storage? Just do it on-the-fly on-GPU.
-
-How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/1706.05781)
-
-## Contents
-- [News](#news)
-- [Installation](#installation)
-- [Usage](#usage)
-- [How to cite](#citation)
-
+"Why bother to save STFT/melspectrograms to your storage? Just do it on-the-fly on-GPU."
 
 ## News
 
-* 13 Aug 2020
-  - 0.3.0-rc
-    - A breaking change with Tensorflow 2.0 and more tests. Some features are removed.
+* 15 Aug 2020
+  - 0.3.0
+    - Breaking and simplifying changes with Tensorflow 2.0 and more tests. Some features are removed.
 
 * 29 Jul 2020
   - 0.2.0
@@ -51,7 +42,6 @@ How demanding is the computation? [Check out this paper!](https://arxiv.org/abs/
     - pip version is updated
 
 ## Installation
-([↑up to contents](#contents))
 
 Kapre is now working with tensorflow >= 2.0
  
@@ -61,7 +51,6 @@ pip install git+https://github.com/keunwoochoi/kapre.git
 
 ## Usage
 ### Layers
-([↑up to contents](#contents))
 
 Audio preprocessing layers
 * `STFT`, `Magnitude`, `Phase`, `MagnitudeToDecibel`, `ApplyFilterbank`, `Delta` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
@@ -69,11 +58,7 @@ Audio preprocessing layers
 See `get_melspectrogram_layer` and `get_log_frequency_spectrogram_layer`. 
 
 ## One-shot example
-([↑up to contents](#contents))
-# TODO - to be updated
-* More examples on [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
-### Using Mel-spectrogram
 ```python
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, BatchNormalization, ReLU, GlobalAveragePooling2D, Dense, Softmax
@@ -116,8 +101,9 @@ model.fit(x, y)
 # Done!
 ```
 
+* See the Jupyter notebook at the [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
+
 # Citation
-([↑up to contents](#contents))
 
 Please cite this paper if you use Kapre for your work.
 

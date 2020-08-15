@@ -1,4 +1,4 @@
-__version__ = '0.3.0-rc'
+__version__ = '0.3.0'
 VERSION = __version__
 
 from . import time_frequency
