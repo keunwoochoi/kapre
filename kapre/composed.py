@@ -3,7 +3,6 @@ from . import backend
 
 from tensorflow import keras
 from tensorflow.keras import Sequential, Model
-from tensorflow.keras.layers import concatenate
 
 
 def get_stft_mag_phase(
@@ -13,9 +12,37 @@ def get_stft_mag_phase(
     hop_length=None,
     window_fn=None,
     pad_end=False,
+    return_decibel=False,
+    db_amin=1e-5,
+    db_ref_value=1.0,
+    db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
 ):
+    """A function that returns magnitude and phase of input audio.
+
+    Args:
+        input_shape (None or tuple of integers): input shape of the model if this melspectrogram layer is
+            is the first layer of your model (see `keras.model.Sequential()` for more details)
+        n_fft (int): number of FFT points in `STFT`
+        win_length (int): window length of `STFT`
+        hop_length (int): hop length of `STFT`
+        window_fn (function or None): windowing function of `STFT`.
+            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
+        pad_end (bool): whether to pad the input signal at the end in `STFT`.
+        return_decibel (bool): whether to apply decibel scaling at the end
+        db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
+        db_ref_value (float): reference value of decibel scaling. See `MagnitudeToDecibel` for more details.
+        db_dynamic_range (float): dynamic range of the decibel scaling result.
+        input_data_format (str): the audio data format of input waveform batch.
+            `'channels_last'` if it's `(batch, time, channels)`
+            `'channels_first'` if it's `(batch, channels, time)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        output_data_format (str): the data format of output mel spectrogram.
+            `'channels_last'` if you want `(batch, time, frequency, channels)`
+            `'channels_first'` if you want `(batch, channels, time, frequency)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+    """
 
     waveform_to_stft = STFT(
         n_fft=n_fft,
@@ -34,14 +61,20 @@ def get_stft_mag_phase(
     waveforms = keras.Input(shape=input_shape)
 
     stfts = waveform_to_stft(waveforms)
-    stftms = stft_to_stftm(stfts)
-    stftps = stft_to_stftp(stfts)
+    mag_stfts = stft_to_stftm(stfts)  # magnitude
+    phase_stfts = stft_to_stftp(stfts)  # phase
+
+    if return_decibel:
+        mag_to_decibel = MagnitudeToDecibel(
+            ref_value=db_ref_value, amin=db_amin, dynamic_range=db_dynamic_range
+        )
+        mag_stfts = mag_to_decibel(mag_stfts)
 
     ch_axis = 1 if output_data_format == 'channels_first' else 3
 
     concat_layer = keras.layers.Concatenate(axis=ch_axis)
 
-    stfts_mag_phase = concat_layer([stftms, stftps])
+    stfts_mag_phase = concat_layer([mag_stfts, phase_stfts])
 
     model = Model(inputs=waveforms, outputs=stfts_mag_phase)
     return model

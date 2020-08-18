@@ -122,6 +122,10 @@ class STFT(Layer):
         return config
 
 
+
+
+
+
 class Magnitude(Layer):
     """Compute the magnitude of the complex input, resulting in a float tensor"""
 

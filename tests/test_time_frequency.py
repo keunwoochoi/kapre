@@ -5,7 +5,11 @@ import tensorflow.keras
 import tensorflow.keras.backend as K
 import librosa
 from kapre.time_frequency import STFT, Magnitude, Phase, Delta
-from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer
+from kapre.composed import (
+    get_melspectrogram_layer,
+    get_log_frequency_spectrogram_layer,
+    get_stft_mag_phase,
+)
 import tempfile
 
 
@@ -189,9 +193,10 @@ def test_melspectrogram_correctness(
     )  # decibel is evaluated with relative tolerance
 
 
-def test_log_spectrogram_runnable():
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_log_spectrogram_runnable(data_format):
     """test if log spectrogram layer works well"""
-    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=1)
     _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=True)
     _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=False)
 
@@ -215,6 +220,41 @@ def test_delta():
     delta_ref = np.reshape(delta_ref, (1, -1, 1, 1))  # (b, t, f, ch)
 
     np.testing.assert_allclose(delta_kapre, delta_ref)
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_mag_phase(data_format):
+    n_ch = 1
+    n_fft, hop_length, win_length = 512, 256, 512
+
+    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
+
+    mag_phase_layer = get_stft_mag_phase(
+        input_shape=input_shape,
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        input_data_format=data_format,
+        output_data_format=data_format,
+    )
+    model = tensorflow.keras.models.Sequential()
+    model.add(mag_phase_layer)
+    mag_phase_kapre = model(batch_src)[0]  # a 2d image shape
+
+    ch_axis = 0 if data_format == 'channels_first' else 2  # non-batch
+    mag_phase_ref = np.stack(
+        librosa.magphase(
+            librosa.stft(
+                src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False,
+            ).T
+        ),
+        axis=ch_axis,
+    )
+    np.testing.assert_equal(mag_phase_kapre.shape, mag_phase_ref.shape)
+    # magnitude test
+    np.testing.assert_allclose(np.take(mag_phase_kapre, [0, ], axis=ch_axis),
+                               np.take(mag_phase_ref, [0, ], axis=ch_axis), atol=2e-4)
+    # phase test - todo
 
 
 def test_save_load():
@@ -254,6 +294,12 @@ def test_save_load():
     # test log frequency spectrogram save/load
     _test(
         get_log_frequency_spectrogram_layer(input_shape=input_shape, return_decibel=True),
+        batch_src,
+        np.testing.assert_allclose,
+    )
+    # test stft_mag_phase
+    _test(
+        get_stft_mag_phase(input_shape=input_shape, return_decibel=True),
         batch_src,
         np.testing.assert_allclose,
     )
