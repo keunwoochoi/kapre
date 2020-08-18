@@ -252,8 +252,11 @@ def test_mag_phase(data_format):
     )
     np.testing.assert_equal(mag_phase_kapre.shape, mag_phase_ref.shape)
     # magnitude test
-    np.testing.assert_allclose(np.take(mag_phase_kapre, [0, ], axis=ch_axis),
-                               np.take(mag_phase_ref, [0, ], axis=ch_axis), atol=2e-4)
+    np.testing.assert_allclose(
+        np.take(mag_phase_kapre, [0,], axis=ch_axis),
+        np.take(mag_phase_ref, [0,], axis=ch_axis),
+        atol=2e-4,
+    )
     # phase test - todo
 
 
@@ -284,7 +287,7 @@ def test_save_load():
 
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test STFT save/load
-    _test(STFT(input_shape=input_shape), batch_src, allclose_complex_numbers)
+    _test(STFT(input_shape=input_shape, pad_begin=True), batch_src, allclose_complex_numbers)
     # test melspectrogram save/load
     _test(
         get_melspectrogram_layer(input_shape=input_shape, return_decibel=True),

@@ -11,6 +11,7 @@ def get_stft_mag_phase(
     win_length=None,
     hop_length=None,
     window_fn=None,
+    pad_begin=False,
     pad_end=False,
     return_decibel=False,
     db_amin=1e-5,
@@ -22,13 +23,14 @@ def get_stft_mag_phase(
     """A function that returns magnitude and phase of input audio.
 
     Args:
-        input_shape (None or tuple of integers): input shape of the model if this melspectrogram layer is
+        input_shape (None or tuple of integers): input shape of the model if this layer is
             is the first layer of your model (see `keras.model.Sequential()` for more details)
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
         window_fn (function or None): windowing function of `STFT`.
             Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
+        pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         return_decibel (bool): whether to apply decibel scaling at the end
         db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
@@ -49,6 +51,7 @@ def get_stft_mag_phase(
         win_length=win_length,
         hop_length=hop_length,
         window_fn=window_fn,
+        pad_begin=pad_begin,
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
@@ -86,6 +89,7 @@ def get_melspectrogram_layer(
     win_length=None,
     hop_length=None,
     window_fn=None,
+    pad_begin=False,
     pad_end=False,
     sample_rate=22050,
     n_mels=128,
@@ -111,6 +115,7 @@ def get_melspectrogram_layer(
         hop_length (int): hop length of `STFT`
         window_fn (function or None): windowing function of `STFT`.
             Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
+        pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         sample_rate (int): sample rate of the input audio
         n_mels (int): number of mel bins in the mel filterbank
@@ -137,6 +142,7 @@ def get_melspectrogram_layer(
         win_length=win_length,
         hop_length=hop_length,
         window_fn=window_fn,
+        pad_begin=pad_begin,
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
@@ -174,6 +180,7 @@ def get_log_frequency_spectrogram_layer(
     win_length=None,
     hop_length=None,
     window_fn=None,
+    pad_begin=False,
     pad_end=False,
     sample_rate=22050,
     log_n_bins=84,
@@ -198,6 +205,7 @@ def get_log_frequency_spectrogram_layer(
         hop_length (int): hop length of `STFT`
         window_fn (function or None): windowing function of `STFT`.
             Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
+        pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         sample_rate (int): sample rate of the input audio
         log_n_bins (int): number of the bins in the log-frequency filterbank
@@ -223,6 +231,7 @@ def get_log_frequency_spectrogram_layer(
         win_length=win_length,
         hop_length=hop_length,
         window_fn=window_fn,
+        pad_begin=pad_begin,
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
