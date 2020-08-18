@@ -1,3 +1,4 @@
+import warnings
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from . import backend
@@ -17,8 +18,8 @@ class STFT(Layer):
     """
     A Shor-time Fourier transform layer.
     It uses `tf.signal.stft` to compute complex STFT. Additionally, it reshapes the output to be a proper 2D batch.
-    If `channels_last`, the output shape is (batch, time, freq, channel)
-    If `channels_first`, the output shape is (batch, channel, time, freq)
+    If `output_data_format == 'channels_last'`, the output shape is (batch, time, freq, channel)
+    If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time, freq)
 
     Args:
         n_fft (int): Number of FFTs. Defaults to `2048`
@@ -31,7 +32,7 @@ class STFT(Layer):
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        output_data_format (str): the data format of output mel spectrogram.
+        output_data_format (str): The data format of output STFT.
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
@@ -87,20 +88,22 @@ class STFT(Layer):
                 Type: complex64/complex128 STFT values where fft_unique_bins is fft_length // 2 + 1
                 (the unique components of the FFT).
         """
-        signals = x  # (batch, ch, time) if input_data_format == 'channels_first'.
+        waveforms = x  # (batch, ch, time) if input_data_format == 'channels_first'.
         # (batch, time, ch) if input_data_format == 'channels_last'.
 
         # this is needed because tf.signal.stft lives in channels_first land.
         if self.input_data_format == 'channels_last':
-            signals = tf.transpose(signals, perm=(0, 2, 1))  # always (batch, ch, time) from here
+            waveforms = tf.transpose(
+                waveforms, perm=(0, 2, 1)
+            )  # always (batch, ch, time) from here
 
         if self.pad_begin:
-            signals = tf.pad(
-                signals, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
+            waveforms = tf.pad(
+                waveforms, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
             )
 
         stfts = tf.signal.stft(
-            signals=signals,
+            signals=waveforms,
             frame_length=self.win_length,
             frame_step=self.hop_length,
             fft_length=self.n_fft,
@@ -131,88 +134,123 @@ class STFT(Layer):
         return config
 
 
-# class ISTFT(Layer):
-#
-#     def __init__(
-#         self,
-#         n_fft=2048,
-#         win_length=None,
-#         hop_length=None,
-#         window_fn=None,
-#         pad_end=False,
-#         input_data_format='default',
-#         output_data_format='default',
-#         **kwargs,
-#     ):
-#         super(ISTFT, self).__init__(**kwargs)
-#
-#         if win_length is None:
-#             win_length = n_fft
-#         if hop_length is None:
-#             hop_length = win_length // 4
-#         if window_fn is None:
-#             window_fn = tf.signal.hann_window
-#
-#         self.n_fft = n_fft
-#         self.win_length = win_length
-#         self.hop_length = hop_length
-#         self.window_fn = window_fn
-#         self.pad_end = pad_end
-#
-#         idt, odt = input_data_format, output_data_format
-#         self.output_data_format = K.image_data_format() if odt == 'default' else odt
-#         self.input_data_format = K.image_data_format() if idt == 'default' else idt
-#
-#     def call(self, x):
-#         """
-# TODO - convert it to INVERSE stft
-#         Compute STFT of the input signal. If the `time` axis is not the last axis of `x`, it should be transposed first.
-#
-#         Args:
-#             x (float Tensor): batch of audio signals, (batch, ch, time) or (batch, time, ch) based on input_data_format
-#
-#         Return:
-#             A STFT representation of x
-#                 Shape: 2D batch shape. I.e., (batch, time, freq, ch) or (batch. ch, time, freq)
-#                 Type: complex64/complex128 STFT values where fft_unique_bins is fft_length // 2 + 1
-#                 (the unique components of the FFT).
-#         """
-#         signals = x  # (batch, ch, time) if input_data_format == 'channels_first'.
-#         # (batch, time, ch) if input_data_format == 'channels_last'.
-#
-#         # this is needed because tf.signal.stft lives in channels_first land.
-#         if self.input_data_format == 'channels_last':
-#             signals = tf.transpose(signals, perm=(0, 2, 1))  # (batch, ch, time)
-#
-#         stfts = tf.signal.stft(
-#             signals=signals,
-#             frame_length=self.win_length,
-#             frame_step=self.hop_length,
-#             fft_length=self.n_fft,
-#             window_fn=self.window_fn,
-#             pad_end=self.pad_end,
-#             name='%s_tf.signal.stft' % self.name,
-#         )  # (batch, ch, time, freq)
-#
-#         if self.output_data_format == 'channels_last':
-#             stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
-#
-#         return stfts
-#
-#     def get_config(self):
-#         config = super(ISTFT, self).get_config()
-#         config.update(
-#             {
-#                 'n_fft': self.n_fft,
-#                 'win_length': self.win_length,
-#                 'hop_length': self.hop_length,
-#                 'window_fn': self.window_fn,
-#                 'pad_end': self.pad_end,
-#                 'input_data_format': self.input_data_format,
-#                 'output_data_format': self.output_data_format,
-#             }
-#         )
-#         return config
+class InverseSTFT(Layer):
+    """An inverse-STFT layer.
+
+        If `output_data_format == 'channels_last'`, the output shape is (batch, time, channel)
+        If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time)
+
+        Args:
+            n_fft (int): Number of FFTs. Defaults to `2048`
+            win_length (int or None): Window length in sample. Defaults to `n_fft`.
+            hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+            window_fn (function or None): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`, but
+                this default setup does NOT lead to perfect reconstruction.
+                For perfect reconstruction, this should be set using `tf.signal.inverse_stft_window_fn()` with the
+                correct `frame_step` and `forward_window_fn` that are matched to those used during STFT.
+            input_data_format (str): the data format of input STFT batch
+                `'channels_last'` if you want `(batch, time, frequency, channels)`
+                `'channels_first'` if you want `(batch, channels, time, frequency)`
+                Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+            output_data_format (str): the audio data format of output waveform batch.
+                `'channels_last'` if it's `(batch, time, channels)`
+                `'channels_first'` if it's `(batch, channels, time)`
+                Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+
+            **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    """
+
+    def __init__(
+        self,
+        n_fft=2048,
+        win_length=None,
+        hop_length=None,
+        window_fn=None,
+        input_data_format='default',
+        output_data_format='default',
+        # original_signal_length=None,
+        **kwargs,
+    ):
+        super(InverseSTFT, self).__init__(**kwargs)
+
+        if win_length is None:
+            win_length = n_fft
+        if hop_length is None:
+            hop_length = win_length // 4
+        if window_fn is None:
+            window_fn = tf.signal.hann_window
+            warnings.warn(
+                'In InverseSTFT, forward_window_fn was not set, hence the default hann window function'
+                'is used. This would lead to non-perfect reconstruction of a STFT-ISTFT chain.'
+                'For perfect reconstruction, forward_window_fn should be set using'
+                'tf.signal.inverse_stft_window_fn with frame_step and forward_window_fn correctly specified.'
+                'For more details, see how kapre.composed.get_perfectly_reconstructing_stft_istft() is'
+                'implemented. '
+            )
+
+        self.n_fft = n_fft
+        self.win_length = win_length
+        self.hop_length = hop_length
+        self.window_fn = window_fn
+
+        idt, odt = input_data_format, output_data_format
+        self.output_data_format = K.image_data_format() if odt == 'default' else odt
+        self.input_data_format = K.image_data_format() if idt == 'default' else idt
+
+        # self.original_signal_length = original_signal_length
+
+    def call(self, x):
+        """
+        TODO - doc for INVERSE stft
+        Compute STFT of the input signal. If the `time` axis is not the last axis of `x`, it should be transposed first.
+
+        Args:
+            x (float Tensor): batch of audio signals, (batch, ch, time) or (batch, time, ch) based on input_data_format
+
+        Return:
+            A STFT representation of x
+                Shape: 2D batch shape. I.e., (batch, time, freq, ch) or (batch. ch, time, freq)
+                Type: complex64/complex128 STFT values where fft_unique_bins is fft_length // 2 + 1
+                (the unique components of the FFT).
+        """
+        stfts = x  # (batch, ch, time, freq) if input_data_format == 'channels_first'.
+        # (batch, time, freq, ch) if input_data_format == 'channels_last'.
+
+        # this is needed because tf.signal.stft lives in channels_first land.
+        if self.input_data_format == 'channels_last':
+            stfts = tf.transpose(stfts, perm=(0, 3, 1, 2))  # now always (b, ch, t, f)
+
+        waveforms = tf.signal.inverse_stft(
+            stfts=stfts,
+            frame_length=self.win_length,
+            frame_step=self.hop_length,
+            fft_length=self.n_fft,
+            window_fn=self.window_fn,
+            name='%s_tf.signal.istft' % self.name,
+        )  # (batch, ch, time)
+
+        # if self.original_signal_length is not None:
+        #     waveforms = waveforms[:, :, :self.original_signal_length]
+
+        if self.output_data_format == 'channels_last':
+            waveforms = tf.transpose(waveforms, perm=(0, 2, 1))  # (batch, time, ch)
+
+        return waveforms
+
+    def get_config(self):
+        config = super(InverseSTFT, self).get_config()
+        config.update(
+            {
+                'n_fft': self.n_fft,
+                'win_length': self.win_length,
+                'hop_length': self.hop_length,
+                'window_fn': self.window_fn,
+                'input_data_format': self.input_data_format,
+                'output_data_format': self.output_data_format,
+            }
+        )
+        return config
 
 
 class Magnitude(Layer):

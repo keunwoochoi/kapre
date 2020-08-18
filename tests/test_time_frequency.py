@@ -9,6 +9,7 @@ from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
     get_stft_mag_phase,
+    get_perfectly_reconstructing_stft_istft,
 )
 import tempfile
 
@@ -258,6 +259,39 @@ def test_mag_phase(data_format):
         atol=2e-4,
     )
     # phase test - todo
+
+
+@pytest.mark.parametrize('waveform_data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('stft_data_format', ['default', 'channels_first', 'channels_last'])
+def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_format):
+    n_ch = 1
+    src_mono, batch_src, input_shape = get_audio(data_format=waveform_data_format, n_ch=n_ch)
+    time_axis = 1 if waveform_data_format == 'channels_first' else 0  # non-batch!
+    len_src = input_shape[time_axis]
+
+    n_fft = 2048
+    hop_length = 2048 // 4
+
+    stft, istft = get_perfectly_reconstructing_stft_istft(
+        stft_input_shape=input_shape,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        waveform_data_format=waveform_data_format,
+        stft_data_format=stft_data_format,
+    )
+
+    model = tf.keras.models.Sequential([stft, istft])
+
+    recon_waveform = model(batch_src)
+
+    # trim off the pad_begin part
+    len_pad_begin = n_fft - hop_length
+    if waveform_data_format == 'channels_first':
+        recon_waveform = recon_waveform[:, :, len_pad_begin : len_pad_begin + len_src]
+    else:
+        recon_waveform = recon_waveform[:, len_pad_begin : len_pad_begin + len_src, :]
+
+    np.testing.assert_allclose(batch_src, recon_waveform, atol=1e-5)
 
 
 def test_save_load():

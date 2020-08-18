@@ -1,12 +1,104 @@
-from .time_frequency import STFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
+from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
 from . import backend
 
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Sequential, Model
 
 
+def get_perfectly_reconstructing_stft_istft(
+    stft_input_shape=None,
+    istft_input_shape=None,
+    n_fft=2048,
+    win_length=None,
+    hop_length=None,
+    forward_window_fn=None,
+    waveform_data_format='default',
+    stft_data_format='default',
+):
+    """A function that returns two layers, stft and inverse stft, which would be perfectly reconstructing pair.
+
+    NOTE:
+        Imagine `x` --> `STFT` --> `InverseSTFT` --> `y`.
+        The length of `x` will be longer than `y` due to the padding at the beginning and the end.
+        To compare them, you would need to trim `y` along time axis.
+
+        The formula: if `trim_begin = win_length - hop_length` and `len_signal` is length of `x`,
+        `y_trimmed = y[trim_begin: trim_begin + len_signal, :]` (in the case of `channels_last`).
+
+
+    Args:
+        stft_input_shape (tuple): Input shape of single waveform.
+            Must specify this if the returned stft layer is going to be used as first layer of a Sequential model.
+        istft_input_shape (tuple): Input shape of single STFT.
+            Must specify this if the returned istft layer is going to be used as first layer of a Sequential model.
+        n_fft (int): Number of FFTs. Defaults to `2048`
+        win_length (int or None): Window length in sample. Defaults to `n_fft`.
+        hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        forward_window_fn (function or None): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`.
+        waveform_data_format (string): The audio data format of waveform batch.
+            `'channels_last'` if it's `(batch, time, channels)`
+            `'channels_first'` if it's `(batch, channels, time)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        stft_data_format (string): The data format of STFT.
+            `'channels_last'` if you want `(batch, time, frequency, channels)`
+            `'channels_first'` if you want `(batch, channels, time, frequency)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+    """
+    if forward_window_fn is None:
+        forward_window_fn = tf.signal.hann_window
+
+    if win_length is None:
+        win_length = n_fft
+
+    if hop_length is None:
+        hop_length = win_length // 4
+
+    if (win_length / hop_length) % 2 != 0:
+        raise RuntimeError(
+            'The ratio of win_length and hop_length must be power of 2 to get a '
+            'perfectly reconstructing stft-istft pair.'
+        )
+
+    backward_window_fn = tf.signal.inverse_stft_window_fn(
+        frame_step=int(hop_length), forward_window_fn=forward_window_fn
+    )
+
+    stft_kwargs = {}
+    if stft_input_shape is not None:
+        stft_kwargs['input_shape'] = stft_input_shape
+
+    istft_kwargs = {}
+    if istft_input_shape is not None:
+        istft_kwargs['input_shape'] = istft_input_shape
+
+    waveform_to_stft = STFT(
+        **stft_kwargs,
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        window_fn=forward_window_fn,
+        pad_begin=True,
+        pad_end=True,
+        input_data_format=waveform_data_format,
+        output_data_format=stft_data_format,
+    )
+
+    stft_to_waveform = InverseSTFT(
+        **istft_kwargs,
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        window_fn=backward_window_fn,
+        input_data_format=stft_data_format,
+        output_data_format=waveform_data_format,
+    )
+
+    return waveform_to_stft, stft_to_waveform
+
+
 def get_stft_mag_phase(
-    input_shape=None,
+    input_shape,
     n_fft=2048,
     win_length=None,
     hop_length=None,
@@ -23,8 +115,9 @@ def get_stft_mag_phase(
     """A function that returns magnitude and phase of input audio.
 
     Args:
-        input_shape (None or tuple of integers): input shape of the model if this layer is
-            is the first layer of your model (see `keras.model.Sequential()` for more details)
+        input_shape (None or tuple of integers): input shape of the stft layer.
+            Because this mag_phase is based on keras.Functional model, it is required to specify the input shape.
+            E.g., (44100, 2) for 44100-sample stereo audio with `input_data_format=='channels_last'`.
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
@@ -55,7 +148,6 @@ def get_stft_mag_phase(
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
-        input_shape=input_shape,
     )
 
     stft_to_stftm = Magnitude()
@@ -131,13 +223,18 @@ def get_melspectrogram_layer(
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        output_data_format (str): the data format of output mel spectrogram.
+        output_data_format (str): the data format of output melspectrogram.
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
 
     """
+    stft_kwargs = {}
+    if input_shape is not None:
+        stft_kwargs['input_shape'] = input_shape
+
     waveform_to_stft = STFT(
+        **stft_kwargs,
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
@@ -146,7 +243,6 @@ def get_melspectrogram_layer(
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
-        input_shape=input_shape,
     )
 
     stft_to_stftm = Magnitude()
@@ -226,7 +322,12 @@ def get_log_frequency_spectrogram_layer(
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
 
     """
+    stft_kwargs = {}
+    if input_shape is not None:
+        stft_kwargs['input_shape'] = input_shape
+
     waveform_to_stft = STFT(
+        **stft_kwargs,
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
@@ -235,7 +336,6 @@ def get_log_frequency_spectrogram_layer(
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
-        input_shape=input_shape,
     )
 
     stft_to_stftm = Magnitude()
