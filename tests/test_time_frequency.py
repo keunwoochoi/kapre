@@ -1,4 +1,3 @@
-import os
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -167,8 +166,6 @@ def test_melspectrogram_correctness(
 
     S_ref = np.expand_dims(S_ref, axis=2)  # time, freq, ch=1
     S_ref = np.tile(S_ref, [1, 1, n_ch])  # time, freq, ch=n_ch
-
-    # import ipdb; ipdb.set_trace()
 
     if data_format == 'channels_first':
         S_ref = np.transpose(S_ref, (2, 0, 1))  # ch, time, freq

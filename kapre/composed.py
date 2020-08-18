@@ -1,7 +1,50 @@
 from .time_frequency import STFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
 from . import backend
 
-from tensorflow.keras import Sequential
+from tensorflow import keras
+from tensorflow.keras import Sequential, Model
+from tensorflow.keras.layers import concatenate
+
+
+def get_stft_mag_phase(
+    input_shape=None,
+    n_fft=2048,
+    win_length=None,
+    hop_length=None,
+    window_fn=None,
+    pad_end=False,
+    input_data_format='default',
+    output_data_format='default',
+):
+
+    waveform_to_stft = STFT(
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        window_fn=window_fn,
+        pad_end=pad_end,
+        input_data_format=input_data_format,
+        output_data_format=output_data_format,
+        input_shape=input_shape,
+    )
+
+    stft_to_stftm = Magnitude()
+    stft_to_stftp = Phase()
+
+    waveforms = keras.Input(shape=input_shape)
+
+    stfts = waveform_to_stft(waveforms)
+    stftms = stft_to_stftm(stfts)
+    stftps = stft_to_stftp(stfts)
+
+    ch_axis = 1 if output_data_format == 'channels_first' else 3
+
+    concat_layer = keras.layers.Concatenate(axis=ch_axis)
+
+    stfts_mag_phase = concat_layer([stftms, stftps])
+
+    model = Model(inputs=waveforms, outputs=stfts_mag_phase)
+    return model
 
 
 def get_melspectrogram_layer(
