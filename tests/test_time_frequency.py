@@ -13,6 +13,8 @@ from kapre.composed import (
 )
 import tempfile
 
+SRC = np.load('tests/speech_test_file.npz')['audio_data']
+
 
 def _num_frame_valid(nsp_src, nsp_win, len_hop):
     """Computes the number of frames with 'valid' setting"""
@@ -25,7 +27,7 @@ def _num_frame_same(nsp_src, len_hop):
 
 
 def get_audio(data_format, n_ch):
-    src = np.load('tests/speech_test_file.npz')['audio_data']
+    src = SRC
     src = src[:16000]
     src_mono = src.copy()
     len_src = len(src)
@@ -49,6 +51,13 @@ def get_audio(data_format, n_ch):
 
 
 def allclose_phase(a, b, atol=1e-3):
+    """Testing phase.
+    Remember that a small error in complex value may lead to a large phase difference
+    if the norm is very small.
+
+    Therefore, it makes more sense to test it on the complex value itself rather than breaking it down to phase.
+
+    """
     np.testing.assert_allclose(np.sin(a), np.sin(b), atol=atol)
     np.testing.assert_allclose(np.cos(a), np.cos(b), atol=atol)
 
@@ -99,8 +108,8 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
 
     stft_model = _get_stft_model()
 
-    S = stft_model.predict(batch_src)[0]  # 3d representation
-    allclose_complex_numbers(S_ref, S)
+    S_complex = stft_model.predict(batch_src)[0]  # 3d representation
+    allclose_complex_numbers(S_ref, S_complex)
 
     # test Magnitude()
     stft_mag_model = _get_stft_model(Magnitude())
@@ -108,10 +117,9 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
     np.testing.assert_allclose(np.abs(S_ref), S, atol=2e-4)
 
     # # test Phase()
-    # TODO. It's not passing and I really have no idea why
-    # stft_phase_model = _get_stft_model(Phase())
-    # S = stft_phase_model.predict(batch_src)[0]  # 3d representation
-    # allclose_phase(np.angle(S_ref), S)
+    stft_phase_model = _get_stft_model(Phase())
+    S = stft_phase_model.predict(batch_src)[0]  # 3d representation
+    allclose_phase(np.angle(S_complex), S)
 
 
 @pytest.mark.parametrize('n_fft', [512])
@@ -258,19 +266,21 @@ def test_mag_phase(data_format):
         np.take(mag_phase_ref, [0,], axis=ch_axis),
         atol=2e-4,
     )
-    # phase test - todo
+    # phase test - todo - yeah..
 
 
 @pytest.mark.parametrize('waveform_data_format', ['default', 'channels_first', 'channels_last'])
 @pytest.mark.parametrize('stft_data_format', ['default', 'channels_first', 'channels_last'])
-def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_format):
+@pytest.mark.parametrize('hop_ratio', [0.5, 0.25, 0.125])
+def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_format, hop_ratio):
     n_ch = 1
     src_mono, batch_src, input_shape = get_audio(data_format=waveform_data_format, n_ch=n_ch)
     time_axis = 1 if waveform_data_format == 'channels_first' else 0  # non-batch!
     len_src = input_shape[time_axis]
 
     n_fft = 2048
-    hop_length = 2048 // 4
+    hop_length = int(2048 * hop_ratio)
+    n_added_frames = int(1 / hop_ratio) - 1
 
     stft, istft = get_perfectly_reconstructing_stft_istft(
         stft_input_shape=input_shape,
@@ -279,7 +289,7 @@ def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_for
         waveform_data_format=waveform_data_format,
         stft_data_format=stft_data_format,
     )
-
+    # Test - [STFT -> ISTFT]
     model = tf.keras.models.Sequential([stft, istft])
 
     recon_waveform = model(batch_src)
@@ -292,6 +302,31 @@ def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_for
         recon_waveform = recon_waveform[:, len_pad_begin : len_pad_begin + len_src, :]
 
     np.testing.assert_allclose(batch_src, recon_waveform, atol=1e-5)
+
+    # Test - [ISTFT -> STFT]
+    S = librosa.stft(src_mono, n_fft=n_fft, hop_length=hop_length).T.astype(
+        np.complex64
+    )  # (time, freq)
+
+    ch_axis = 1 if stft_data_format == 'channels_first' else 3  # batch shape
+    S = np.expand_dims(S, (0, ch_axis))
+    model = tf.keras.models.Sequential([istft, stft])
+    recon_S = model(S)
+
+    # trim off the frames coming from zero-pad result
+    n = n_added_frames
+    n_added_frames += n
+    if stft_data_format == 'channels_first':
+        if n != 0:
+            S = S[:, :, n:-n, :]
+        recon_S = recon_S[:, :, n_added_frames:-n_added_frames, :]
+    else:
+        if n != 0:
+            S = S[:, n:-n, :, :]
+        recon_S = recon_S[:, n_added_frames:-n_added_frames, :, :]
+
+    np.testing.assert_equal(S.shape, recon_S.shape)
+    allclose_complex_numbers(S, recon_S)
 
 
 def test_save_load():
