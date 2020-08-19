@@ -1,9 +1,15 @@
+"""Layers that are composed using time-frequency layers.
+
+This module provides more complicated layers using layers and operations in Kapre.
+
+"""
 from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
 from . import backend
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Sequential, Model
+from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
 
 
 def get_perfectly_reconstructing_stft_istft(
@@ -18,7 +24,7 @@ def get_perfectly_reconstructing_stft_istft(
 ):
     """A function that returns two layers, stft and inverse stft, which would be perfectly reconstructing pair.
 
-    NOTE:
+    Note:
         Imagine `x` --> `STFT` --> `InverseSTFT` --> `y`.
         The length of `x` will be longer than `y` due to the padding at the beginning and the end.
         To compare them, you would need to trim `y` along time axis.
@@ -32,19 +38,22 @@ def get_perfectly_reconstructing_stft_istft(
             Must specify this if the returned stft layer is going to be used as first layer of a Sequential model.
         istft_input_shape (tuple): Input shape of single STFT.
             Must specify this if the returned istft layer is going to be used as first layer of a Sequential model.
-        n_fft (int): Number of FFTs. Defaults to `2048`
-        win_length (int or None): Window length in sample. Defaults to `n_fft`.
-        hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
-        forward_window_fn (function or None): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`.
-        waveform_data_format (string): The audio data format of waveform batch.
+        n_fft (`int`): Number of FFTs. Defaults to `2048`
+        win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
+        hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        forward_window_fn (function or `None`): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`.
+        waveform_data_format (`str`): The audio data format of waveform batch.
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        stft_data_format (string): The data format of STFT.
+        stft_data_format (`str`): The data format of STFT.
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
     """
+    backend.validate_data_format_str(waveform_data_format)
+    backend.validate_data_format_str(stft_data_format)
+
     if forward_window_fn is None:
         forward_window_fn = tf.signal.hann_window
 
@@ -115,29 +124,31 @@ def get_stft_mag_phase(
     """A function that returns magnitude and phase of input audio.
 
     Args:
-        input_shape (None or tuple of integers): input shape of the stft layer.
+        input_shape (`None` or tuple of integers): input shape of the stft layer.
             Because this mag_phase is based on keras.Functional model, it is required to specify the input shape.
             E.g., (44100, 2) for 44100-sample stereo audio with `input_data_format=='channels_last'`.
-        n_fft (int): number of FFT points in `STFT`
-        win_length (int): window length of `STFT`
-        hop_length (int): hop length of `STFT`
-        window_fn (function or None): windowing function of `STFT`.
+        n_fft (`int`): number of FFT points in `STFT`
+        win_length (`int`): window length of `STFT`
+        hop_length (`int`): hop length of `STFT`
+        window_fn (function or `None`): windowing function of `STFT`.
             Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
-        pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
-        pad_end (bool): whether to pad the input signal at the end in `STFT`.
-        return_decibel (bool): whether to apply decibel scaling at the end
-        db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
-        db_ref_value (float): reference value of decibel scaling. See `MagnitudeToDecibel` for more details.
-        db_dynamic_range (float): dynamic range of the decibel scaling result.
-        input_data_format (str): the audio data format of input waveform batch.
+        pad_begin(`bool`): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_end (`bool`): whether to pad the input signal at the end in `STFT`.
+        return_decibel (`bool`): whether to apply decibel scaling at the end
+        db_amin (`float`): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
+        db_ref_value (`float`): reference value of decibel scaling. See `MagnitudeToDecibel` for more details.
+        db_dynamic_range (`float`): dynamic range of the decibel scaling result.
+        input_data_format (`str`): the audio data format of input waveform batch.
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        output_data_format (str): the data format of output mel spectrogram.
+        output_data_format (`str`): the data format of output mel spectrogram.
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
     """
+    backend.validate_data_format_str(input_data_format)
+    backend.validate_data_format_str(output_data_format)
 
     waveform_to_stft = STFT(
         n_fft=n_fft,
@@ -165,7 +176,7 @@ def get_stft_mag_phase(
         )
         mag_stfts = mag_to_decibel(mag_stfts)
 
-    ch_axis = 1 if output_data_format == 'channels_first' else 3
+    ch_axis = 1 if output_data_format == CH_FIRST_STR else 3
 
     concat_layer = keras.layers.Concatenate(axis=ch_axis)
 
@@ -200,35 +211,38 @@ def get_melspectrogram_layer(
     `STFT`, `Magnitude`, `ApplyFilterbank(_mel_filterbank)`, and optionally `MagnitudeToDecibel`.
 
     Args:
-        input_shape (None or tuple of integers): input shape of the model if this melspectrogram layer is
+        input_shape (`None` or tuple of integers): input shape of the model if this melspectrogram layer is
             is the first layer of your model (see `keras.model.Sequential()` for more details)
-        n_fft (int): number of FFT points in `STFT`
-        win_length (int): window length of `STFT`
-        hop_length (int): hop length of `STFT`
-        window_fn (function or None): windowing function of `STFT`.
+        n_fft (`int`): number of FFT points in `STFT`
+        win_length (`int`): window length of `STFT`
+        hop_length (`int`): hop length of `STFT`
+        window_fn (function or `None`): windowing function of `STFT`.
             Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
-        pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
-        pad_end (bool): whether to pad the input signal at the end in `STFT`.
-        sample_rate (int): sample rate of the input audio
-        n_mels (int): number of mel bins in the mel filterbank
-        mel_f_min (float): lowest frequency of the mel filterbank
-        mel_f_max (float): highest frequency of the mel filterbank
-        mel_htk (bool): whether to follow the htk mel filterbank fomula or not
+        pad_begin(`bool`): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_end (`bool`): whether to pad the input signal at the end in `STFT`.
+        sample_rate (`int`): sample rate of the input audio
+        n_mels (`int`): number of mel bins in the mel filterbank
+        mel_f_min (`float`): lowest frequency of the mel filterbank
+        mel_f_max (`float`): highest frequency of the mel filterbank
+        mel_htk (`bool`): whether to follow the htk mel filterbank fomula or not
         mel_norm ('slaney' or int): normalization policy of the mel filterbank triangles
-        return_decibel (bool): whether to apply decibel scaling at the end
-        db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
-        db_ref_value (float): reference value of decibel scaling. See `MagnitudeToDecibel` for more details.
-        db_dynamic_range (float): dynamic range of the decibel scaling result.
-        input_data_format (str): the audio data format of input waveform batch.
+        return_decibel (`bool`): whether to apply decibel scaling at the end
+        db_amin (`float`): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
+        db_ref_value (`float`): reference value of decibel scaling. See `MagnitudeToDecibel` for more details.
+        db_dynamic_range (`float`): dynamic range of the decibel scaling result.
+        input_data_format (`str`): the audio data format of input waveform batch.
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        output_data_format (str): the data format of output melspectrogram.
+        output_data_format (`str`): the data format of output melspectrogram.
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
 
     """
+    backend.validate_data_format_str(input_data_format)
+    backend.validate_data_format_str(output_data_format)
+
     stft_kwargs = {}
     if input_shape is not None:
         stft_kwargs['input_shape'] = input_shape
@@ -294,34 +308,37 @@ def get_log_frequency_spectrogram_layer(
     `STFT`, `Magnitude`, `ApplyFilterbank(_log_filterbank)`, and optionally `MagnitudeToDecibel`.
 
     Args:
-        input_shape (None or tuple of integers): input shape of the model if this melspectrogram layer is
+        input_shape (`None` or tuple of integers): input shape of the model if this melspectrogram layer is
             is the first layer of your model (see `keras.model.Sequential()` for more details)
-        n_fft (int): number of FFT points in `STFT`
-        win_length (int): window length of `STFT`
-        hop_length (int): hop length of `STFT`
-        window_fn (function or None): windowing function of `STFT`.
+        n_fft (`int`): number of FFT points in `STFT`
+        win_length (`int`): window length of `STFT`
+        hop_length (`int`): hop length of `STFT`
+        window_fn (function or `None`): windowing function of `STFT`.
             Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
-        pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
-        pad_end (bool): whether to pad the input signal at the end in `STFT`.
-        sample_rate (int): sample rate of the input audio
-        log_n_bins (int): number of the bins in the log-frequency filterbank
-        log_f_min (float): lowest frequency of the filterbank
-        log_bins_per_octave (int): number of bins in each octave in the filterbank
-        log_spread (float): spread constant (Q value) in the log filterbank.
-        return_decibel (bool): whether to apply decibel scaling at the end
-        db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
-        db_ref_value (float): reference value of decibel scaling. See `MagnitudeToDecibel` for more details.
-        db_dynamic_range (float): dynamic range of the decibel scaling result.
-        input_data_format (str): the audio data format of input waveform batch.
+        pad_begin(`bool`): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_end (`bool`): whether to pad the input signal at the end in `STFT`.
+        sample_rate (`int`): sample rate of the input audio
+        log_n_bins (`int`): number of the bins in the log-frequency filterbank
+        log_f_min (`float`): lowest frequency of the filterbank
+        log_bins_per_octave (`int`): number of bins in each octave in the filterbank
+        log_spread (`float`): spread constant (Q value) in the log filterbank.
+        return_decibel (`bool`): whether to apply decibel scaling at the end
+        db_amin (`float`): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
+        db_ref_value (`float`): reference value of decibel scaling. See `MagnitudeToDecibel` for more details.
+        db_dynamic_range (`float`): dynamic range of the decibel scaling result.
+        input_data_format (`str`): the audio data format of input waveform batch.
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        output_data_format (str): the data format of output mel spectrogram.
+        output_data_format (`str`): the data format of output mel spectrogram.
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
 
     """
+    backend.validate_data_format_str(input_data_format)
+    backend.validate_data_format_str(output_data_format)
+
     stft_kwargs = {}
     if input_shape is not None:
         stft_kwargs['input_shape'] = input_shape
