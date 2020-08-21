@@ -1,45 +1,17 @@
 # Kapre
-Keras Audio Preprocessors.
+Keras Audio Preprocessors - compute STFT, ISTFT, Melspectrogram, and others on GPU real-time.
+  
+Tested on Python 3.3, 3.6, and 3.7.
 
-"Why bother to save STFT/melspectrograms to your storage? Just do it on-the-fly on-GPU."
-
-## News
-
-* 15 Aug 2020
-  - 0.3.0
-    - Breaking and simplifying changes with Tensorflow 2.0 and more tests. Some features are removed.
-
-* 29 Jul 2020
-  - 0.2.0
-    - Change melspectrogram filterbank from `norm=1` to `norm='slaney'` (w.r.t. Librosa) due to the update from Librosa ([#77](https://github.com/keunwoochoi/kapre/issues/77)). 
-    This would change the behavior of melspectrogram slightly.
-    - Bump librosa version to 0.7.2 or higher.
-* 17 Mar 2020
-  - 0.1.8
-    - added `utils.Delta` layer
-* 20 Feb 2020
-  - Kapre ver 0.1.7
-    - No vanilla Keras dependency
-    - Tensorflow >= 1.15 only
-    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7 locally (by `tox`) and 3.6 on Travis 
-    
-* 20 Feb 2019
-  - Kapre ver 0.1.4
-    - Fixed amplitude-to-decibel error as raised in [#46](https://github.com/keunwoochoi/kapre/issues/46)
-     
-* March 2018
-  - Kapre ver 0.1.3
-    - Kapre is on Pip again
-    - Add unit tests
-    - Remove `Datasets`
-    - Remove some codes while adding more dependency on Librosa to make it cleaner and more stable
-      - and therefore `htk` option enabled in `Melspectrogram`
-      
-* 9 July 2017
-  - Kapre ver 0.1.1, aka 'pretty stable' with a [benchmark paper](https://arxiv.org/abs/1706.05781)
-    - Remove STFT, python3 compatible
-    - A full documentation in this readme.md
-    - pip version is updated
+## Why?
+- Kapre enables you to optimize DSP parameters and makes model deployment simpler with less dependency.  
+- Kapre layers are consistent with 1D/2D tensorflow batch shapes.
+- Kapre layers are compatible with `'channels_fist'` and `'channels_last'`
+- Kapre layers are tested against Librosa (stft, decibel, etc) - which is (trust me) *tricker* than you think.
+- Kapre layers have extended APIs from the default `tf.signals` implementation.
+- Kapre provides a perfectly invertible `STFT` and `InverseSTFT` pair.
+- You save your time implementing and testing all of these.
+- Kapre is available on pip with versioning; hence you keep your code reproducible.   
 
 ## Installation
  
@@ -51,9 +23,20 @@ pip install kapre
 ### Layers
 
 Audio preprocessing layers
-* `STFT`, `Magnitude`, `Phase`, `MagnitudeToDecibel`, `ApplyFilterbank`, `Delta` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* melspectrogram and log-frequency STFT are composed using time-frequency layers as in [composed.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/composed.py).
-See `get_melspectrogram_layer` and `get_log_frequency_spectrogram_layer`. 
+* Basic layers in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+  - `STFT`
+  - `Magnitude`
+  - `Phase`
+  - `MagnitudeToDecibel`
+  - `ApplyFilterbank`
+  - `Delta` 
+* Complicated layers are composed using time-frequency layers as in [composed.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/composed.py).
+  - `kapre.composed.get_perfectly_reconstructing_stft_istft()`
+  - `kapre.composed.get_stft_mag_phase()`
+  - `kapre.composed.get_melspectrogram_layer()`
+  - `kapre.composed.get_log_frequency_spectrogram_layer()`. 
+  
+(Note: Official documentation is coming soon)
 
 ## One-shot example
 
@@ -114,3 +97,25 @@ Please cite this paper if you use Kapre for your work.
   organization={ICML}
 }
 ```
+
+## News
+
+* 15 Aug 2020
+  - 0.3.0
+    - Breaking and simplifying changes with Tensorflow 2.0 and more tests. Some features are removed.
+
+* 29 Jul 2020
+  - 0.2.0
+    - Change melspectrogram filterbank from `norm=1` to `norm='slaney'` (w.r.t. Librosa) due to the update from Librosa ([#77](https://github.com/keunwoochoi/kapre/issues/77)). 
+    This would change the behavior of melspectrogram slightly.
+    - Bump librosa version to 0.7.2 or higher.
+* 17 Mar 2020
+  - 0.1.8
+    - added `utils.Delta` layer
+* 20 Feb 2020
+  - Kapre ver 0.1.7
+    - No vanilla Keras dependency
+    - Tensorflow >= 1.15 only
+    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7 locally (by `tox`) and 3.6 on Travis 
+
+..and more at `news.md`. 

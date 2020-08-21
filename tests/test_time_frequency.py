@@ -1,4 +1,3 @@
-import os
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -6,8 +5,15 @@ import tensorflow.keras
 import tensorflow.keras.backend as K
 import librosa
 from kapre.time_frequency import STFT, Magnitude, Phase, Delta
-from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer
+from kapre.composed import (
+    get_melspectrogram_layer,
+    get_log_frequency_spectrogram_layer,
+    get_stft_mag_phase,
+    get_perfectly_reconstructing_stft_istft,
+)
 import tempfile
+
+SRC = np.load('tests/speech_test_file.npz')['audio_data']
 
 
 def _num_frame_valid(nsp_src, nsp_win, len_hop):
@@ -21,7 +27,7 @@ def _num_frame_same(nsp_src, len_hop):
 
 
 def get_audio(data_format, n_ch):
-    src = np.load('tests/speech_test_file.npz')['audio_data']
+    src = SRC
     src = src[:16000]
     src_mono = src.copy()
     len_src = len(src)
@@ -45,6 +51,13 @@ def get_audio(data_format, n_ch):
 
 
 def allclose_phase(a, b, atol=1e-3):
+    """Testing phase.
+    Remember that a small error in complex value may lead to a large phase difference
+    if the norm is very small.
+
+    Therefore, it makes more sense to test it on the complex value itself rather than breaking it down to phase.
+
+    """
     np.testing.assert_allclose(np.sin(a), np.sin(b), atol=atol)
     np.testing.assert_allclose(np.cos(a), np.cos(b), atol=atol)
 
@@ -95,8 +108,8 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
 
     stft_model = _get_stft_model()
 
-    S = stft_model.predict(batch_src)[0]  # 3d representation
-    allclose_complex_numbers(S_ref, S)
+    S_complex = stft_model.predict(batch_src)[0]  # 3d representation
+    allclose_complex_numbers(S_ref, S_complex)
 
     # test Magnitude()
     stft_mag_model = _get_stft_model(Magnitude())
@@ -104,10 +117,9 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
     np.testing.assert_allclose(np.abs(S_ref), S, atol=2e-4)
 
     # # test Phase()
-    # TODO. It's not passing and I really have no idea why
-    # stft_phase_model = _get_stft_model(Phase())
-    # S = stft_phase_model.predict(batch_src)[0]  # 3d representation
-    # allclose_phase(np.angle(S_ref), S)
+    stft_phase_model = _get_stft_model(Phase())
+    S = stft_phase_model.predict(batch_src)[0]  # 3d representation
+    allclose_phase(np.angle(S_complex), S)
 
 
 @pytest.mark.parametrize('n_fft', [512])
@@ -168,8 +180,6 @@ def test_melspectrogram_correctness(
     S_ref = np.expand_dims(S_ref, axis=2)  # time, freq, ch=1
     S_ref = np.tile(S_ref, [1, 1, n_ch])  # time, freq, ch=n_ch
 
-    # import ipdb; ipdb.set_trace()
-
     if data_format == 'channels_first':
         S_ref = np.transpose(S_ref, (2, 0, 1))  # ch, time, freq
 
@@ -192,9 +202,10 @@ def test_melspectrogram_correctness(
     )  # decibel is evaluated with relative tolerance
 
 
-def test_log_spectrogram_runnable():
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_log_spectrogram_runnable(data_format):
     """test if log spectrogram layer works well"""
-    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=1)
     _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=True)
     _ = get_log_frequency_spectrogram_layer(input_shape, return_decibel=False)
 
@@ -218,6 +229,104 @@ def test_delta():
     delta_ref = np.reshape(delta_ref, (1, -1, 1, 1))  # (b, t, f, ch)
 
     np.testing.assert_allclose(delta_kapre, delta_ref)
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_mag_phase(data_format):
+    n_ch = 1
+    n_fft, hop_length, win_length = 512, 256, 512
+
+    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
+
+    mag_phase_layer = get_stft_mag_phase(
+        input_shape=input_shape,
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        input_data_format=data_format,
+        output_data_format=data_format,
+    )
+    model = tensorflow.keras.models.Sequential()
+    model.add(mag_phase_layer)
+    mag_phase_kapre = model(batch_src)[0]  # a 2d image shape
+
+    ch_axis = 0 if data_format == 'channels_first' else 2  # non-batch
+    mag_phase_ref = np.stack(
+        librosa.magphase(
+            librosa.stft(
+                src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False,
+            ).T
+        ),
+        axis=ch_axis,
+    )
+    np.testing.assert_equal(mag_phase_kapre.shape, mag_phase_ref.shape)
+    # magnitude test
+    np.testing.assert_allclose(
+        np.take(mag_phase_kapre, [0,], axis=ch_axis),
+        np.take(mag_phase_ref, [0,], axis=ch_axis),
+        atol=2e-4,
+    )
+    # phase test - todo - yeah..
+
+
+@pytest.mark.parametrize('waveform_data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('stft_data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('hop_ratio', [0.5, 0.25, 0.125])
+def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_format, hop_ratio):
+    n_ch = 1
+    src_mono, batch_src, input_shape = get_audio(data_format=waveform_data_format, n_ch=n_ch)
+    time_axis = 1 if waveform_data_format == 'channels_first' else 0  # non-batch!
+    len_src = input_shape[time_axis]
+
+    n_fft = 2048
+    hop_length = int(2048 * hop_ratio)
+    n_added_frames = int(1 / hop_ratio) - 1
+
+    stft, istft = get_perfectly_reconstructing_stft_istft(
+        stft_input_shape=input_shape,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        waveform_data_format=waveform_data_format,
+        stft_data_format=stft_data_format,
+    )
+    # Test - [STFT -> ISTFT]
+    model = tf.keras.models.Sequential([stft, istft])
+
+    recon_waveform = model(batch_src)
+
+    # trim off the pad_begin part
+    len_pad_begin = n_fft - hop_length
+    if waveform_data_format == 'channels_first':
+        recon_waveform = recon_waveform[:, :, len_pad_begin : len_pad_begin + len_src]
+    else:
+        recon_waveform = recon_waveform[:, len_pad_begin : len_pad_begin + len_src, :]
+
+    np.testing.assert_allclose(batch_src, recon_waveform, atol=1e-5)
+
+    # Test - [ISTFT -> STFT]
+    S = librosa.stft(src_mono, n_fft=n_fft, hop_length=hop_length).T.astype(
+        np.complex64
+    )  # (time, freq)
+
+    ch_axis = 1 if stft_data_format == 'channels_first' else 3  # batch shape
+    S = np.expand_dims(S, (0, ch_axis))
+    model = tf.keras.models.Sequential([istft, stft])
+    recon_S = model(S)
+
+    # trim off the frames coming from zero-pad result
+    n = n_added_frames
+    n_added_frames += n
+    if stft_data_format == 'channels_first':
+        if n != 0:
+            S = S[:, :, n:-n, :]
+        recon_S = recon_S[:, :, n_added_frames:-n_added_frames, :]
+    else:
+        if n != 0:
+            S = S[:, n:-n, :, :]
+        recon_S = recon_S[:, n_added_frames:-n_added_frames, :, :]
+
+    np.testing.assert_equal(S.shape, recon_S.shape)
+    allclose_complex_numbers(S, recon_S)
 
 
 def test_save_load():
@@ -247,7 +356,7 @@ def test_save_load():
 
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test STFT save/load
-    _test(STFT(input_shape=input_shape), batch_src, allclose_complex_numbers)
+    _test(STFT(input_shape=input_shape, pad_begin=True), batch_src, allclose_complex_numbers)
     # test melspectrogram save/load
     _test(
         get_melspectrogram_layer(input_shape=input_shape, return_decibel=True),
@@ -257,6 +366,12 @@ def test_save_load():
     # test log frequency spectrogram save/load
     _test(
         get_log_frequency_spectrogram_layer(input_shape=input_shape, return_decibel=True),
+        batch_src,
+        np.testing.assert_allclose,
+    )
+    # test stft_mag_phase
+    _test(
+        get_stft_mag_phase(input_shape=input_shape, return_decibel=True),
         batch_src,
         np.testing.assert_allclose,
     )
