@@ -18,9 +18,8 @@ Note:
     For a quick summary, check out my tutorial paper, `A Tutorial on Deep Learning for Music Information Retrieval <https://arxiv.org/abs/1709.04396>`_.
 
 """
-import warnings
 import tensorflow as tf
-from tensorflow.keras.layers import Layer
+from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
@@ -34,6 +33,7 @@ __all__ = [
     'MagnitudeToDecibel',
     'ApplyFilterbank',
     'Delta',
+    'ConcatenateFrequencyMap',
 ]
 
 
@@ -68,8 +68,10 @@ class STFT(Layer):
         n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (int or None): Window length in sample. Defaults to `n_fft`.
         hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
-        window_fn (function or None): A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
-        pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
+        window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
+            Defaults to `hann_window` which uses `tf.signal.hann_window`.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
+        pad_begin (bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
         pad_end (bool): Whether to pad with zeros at the finishing end of the signal.
         input_data_format (str): the audio data format of input waveform batch.
             `'channels_last'` if it's `(batch, time, channels)` and
@@ -98,7 +100,7 @@ class STFT(Layer):
         n_fft=2048,
         win_length=None,
         hop_length=None,
-        window_fn=None,
+        window_name=None,
         pad_begin=False,
         pad_end=False,
         input_data_format='default',
@@ -114,13 +116,12 @@ class STFT(Layer):
             win_length = n_fft
         if hop_length is None:
             hop_length = win_length // 4
-        if window_fn is None:
-            window_fn = tf.signal.hann_window
 
         self.n_fft = n_fft
         self.win_length = win_length
         self.hop_length = hop_length
-        self.window_fn = window_fn
+        self.window_name = window_name
+        self.window_fn = backend.get_window_fn(window_name)
         self.pad_begin = pad_begin
         self.pad_end = pad_end
 
@@ -178,7 +179,7 @@ class STFT(Layer):
                 'n_fft': self.n_fft,
                 'win_length': self.win_length,
                 'hop_length': self.hop_length,
-                'window_fn': self.window_fn,
+                'window_name': self.window_name,
                 'pad_begin': self.pad_begin,
                 'pad_end': self.pad_end,
                 'input_data_format': self.input_data_format,
@@ -201,10 +202,10 @@ class InverseSTFT(Layer):
         n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
         hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
-        window_fn (function or `None`): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`, but
-            this default setup does NOT lead to perfect reconstruction.
-            For perfect reconstruction, this should be set using `tf.signal.inverse_stft_window_fn()` with the
-            correct `frame_step` and `forward_window_fn` that are matched to those used during STFT.
+        forward_window_name (str or None): *Name* of `tf.signal` function that *was* used in the forward STFT.
+            Defaults to `hann_window`, assuming `tf.signal.hann_window` was used.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
+
         input_data_format (`str`): the data format of input STFT batch
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
@@ -232,7 +233,7 @@ class InverseSTFT(Layer):
         n_fft=2048,
         win_length=None,
         hop_length=None,
-        window_fn=None,
+        forward_window_name=None,
         input_data_format='default',
         output_data_format='default',
         **kwargs,
@@ -246,21 +247,14 @@ class InverseSTFT(Layer):
             win_length = n_fft
         if hop_length is None:
             hop_length = win_length // 4
-        if window_fn is None:
-            window_fn = tf.signal.hann_window
-            warnings.warn(
-                'In InverseSTFT, forward_window_fn was not set, hence the default hann window function'
-                'is used. This would lead to non-perfect reconstruction of a STFT-ISTFT chain.'
-                'For perfect reconstruction, forward_window_fn should be set using'
-                'tf.signal.inverse_stft_window_fn with frame_step and forward_window_fn correctly specified.'
-                'For more details, see how kapre.composed.get_perfectly_reconstructing_stft_istft() is'
-                'implemented. '
-            )
 
         self.n_fft = n_fft
         self.win_length = win_length
         self.hop_length = hop_length
-        self.window_fn = window_fn
+        self.forward_window_name = forward_window_name
+        self.window_fn = tf.signal.inverse_stft_window_fn(
+            frame_step=hop_length, forward_window_fn=backend.get_window_fn(forward_window_name)
+        )
 
         idt, odt = input_data_format, output_data_format
         self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
@@ -305,7 +299,7 @@ class InverseSTFT(Layer):
                 'n_fft': self.n_fft,
                 'win_length': self.win_length,
                 'hop_length': self.hop_length,
-                'window_fn': self.window_fn,
+                'forward_window_name': self.forward_window_name,
                 'input_data_format': self.input_data_format,
                 'output_data_format': self.output_data_format,
             }
@@ -511,6 +505,7 @@ class Delta(Layer):
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            model.add(kapre.Magnitude())
             model.add(Delta())
             # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
@@ -571,4 +566,99 @@ class Delta(Layer):
             {'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format}
         )
 
+        return config
+
+
+class ConcatenateFrequencyMap(Layer):
+    """Addes a frequency information channel to spectrograms.
+
+    The added frequency channel (=frequency map) has a linearly increasing values from 0.0 to 1.0,
+    indicating the normalize frequency of a time-frequency bin. This layer can be applied to input audio spectrograms
+    or any feature maps so that the following layers can be conditioned on the frequency. (Imagine something like
+    positional encoding in NLP but the position is on frequency axis).
+
+    A combination of `ConcatenateFrequencyMap` and `Conv2D` is known as frequency-aware convolution (see References).
+    For your convenience, such a layer is supported by `karep.composed.get_frequency_aware_conv2d()`.
+
+    Args:
+        data_format (str): specifies the data format of batch input/output.
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            model.add(kapre.Magnitude())
+            # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
+            model.add(kapre.ConcatenateFrequencyMap())
+            # (batch, n_frame=3, n_freq=513, ch=2)
+            # now add your model
+            mode.add(keras.layers.Conv2D(16, (3, 3), strides=(2, 2), activation='relu')
+            # you can concatenate frequency map before other conv layers,
+            # but probably, you wouldn't want to add it right before batch normalization.
+            model.add(kapre.ConcatenateFrequencyMap())
+            model.add(keras.layers.Conv2D(32, (3, 3), strides=(1, 1), activation='relu')
+            model.add(keras.layers.MaxPooling2D((2, 2)))  # length of frequency axis doesn't matter
+
+    References:
+        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
+        `Receptive-Field-Regularized CNN Variants for Acoustic Scene Classification <https://arxiv.org/abs/1909.02859>`_.
+        In Proceedings of the Detection and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
+
+    """
+
+    def __init__(self, data_format='default', **kwargs):
+        backend.validate_data_format_str(data_format)
+
+        if data_format == _CH_DEFAULT_STR:
+            self.data_format = K.image_data_format()
+        else:
+            self.data_format = data_format
+
+        self.data_format = data_format
+
+        super(ConcatenateFrequencyMap, self).__init__(**kwargs)
+
+    def call(self, x):
+        """
+        Args:
+            x (`Tensor`): a 2d batch (b, t, f, ch) or (b, ch, t, f)
+
+        Returns:
+            x (`Tensor`): a 2d batch (b, t, f, ch + 1) or (b, ch + 1, t, f)
+        """
+        return self._concat_frequency_map(x)
+
+    def _concat_frequency_map(self, inputs):
+        shape = tf.shape(inputs)
+        time_axis, freq_axis, ch_axis = (1, 2, 3) if self.data_format == _CH_LAST_STR else (2, 3, 1)
+        batch_size, n_freq, n_time, n_ch = (
+            shape[0],
+            shape[freq_axis],
+            shape[time_axis],
+            shape[ch_axis],
+        )
+
+        # freq_info shape: n_freq
+        freq_map_1d = tf.cast(tf.linspace(start=0.0, stop=1.0, num=n_freq), dtype=tf.float32)
+
+        new_shape = (1, 1, -1, 1) if self.data_format == _CH_LAST_STR else (1, 1, 1, -1)
+        freq_map_1d = tf.reshape(freq_map_1d, new_shape)  # 4D now
+
+        multiples = (
+            (batch_size, n_time, 1, 1)
+            if self.data_format == _CH_LAST_STR
+            else (batch_size, 1, n_time, 1)
+        )
+        freq_map_4d = tf.tile(freq_map_1d, multiples)
+
+        return tf.concat([inputs, freq_map_4d], axis=ch_axis)
+
+    def get_config(self):
+        config = super(ConcatenateFrequencyMap, self).get_config()
+        config.update(
+            {'data_format': self.data_format,}
+        )
         return config

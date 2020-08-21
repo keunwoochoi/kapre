@@ -18,6 +18,44 @@ _CH_LAST_STR = 'channels_last'
 _CH_DEFAULT_STR = 'default'
 
 
+def get_window_fn(window_name=None):
+    """Return a window function given its name.
+    This function is used inside layers such as `STFT` to get a window function.
+
+    Args:
+        window_name (None or str): name of window function. On Tensorflow 2.3, there are five windows available in
+        `tf.signal` - `hamming_window`, `hann_window`, `kaiser_bessel_derived_window`, `kaiser_window`, `vorbis_window`.
+
+    """
+
+    if window_name is None:
+        return tf.signal.hann_window
+
+    available_windows = {
+        'hamming_window': tf.signal.hamming_window,
+        'hann_window': tf.signal.hann_window,
+    }
+    if hasattr(tf.signal, 'kaiser_bessel_derived_window'):
+        available_windows['kaiser_bessel_derived_window'] = tf.signal.kaiser_bessel_derived_window
+    if hasattr(tf.signal, 'kaiser_window'):
+        available_windows['kaiser_window'] = tf.signal.kaiser_window
+    if hasattr(tf.signal, 'vorbis_window'):
+        available_windows['vorbis_window'] = tf.signal.vorbis_window
+
+    if window_name not in available_windows:
+        raise NotImplementedError(
+            'Window name %s is not supported now. Currently, %d windows are'
+            'supported - %s'
+            % (
+                window_name,
+                len(available_windows),
+                ', '.join([k for k in available_windows.keys()]),
+            )
+        )
+
+    return window_name
+
+
 def validate_data_format_str(data_format):
     """A function that validates the data format string."""
     if data_format not in (_CH_DEFAULT_STR, _CH_FIRST_STR, _CH_LAST_STR):

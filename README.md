@@ -54,7 +54,7 @@ sr = 44100
 model = Sequential()
 # A STFT layer
 model.add(STFT(n_fft=2048, win_length=2018, hop_length=1024,
-               window_fn=None, pad_end=False,
+               window_name=None, pad_end=False,
                input_data_format='channels_last', output_data_format='channels_last',
                input_shape=input_shape))
 model.add(Magnitude())
@@ -101,7 +101,7 @@ Please cite this paper if you use Kapre for your work.
 ```
 
 ## News
-* ?? Aug 2020
+* 28 Aug 2020
   - 0.3.2
     - `kapre.signal.Frame` and `kapre.signal.Energy` are added
     - `kapre.signal.LogmelToMFCC` is added

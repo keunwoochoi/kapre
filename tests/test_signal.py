@@ -107,28 +107,39 @@ def test_mfcc_correctness(data_format, n_mfccs):
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-def test_save_load(data_format):
+@pytest.mark.parametrize('save_format', ['tf', 'h5'])
+def test_save_load(data_format, save_format):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test Frame save/load
     save_load_compare(
         Frame(frame_length=128, hop_length=64, input_shape=input_shape),
         batch_src,
         np.testing.assert_allclose,
+        save_format,
+        Frame,
     )
     # test Energy save/load
     save_load_compare(
         Energy(frame_length=128, hop_length=64, input_shape=input_shape),
         batch_src,
         np.testing.assert_allclose,
+        save_format,
+        Energy,
     )
     # test mu law layers
     save_load_compare(
-        MuLawEncoding(quantization_channels=128), batch_src, np.testing.assert_allclose,
+        MuLawEncoding(quantization_channels=128),
+        batch_src,
+        np.testing.assert_allclose,
+        save_format,
+        MuLawEncoding,
     )
     save_load_compare(
         MuLawDecoding(quantization_channels=128),
         np.arange(0, 256, 1).reshape((1, 256, 1)),
         np.testing.assert_allclose,
+        save_format,
+        MuLawDecoding,
     )
     # test mfcc layer
     expand_dim = (0, 3) if data_format in (_CH_LAST_STR, _CH_DEFAULT_STR) else (0, 1)
@@ -136,6 +147,8 @@ def test_save_load(data_format):
         LogmelToMFCC(n_mfccs=10),
         np.expand_dims(librosa.power_to_db(librosa.feature.melspectrogram(src_mono).T), expand_dim),
         np.testing.assert_allclose,
+        save_format,
+        LogmelToMFCC,
     )
 
 
