@@ -6,7 +6,7 @@ Tested on Python 3.3, 3.6, and 3.7.
 ## Why?
 - Kapre enables you to optimize DSP parameters and makes model deployment simpler with less dependency.  
 - Kapre layers are consistent with 1D/2D tensorflow batch shapes.
-- Kapre layers are compatible with `'channels_fist'` and `'channels_last'`
+- Kapre layers are compatible with `'channels_first'` and `'channels_last'`
 - Kapre layers are tested against Librosa (stft, decibel, etc) - which is (trust me) *tricker* than you think.
 - Kapre layers have extended APIs from the default `tf.signals` implementation.
 - Kapre provides a perfectly invertible `STFT` and `InverseSTFT` pair.
