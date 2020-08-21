@@ -1,8 +1,17 @@
 # Kapre
 Keras Audio Preprocessors - compute STFT, ISTFT, Melspectrogram, and others on GPU real-time.
-This enables you to optimize DSP parameters and makes model deployment simpler with less dependency.  
   
 Tested on Python 3.3, 3.6, and 3.7.
+
+## Why?
+- Kapre enables you to optimize DSP parameters and makes model deployment simpler with less dependency.  
+- Kapre layers are consistent with 1D/2D tensorflow batch shapes.
+- Kapre layers are compatible with `'channels_fist'` and `'channels_last'`
+- Kapre layers are tested against Librosa (stft, decibel, etc) - which is (trust me) *tricker* than you think.
+- Kapre layers have extended APIs from the default `tf.signals` implementation.
+- Kapre provides a perfectly invertible `STFT` and `InverseSTFT` pair.
+- You save your time implementing and testing all of these.
+- Kapre is available on pip with versioning; hence you keep your code reproducible.   
 
 ## Installation
  
@@ -14,9 +23,20 @@ pip install kapre
 ### Layers
 
 Audio preprocessing layers
-* `STFT`, `Magnitude`, `Phase`, `MagnitudeToDecibel`, `ApplyFilterbank`, `Delta` in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-* melspectrogram and log-frequency STFT are composed using time-frequency layers as in [composed.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/composed.py).
-See `get_melspectrogram_layer` and `get_log_frequency_spectrogram_layer`. 
+* Basic layers in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
+  - `STFT`
+  - `Magnitude`
+  - `Phase`
+  - `MagnitudeToDecibel`
+  - `ApplyFilterbank`
+  - `Delta` 
+* Complicated layers are composed using time-frequency layers as in [composed.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/composed.py).
+  - `kapre.composed.get_perfectly_reconstructing_stft_istft()`
+  - `kapre.composed.get_stft_mag_phase()`
+  - `kapre.composed.get_melspectrogram_layer()`
+  - `kapre.composed.get_log_frequency_spectrogram_layer()`. 
+  
+(Note: Official documentation is coming soon)
 
 ## One-shot example
 
@@ -77,7 +97,6 @@ Please cite this paper if you use Kapre for your work.
   organization={ICML}
 }
 ```
-
 
 ## News
 
