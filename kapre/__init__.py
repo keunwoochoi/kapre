@@ -1,6 +1,7 @@
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 VERSION = __version__
 
-from . import time_frequency
-from . import composed
 from . import backend
+from . import composed
+from . import signal
+from . import time_frequency

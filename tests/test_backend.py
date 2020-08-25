@@ -3,7 +3,7 @@ import numpy as np
 import librosa
 from tensorflow.keras import backend as K
 from kapre import backend as KPB
-from kapre.backend import magnitude_to_decibel
+from kapre.backend import magnitude_to_decibel, validate_data_format_str
 
 TOL = 1e-5
 
@@ -90,6 +90,11 @@ def test_filterbank_log(sample_rate, n_freq, n_bins, bins_per_octave, f_min, spr
 @pytest.mark.xfail()
 def test_fb_log_fail():
     _ = KPB.filterbank_log(sample_rate=22050, n_freq=513, n_bins=300, bins_per_octave=12)
+
+
+@pytest.mark.xfail()
+def test_validate_fail():
+    _ = validate_data_format_str('weird_string')
 
 
 if __name__ == '__main__':

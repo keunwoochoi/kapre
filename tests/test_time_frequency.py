@@ -2,9 +2,8 @@ import pytest
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras
-import tensorflow.keras.backend as K
 import librosa
-from kapre.time_frequency import STFT, Magnitude, Phase, Delta
+from kapre.time_frequency import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
@@ -13,7 +12,7 @@ from kapre.composed import (
 )
 import tempfile
 
-SRC = np.load('tests/speech_test_file.npz')['audio_data']
+from utils import get_audio
 
 
 def _num_frame_valid(nsp_src, nsp_win, len_hop):
@@ -24,30 +23,6 @@ def _num_frame_valid(nsp_src, nsp_win, len_hop):
 def _num_frame_same(nsp_src, len_hop):
     """Computes the number of frames with 'same' setting"""
     return int(np.ceil(float(nsp_src) / len_hop))
-
-
-def get_audio(data_format, n_ch):
-    src = SRC
-    src = src[:16000]
-    src_mono = src.copy()
-    len_src = len(src)
-
-    src = np.expand_dims(src, axis=1)  # (time, 1)
-    if n_ch != 1:
-        src = np.tile(src, [1, n_ch])  # (time, ch))
-
-    if data_format == 'default':
-        data_format = K.image_data_format()
-
-    if data_format == 'channels_last':
-        input_shape = (len_src, n_ch)
-    else:
-        src = np.transpose(src)  # (ch, time)
-        input_shape = (n_ch, len_src)
-
-    batch_src = np.expand_dims(src, axis=0)  # 3d batch input
-
-    return src_mono, batch_src, input_shape
 
 
 def allclose_phase(a, b, atol=1e-3):
@@ -375,6 +350,24 @@ def test_save_load():
         batch_src,
         np.testing.assert_allclose,
     )
+
+
+@pytest.mark.xfail()
+@pytest.mark.parametrize('layer', [STFT, InverseSTFT])
+def test_wrong_input_data_format(layer):
+    _ = layer(input_data_format='weird_string')
+
+
+@pytest.mark.xfail()
+@pytest.mark.parametrize('layer', [STFT, InverseSTFT])
+def test_wrong_input_data_format(layer):
+    _ = layer(output_data_format='weird_string')
+
+
+@pytest.mark.xfail()
+@pytest.mark.parametrize('layer', [Delta, ApplyFilterbank])
+def test_wrong_data_format(layer):
+    _ = layer(data_format='weird_string')
 
 
 if __name__ == '__main__':
