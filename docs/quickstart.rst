@@ -1,25 +1,6 @@
 Quick Start
 ===========
 
-Layers
-------
-
-Audio preprocessing layers
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-* Basic layers in [time_frequency.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/time_frequency.py)
-  #. `STFT`
-  #.  `Magnitude`
-  #.  `Phase`
-  #.  `MagnitudeToDecibel`
-  #.  `ApplyFilterbank`
-  #.  `Delta` 
-* Complicated layers are composed using time-frequency layers as in [composed.py](https://github.com/keunwoochoi/kapre/blob/master/kapre/composed.py).
-  #.  `kapre.composed.get_perfectly_reconstructing_stft_istft()`
-  #.  `kapre.composed.get_stft_mag_phase()`
-  #.  `kapre.composed.get_melspectrogram_layer()`
-  #.  `kapre.composed.get_log_frequency_spectrogram_layer()`. 
-  
 One-shot example
 ^^^^^^^^^^^^^^^^
 
@@ -65,4 +46,4 @@ One-shot example
     model.fit(x, y)
     # Done!
 
-* See the Jupyter notebook at the [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
+* See the Jupyter notebook at the `example folder <https://github.com/keunwoochoi/kapre/tree/master/examples>`_
