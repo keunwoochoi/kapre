@@ -20,9 +20,6 @@ setup(
         'librosa >= 0.7.2',
         'tensorflow >= 2.0',
     ],
-    extras_require={
-        'docs': ['sphinx!=1.3.1', 'sphinx_rtd_theme', 'sphinxcontrib-napoleon'],
-    },
     keywords='audio music speech sound deep learning keras tensorflow',
     zip_safe=False,
 )
