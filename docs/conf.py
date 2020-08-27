@@ -35,12 +35,12 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = [
-    'librosa', 'numpy', 'tensorflow'
-]
-
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
+# MOCK_MODULES = [
+#     'librosa', 'numpy', 'tensorflow'
+# ]
+#
+# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+#
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
