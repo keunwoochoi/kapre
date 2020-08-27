@@ -51,7 +51,8 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_rtd_theme",
     "sphinx.ext.viewcode",  # source linkage
-    'sphinxcontrib.napoleon',  # google style doc
+    # 'sphinxcontrib.napoleon',  # google style doc
+    "sphinx.ext.napoleon",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
