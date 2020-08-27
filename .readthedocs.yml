@@ -7,4 +7,5 @@ python:
         path: .
         extra_requirements:
             - docs
+   setup_py_install: install
    system_packages: true
