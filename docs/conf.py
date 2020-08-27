@@ -29,10 +29,11 @@ release = '2017'
 # Mock the dependencies
 from unittest.mock import MagicMock
 
+
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
-        return MagicMock()
+        return Mock()
 
 
 MOCK_MODULES = [
