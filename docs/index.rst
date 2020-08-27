@@ -51,6 +51,7 @@ Citation
 
 Please cite `this paper <https://arxiv.org/abs/1706.05781>`_ if you use Kapre for your work.
 
+
 .. code-block:: none
 
   @inproceedings{choi2017kapre,
@@ -61,25 +62,24 @@ Please cite `this paper <https://arxiv.org/abs/1706.05781>`_ if you use Kapre fo
     organization={ICML}
   }
 
-Table of Contents
-=================
+
+Contribution
+------------
+Visit `github.com/keunwoochoi/kapre <https://github.com/keunwoochoi/kapre>`_ and chat with us :)
+
 
 .. toctree::
+   :hidden:
    :caption: Kapre
 
    quickstart
 
 
 .. toctree::
+   :hidden:
    :caption: API
 
    time_frequency
    composed
    backend
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
