@@ -1,5 +1,5 @@
-`kapre.composed`
-^^^^^^^^^^^^^^^^
+`composed`
+^^^^^^^^^^
 
 .. automodule:: kapre.composed
     :members:
