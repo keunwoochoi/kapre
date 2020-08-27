@@ -34,7 +34,9 @@ release = '2017'
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx_rtd_theme"
+    "sphinx_rtd_theme",
+    "sphinx.ext.viewcode",  # source linkage
+    'sphinxcontrib.napoleon',  # google style doc
 ]
 
 # Add any paths that contain templates here, relative to this directory.
