@@ -1,6 +1,3 @@
-Quick Start
-===========
-
 One-shot example
 ^^^^^^^^^^^^^^^^
 

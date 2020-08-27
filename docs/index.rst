@@ -65,11 +65,17 @@ Table of Contents
 =================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :caption: Kapre
 
    quickstart
-   api
+
+
+.. toctree::
+   :caption: API
+
+   time_frequency
+   composed
+   backend
 
 Indices and tables
 ==================

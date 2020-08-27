@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../'))
 import sphinx_rtd_theme
 autodoc_mock_imports = ['tensorflow', 'librosa', 'numpy']
+autodoc_member_order = 'bysource'
 
 
 # -- Project information -----------------------------------------------------
