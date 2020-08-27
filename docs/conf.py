@@ -27,22 +27,6 @@ author = 'Keunwoo Choi, Deokjin Joo and Juho Kim'
 # The full version, including alpha/beta/rc tags
 release = '2017'
 
-# Mock the dependencies
-from unittest.mock import MagicMock
-
-
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
-
-
-MOCK_MODULES = [
-    'librosa', 'numpy', 'tensorflow'
-]
-
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
