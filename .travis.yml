@@ -6,7 +6,7 @@ python:
 
 install:
     - python -m pip install --upgrade pip
-    - pip install --pre -e .
+    - pip install --pre -e . --ignore-installed llvmlite
     - pip install black
 
 script:
