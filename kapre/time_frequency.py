@@ -1,6 +1,9 @@
-"""Time-frequency layers.
+"""Time-frequency Keras layers.
 
-This module has implementations of some popular time-frequency operations such as STFT and inverse STFT.
+This module has low-level implementations of some popular time-frequency operations such as STFT and inverse STFT.
+
+Note that more high-level layers such as melspectrogram layer and convenient layers such as STFT magnitudes are
+supposed to be made by composing the layers in this module. Popular choices are provided in `kapre.composed`.
 
 """
 import warnings
@@ -8,7 +11,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from . import backend
 from tensorflow.keras import backend as K
-from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
+from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 
 def _shape_spectrum_output(spectrums, data_format):
@@ -21,7 +24,7 @@ def _shape_spectrum_output(spectrums, data_format):
     Returns:
         spectrums (`Tensor`): a transposed version of input `spectrums`
     """
-    if data_format == CH_FIRST_STR:
+    if data_format == _CH_FIRST_STR:
         pass  # probably it's already (batch, channel, time, freq)
     else:
         spectrums = tf.transpose(spectrums, perm=(0, 2, 3, 1))  # (batch, time, freq, channel)
@@ -38,20 +41,20 @@ class STFT(Layer):
     If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time, freq)
 
     Args:
-        n_fft (`int`): Number of FFTs. Defaults to `2048`
-        win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
-        hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        n_fft (int): Number of FFTs. Defaults to `2048`
+        win_length (int or None): Window length in sample. Defaults to `n_fft`.
+        hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
         window_fn (function or None): A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
-        pad_begin(`bool`): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
-        pad_end (`bool`): Whether to pad with zeros at the finishing end of the signal.
-        input_data_format (`str`): the audio data format of input waveform batch.
-            `'channels_last'` if it's `(batch, time, channels)`
-            `'channels_first'` if it's `(batch, channels, time)`
-            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        output_data_format (`str`): The data format of output STFT.
-            `'channels_last'` if you want `(batch, time, frequency, channels)`
+        pad_begin (bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_end (bool): Whether to pad with zeros at the finishing end of the signal.
+        input_data_format (str): the audio data format of input waveform batch.
+            `'channels_last'` if it's `(batch, time, channels)` and
+            `'channels_first'` if it's `(batch, channels, time)`.
+            Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
+        output_data_format (str): The data format of output STFT.
+            `'channels_last'` if you want `(batch, time, frequency, channels)` and
             `'channels_first'` if you want `(batch, channels, time, frequency)`
-            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+            Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
@@ -89,8 +92,8 @@ class STFT(Layer):
         self.pad_end = pad_end
 
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = K.image_data_format() if odt == CH_DEFAULT_STR else odt
-        self.input_data_format = K.image_data_format() if idt == CH_DEFAULT_STR else idt
+        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -110,7 +113,7 @@ class STFT(Layer):
         # (batch, time, ch) if input_data_format == 'channels_last'.
 
         # this is needed because tf.signal.stft lives in channels_first land.
-        if self.input_data_format == CH_LAST_STR:
+        if self.input_data_format == _CH_LAST_STR:
             waveforms = tf.transpose(
                 waveforms, perm=(0, 2, 1)
             )  # always (batch, ch, time) from here
@@ -130,7 +133,7 @@ class STFT(Layer):
             name='%s_tf.signal.stft' % self.name,
         )  # (batch, ch, time, freq)
 
-        if self.output_data_format == CH_LAST_STR:
+        if self.output_data_format == _CH_LAST_STR:
             stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
 
         return stfts
@@ -162,7 +165,7 @@ class InverseSTFT(Layer):
     size of the result by yourself and trim it if needed.
 
     Args:
-        n_fft (`int`): Number of FFTs. Defaults to `2048`
+        n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
         hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
         window_fn (function or `None`): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`, but
@@ -218,8 +221,8 @@ class InverseSTFT(Layer):
         self.window_fn = window_fn
 
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = K.image_data_format() if odt == CH_DEFAULT_STR else odt
-        self.input_data_format = K.image_data_format() if idt == CH_DEFAULT_STR else idt
+        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -236,7 +239,7 @@ class InverseSTFT(Layer):
         # (batch, time, freq, ch) if input_data_format == 'channels_last'.
 
         # this is needed because tf.signal.stft lives in channels_first land.
-        if self.input_data_format == CH_LAST_STR:
+        if self.input_data_format == _CH_LAST_STR:
             stfts = tf.transpose(stfts, perm=(0, 3, 1, 2))  # now always (b, ch, t, f)
 
         waveforms = tf.signal.inverse_stft(
@@ -248,7 +251,7 @@ class InverseSTFT(Layer):
             name='%s_tf.signal.istft' % self.name,
         )  # (batch, ch, time)
 
-        if self.output_data_format == CH_LAST_STR:
+        if self.output_data_format == _CH_LAST_STR:
             waveforms = tf.transpose(waveforms, perm=(0, 2, 1))  # (batch, time, ch)
 
         return waveforms
@@ -272,6 +275,13 @@ class Magnitude(Layer):
     """Compute the magnitude of the complex input, resulting in a float tensor"""
 
     def call(self, x):
+        """
+        Args:
+            x (complex `Tensor`): input complex tensor
+
+        Returns:
+            (float `Tensor`): magnitude of `x`
+        """
         return tf.abs(x)
 
 
@@ -279,6 +289,13 @@ class Phase(Layer):
     """Compute the phase of the complex input in radian, resulting in a float tensor"""
 
     def call(self, x):
+        """
+        Args:
+            x (complex `Tensor`): input complex tensor
+
+        Returns:
+            (float `Tensor`): phase of `x` (Radian)
+        """
         return tf.math.angle(x)
 
 
@@ -325,7 +342,6 @@ class ApplyFilterbank(Layer):
     """
     Apply a filterbank to the input spectrograms.
 
-
     Args:
         filterbank (`Tensor`): filterbank tensor in a shape of (n_freq, n_filterbanks)
         data_format (`str`): specifies the data format of batch input/output
@@ -346,12 +362,12 @@ class ApplyFilterbank(Layer):
         elif type == 'mel':
             self.filterbank = _mel_filterbank = backend.filterbank_mel(**filterbank_kwargs)
 
-        if data_format == CH_DEFAULT_STR:
+        if data_format == _CH_DEFAULT_STR:
             self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
 
-        if self.data_format == CH_FIRST_STR:
+        if self.data_format == _CH_FIRST_STR:
             self.freq_axis = 3
         else:
             self.freq_axis = 2
@@ -368,7 +384,7 @@ class ApplyFilterbank(Layer):
         # x: 2d batch input. (b, t, fr, ch) or (b, ch, t, fr)
         output = tf.tensordot(x, self.filterbank, axes=(self.freq_axis, 0))
         # ch_last -> (b, t, ch, new_fr). ch_first -> (b, ch, t, new_fr)
-        if self.data_format == CH_LAST_STR:
+        if self.data_format == _CH_LAST_STR:
             output = tf.transpose(output, (0, 1, 3, 2))
         return output
 
@@ -389,10 +405,9 @@ class Delta(Layer):
     See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
 
     Args:
-        win_length (`int`): Window length of the derivative estimation. Defaults to 5
+        win_length (int): Window length of the derivative estimation. Defaults to 5
         mode (`str`): Specifies pad mode of `tf.pad`. Case-insensitive. Defaults to 'symmetric'.
             Can be 'symmetric', 'reflect', 'constant', or whatever `tf.pad` supports.
-
     """
 
     def __init__(self, win_length=5, mode='symmetric', data_format='default', **kwargs):
@@ -410,7 +425,7 @@ class Delta(Layer):
                 + 'but it is {}'.format(mode)
             )
 
-        if data_format == CH_DEFAULT_STR:
+        if data_format == _CH_DEFAULT_STR:
             self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
@@ -428,7 +443,6 @@ class Delta(Layer):
 
         Returns:
             (`Tensor`): A tensor with the same shape as input data.
-
         """
         if self.data_format == 'channels_first':
             x = K.permute_dimensions(x, (0, 2, 3, 1))
@@ -439,8 +453,8 @@ class Delta(Layer):
         kernel = K.arange(-self.n, self.n + 1, 1, dtype=K.floatx())
         kernel = K.reshape(kernel, (-1, 1, 1, 1))  # time, freq, in_ch, out_ch
 
-        x = K.conv2d(x, kernel, data_format=CH_LAST_STR) / self.denom
-        if self.data_format == CH_FIRST_STR:
+        x = K.conv2d(x, kernel, data_format=_CH_LAST_STR) / self.denom
+        if self.data_format == _CH_FIRST_STR:
             x = K.permute_dimensions(x, (0, 3, 1, 2))
 
         return x

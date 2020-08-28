@@ -81,5 +81,6 @@ Visit `github.com/keunwoochoi/kapre <https://github.com/keunwoochoi/kapre>`_ and
 
    time_frequency
    composed
+   signal
    backend
 

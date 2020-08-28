@@ -1,9 +1,13 @@
-"""Signal layers"""
+"""Signal layers.
+
+This module includes Kapre layers that process audio signals (waveforms).
+
+"""
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from . import backend
 from tensorflow.keras import backend as K
-from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
+from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 
 class Frame(Layer):
@@ -11,6 +15,7 @@ class Frame(Layer):
         self, frame_length, hop_length, pad_end=False, pad_value=0, data_format='default', **kwargs
     ):
         """
+        Frame input audio signal. It is a wrapper of `tf.signal.frame`.
 
         Args:
             frame_length (int):
@@ -29,20 +34,18 @@ class Frame(Layer):
         self.pad_end = pad_end
         self.pad_value = pad_value
 
-        if data_format == CH_DEFAULT_STR:
+        if data_format == _CH_DEFAULT_STR:
             self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
 
-        if data_format == CH_FIRST_STR:
+        if data_format == _CH_FIRST_STR:
             self.time_axis = 2  # batch, ch, time
         else:
             self.time_axis = 1  # batch, time, ch
 
     def call(self, x):
         """
-        Frame the input signal using `tf.signal.frame`.
-
         Args:
             x (`Tensor`): batch audio signal in the specified 1D format in initiation.
 

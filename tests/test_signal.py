@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import librosa
 import kapre
-from kapre.backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
+from kapre.backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 from utils import get_audio
 
@@ -28,7 +28,7 @@ def test_frame_correctness(frame_length, data_format):
 
     frames_ref = librosa.util.frame(src_mono, frame_length, hop_length).T  # (time, frame_length)
 
-    if data_format in (CH_DEFAULT_STR, CH_LAST_STR):
+    if data_format in (_CH_DEFAULT_STR, _CH_LAST_STR):
         frames_ref = np.expand_dims(frames_ref, axis=2)
     else:
         frames_ref = np.expand_dims(frames_ref, axis=0)

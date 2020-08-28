@@ -3,9 +3,9 @@
 This module summarizes operations and functions that are used in Kapre layers.
 
 Attributes:
-    CH_FIRST_STR (str): 'channels_first', a pre-defined string.
-    CH_LAST_STR (str): 'channels_last', a pre-defined string.
-    CH_DEFAULT_STR (str): 'default', a pre-defined string.
+    _CH_FIRST_STR (str): 'channels_first', a pre-defined string.
+    _CH_LAST_STR (str): 'channels_last', a pre-defined string.
+    _CH_DEFAULT_STR (str): 'default', a pre-defined string.
 
 """
 from tensorflow.keras import backend as K
@@ -13,17 +13,17 @@ import tensorflow as tf
 import numpy as np
 import librosa
 
-CH_FIRST_STR = 'channels_first'
-CH_LAST_STR = 'channels_last'
-CH_DEFAULT_STR = 'default'
+_CH_FIRST_STR = 'channels_first'
+_CH_LAST_STR = 'channels_last'
+_CH_DEFAULT_STR = 'default'
 
 
 def validate_data_format_str(data_format):
     """A function that validates the data format string."""
-    if data_format not in (CH_DEFAULT_STR, CH_FIRST_STR, CH_LAST_STR):
+    if data_format not in (_CH_DEFAULT_STR, _CH_FIRST_STR, _CH_LAST_STR):
         raise ValueError(
             'data_format should be one of {}'.format(
-                str([CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR])
+                str([_CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR])
             )
             + ' but we received {}'.format(data_format)
         )
