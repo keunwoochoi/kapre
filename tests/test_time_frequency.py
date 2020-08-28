@@ -10,9 +10,8 @@ from kapre.composed import (
     get_stft_mag_phase,
     get_perfectly_reconstructing_stft_istft,
 )
-import tempfile
 
-from utils import get_audio
+from utils import get_audio, save_load_compare
 
 
 def _num_frame_valid(nsp_src, nsp_win, len_hop):
@@ -307,45 +306,25 @@ def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_for
 def test_save_load():
     """test saving/loading of models that has stft, melspectorgrma, and log frequency."""
 
-    def _test(layer, input_batch, allclose_func, atol=1e-4):
-        """test a model with `layer` with the given `input_batch`.
-        The model prediction result is compared using `allclose_func` which may depend on the
-        data type of the model output (e.g., float or complex).
-        """
-        model = tensorflow.keras.models.Sequential()
-        model.add(layer)
-
-        result_ref = model(input_batch)
-
-        os_temp_dir = tempfile.gettempdir()
-        model_temp_dir = tempfile.TemporaryDirectory(dir=os_temp_dir)
-        model.save(filepath=model_temp_dir.name)
-
-        new_model = tf.keras.models.load_model(model_temp_dir.name)
-        result_new = new_model(input_batch)
-        allclose_func(result_ref, result_new, atol)
-
-        model_temp_dir.cleanup()
-
-        return model
-
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test STFT save/load
-    _test(STFT(input_shape=input_shape, pad_begin=True), batch_src, allclose_complex_numbers)
+    save_load_compare(
+        STFT(input_shape=input_shape, pad_begin=True), batch_src, allclose_complex_numbers
+    )
     # test melspectrogram save/load
-    _test(
+    save_load_compare(
         get_melspectrogram_layer(input_shape=input_shape, return_decibel=True),
         batch_src,
         np.testing.assert_allclose,
     )
     # test log frequency spectrogram save/load
-    _test(
+    save_load_compare(
         get_log_frequency_spectrogram_layer(input_shape=input_shape, return_decibel=True),
         batch_src,
         np.testing.assert_allclose,
     )
     # test stft_mag_phase
-    _test(
+    save_load_compare(
         get_stft_mag_phase(input_shape=input_shape, return_decibel=True),
         batch_src,
         np.testing.assert_allclose,
