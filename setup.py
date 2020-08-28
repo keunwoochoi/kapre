@@ -16,7 +16,7 @@ setup(
     },
     include_package_data=True,
     install_requires=[
-        'numpy',
+        'numpy >= 1.19',
         'librosa >= 0.7.2',
         'tensorflow >= 2.0',
     ],
