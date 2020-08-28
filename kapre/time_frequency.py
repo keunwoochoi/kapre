@@ -5,7 +5,7 @@ This module has implementations of some popular time-frequency operations such a
 """
 import warnings
 import tensorflow as tf
-from tensorflow.keras.layers import Layer
+from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
 from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
@@ -452,3 +452,323 @@ class Delta(Layer):
         )
 
         return config
+
+
+
+class STFT(Layer):
+    """
+    A Shor-time Fourier transform layer.
+
+    It uses `tf.signal.stft` to compute complex STFT. Additionally, it reshapes the output to be a proper 2D batch.
+
+    If `output_data_format == 'channels_last'`, the output shape is (batch, time, freq, channel)
+    If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time, freq)
+
+    Args:
+        n_fft (`int`): Number of FFTs. Defaults to `2048`
+        win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
+        hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        window_fn (function or None): A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
+        pad_begin(`bool`): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_end (`bool`): Whether to pad with zeros at the finishing end of the signal.
+        input_data_format (`str`): the audio data format of input waveform batch.
+            `'channels_last'` if it's `(batch, time, channels)`
+            `'channels_first'` if it's `(batch, channels, time)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        output_data_format (`str`): The data format of output STFT.
+            `'channels_last'` if you want `(batch, time, frequency, channels)`
+            `'channels_first'` if you want `(batch, channels, time, frequency)`
+            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    """
+
+    def __init__(
+        self,
+        n_fft=2048,
+        win_length=None,
+        hop_length=None,
+        window_fn=None,
+        pad_begin=False,
+        pad_end=False,
+        input_data_format='default',
+        output_data_format='default',
+        **kwargs,
+    ):
+        super(STFT, self).__init__(**kwargs)
+
+        backend.validate_data_format_str(input_data_format)
+        backend.validate_data_format_str(output_data_format)
+
+        if win_length is None:
+            win_length = n_fft
+        if hop_length is None:
+            hop_length = win_length // 4
+        if window_fn is None:
+            window_fn = tf.signal.hann_window
+
+        self.n_fft = n_fft
+        self.win_length = win_length
+        self.hop_length = hop_length
+        self.window_fn = window_fn
+        self.pad_begin = pad_begin
+        self.pad_end = pad_end
+
+        idt, odt = input_data_format, output_data_format
+        self.output_data_format = K.image_data_format() if odt == CH_DEFAULT_STR else odt
+        self.input_data_format = K.image_data_format() if idt == CH_DEFAULT_STR else idt
+
+    def call(self, x):
+        """
+        Compute STFT of the input signal. If the `time` axis is not the last axis of `x`, it should be transposed first.
+
+        Args:
+            x (float `Tensor`): batch of audio signals, (batch, ch, time) or (batch, time, ch) based on input_data_format
+
+        Return:
+            (complex `Tensor`): A STFT representation of x in a 2D batch shape.
+            `complex64` if `x` is `float32`. `complex128` if `x` is `float64`.
+            Its shape is (batch, time, freq, ch) or (batch. ch, time, freq) depending on `output_data_format` and
+                `time` is the number of frames, which is `((len_src + (win_length - hop_length) / hop_length) // win_length )` if `pad_end` is `True`.
+                `freq` is the number of fft unique bins, which is `n_fft // 2 + 1` (the unique components of the FFT).
+        """
+        waveforms = x  # (batch, ch, time) if input_data_format == 'channels_first'.
+        # (batch, time, ch) if input_data_format == 'channels_last'.
+
+        # this is needed because tf.signal.stft lives in channels_first land.
+        if self.input_data_format == CH_LAST_STR:
+            waveforms = tf.transpose(
+                waveforms, perm=(0, 2, 1)
+            )  # always (batch, ch, time) from here
+
+        if self.pad_begin:
+            waveforms = tf.pad(
+                waveforms, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
+            )
+
+        stfts = tf.signal.stft(
+            signals=waveforms,
+            frame_length=self.win_length,
+            frame_step=self.hop_length,
+            fft_length=self.n_fft,
+            window_fn=self.window_fn,
+            pad_end=self.pad_end,
+            name='%s_tf.signal.stft' % self.name,
+        )  # (batch, ch, time, freq)
+
+        if self.output_data_format == CH_LAST_STR:
+            stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
+
+        return stfts
+
+    def get_config(self):
+        config = super(STFT, self).get_config()
+        config.update(
+            {
+                'n_fft': self.n_fft,
+                'win_length': self.win_length,
+                'hop_length': self.hop_length,
+                'window_fn': self.window_fn,
+                'pad_begin': self.pad_begin,
+                'pad_end': self.pad_end,
+                'input_data_format': self.input_data_format,
+                'output_data_format': self.output_data_format,
+            }
+        )
+        return config
+
+
+
+
+
+
+class FreqAwareConv(Conv2D):
+    """2D Frequency-Aware convolution layer (useful for Conv2D over spectograms).
+    This layer has the same interface as Conv2D with one extra parameter
+     indicating the frequency dimension
+    This layer creates a convolution kernel that is convolved
+    with the layer input to produce a tensor of
+    outputs. If `use_bias` is True,
+    a bias vector is created and added to the outputs. Finally, if
+    `activation` is not `None`, it is applied to the outputs as well.
+    When using this layer as the first layer in a model,
+    provide the keyword argument `input_shape`
+    (tuple of integers, does not include the sample axis),
+    e.g. `input_shape=(128, 128, 3)` for 128x128 RGB pictures
+    in `data_format="channels_last"`.
+
+    Examples:
+
+    >>> # The inputs are 128x300 spectogram images with `channels_last` and the batch
+    >>> # size is 4.
+    >>> input_shape = (4, 28, 28, 1)
+    >>> x = tf.random.normal(input_shape)
+    >>> y = kapre.time_frequency.FreqAwareConv(
+    ... 2, 3, activation='relu', input_shape=input_shape[1:])(x)
+    >>> print(y.shape)
+    (4, 26, 26, 2)
+    References:
+        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019). Receptive-Field-Regularized CNN 
+        Variants for Acoustic Scene Classification. In Proceedings of the Detection 
+        and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
+
+        Liu, R., Lehman, J., Molino, P., Such, F. P., Frank, E., Sergeev, A., & Yosinski, J.
+         (2018). An intriguing failing of convolutional neural networks and the coordconv
+          solution. In Advances in Neural Information Processing Systems (pp. 9605-9616).
+
+    Arguments:
+        filters: Integer, the dimensionality of the output space (i.e. the number of
+          output filters in the convolution).
+        kernel_size: An integer or tuple/list of 2 integers, specifying the height
+          and width of the 2D convolution window. Can be a single integer to specify
+          the same value for all spatial dimensions.
+        strides: An integer or tuple/list of 2 integers, specifying the strides of
+          the convolution along the height and width. Can be a single integer to
+          specify the same value for all spatial dimensions. Specifying any stride
+          value != 1 is incompatible with specifying any `dilation_rate` value != 1.
+        padding: one of `"valid"` or `"same"` (case-insensitive).
+          `"valid"` means no padding. `"same"` results in padding evenly to 
+          the left/right or up/down of the input such that output has the same 
+          height/width dimension as the input.
+        data_format: A string, one of `channels_last` (default) or `channels_first`.
+          The ordering of the dimensions in the inputs. `channels_last` corresponds
+          to inputs with shape `(batch_size, height, width, channels)` while
+          `channels_first` corresponds to inputs with shape `(batch_size, channels,
+          height, width)`. It defaults to the `image_data_format` value found in
+          your Keras config file at `~/.keras/keras.json`. If you never set it, then
+          it will be `channels_last`.
+        dilation_rate: an integer or tuple/list of 2 integers, specifying the
+          dilation rate to use for dilated convolution. Can be a single integer to
+          specify the same value for all spatial dimensions. Currently, specifying
+          any `dilation_rate` value != 1 is incompatible with specifying any stride
+          value != 1.
+        groups: A positive integer specifying the number of groups in which the
+          input is split along the channel axis. Each group is convolved separately
+          with `filters / groups` filters. The output is the concatenation of all
+          the `groups` results along the channel axis. Input channels and `filters`
+          must both be divisible by `groups`.
+        activation: Activation function to use. If you don't specify anything, no
+          activation is applied (see `keras.activations`).
+        use_bias: Boolean, whether the layer uses a bias vector.
+        kernel_initializer: Initializer for the `kernel` weights matrix (see
+          `keras.initializers`).
+        bias_initializer: Initializer for the bias vector (see
+          `keras.initializers`).
+        kernel_regularizer: Regularizer function applied to the `kernel` weights
+          matrix (see `keras.regularizers`).
+        bias_regularizer: Regularizer function applied to the bias vector (see
+          `keras.regularizers`).
+        activity_regularizer: Regularizer function applied to the output of the
+          layer (its "activation") (see `keras.regularizers`).
+        kernel_constraint: Constraint function applied to the kernel matrix (see
+          `keras.constraints`).
+        bias_constraint: Constraint function applied to the bias vector (see
+          `keras.constraints`).
+        frequency_first: if True the expected shape would be batch,frequency,time,channel
+           if false: the expected shape would be batch,time,frequency,channel
+
+    Input shape:
+        4+D tensor with shape: `batch_shape + (channels, rows, cols)` if
+          `data_format='channels_first'`
+        or 4+D tensor with shape: `batch_shape + (rows, cols, channels)` if
+          `data_format='channels_last'`.
+
+    Output shape:
+        4+D tensor with shape: `batch_shape + (filters, new_rows, new_cols)` if
+        `data_format='channels_first'` or 4+D tensor with shape: `batch_shape +
+          (new_rows, new_cols, filters)` if `data_format='channels_last'`.  `rows`
+          and `cols` values might have changed due to padding.
+
+    Returns:
+        A tensor of rank 4+ representing
+        `activation(conv2d(inputs, kernel) + bias)`.
+
+    Raises:
+        ValueError: if `padding` is `"causal"`.
+        ValueError: when both `strides > 1` and `dilation_rate > 1`.
+        """
+    def __init__(self,
+               filters,
+               kernel_size,
+               strides=(1, 1),
+               padding='valid',
+               data_format=None,
+               dilation_rate=(1, 1),
+               groups=1,
+               activation=None,
+               use_bias=True,
+               kernel_initializer='glorot_uniform',
+               bias_initializer='zeros',
+               kernel_regularizer=None,
+               bias_regularizer=None,
+               activity_regularizer=None,
+               kernel_constraint=None,
+               bias_constraint=None,
+               frequency_first=True,
+               **kwargs):
+        if groups > 1:
+            warnings.warn(
+                'Grouped Conv2D are not supported.'
+                'Only the first group will be frequency aware.'
+            )
+        self.frequency_first=frequency_first
+        super(FreqAwareConv, self).__init__(
+            filters=filters,
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            data_format=data_format,
+            dilation_rate=dilation_rate,
+            groups=groups,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=kernel_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            kernel_constraint=kernel_constraint,
+            bias_constraint=bias_constraint,
+            **kwargs)
+
+
+    def call(self, inputs):
+        inputs = self._add_freq_info_channel(inputs)
+        outputs = super(FreqAwareConv, self).call(inputs)
+        return outputs
+
+    def _add_freq_info_channel(self, inputs):
+        # adapted from https://github.com/tchaton/CoordConv-keras/blob/master/coord.py
+        shape = tf.shape(inputs)
+        batch_size_tensor, x_dim, y_dim, c = shape[0], shape[1], shape[2], shape[3]
+        if not self.frequency_first:
+             x_dim, y_dim =  y_dim, x_dim
+        xx_ones = tf.ones([batch_size_tensor, 1], dtype=tf.float32)
+        
+        xx_ones = tf.expand_dims(xx_ones, axis=-1)
+        
+        xx_range = tf.tile(tf.expand_dims(tf.range(x_dim), 0), [batch_size_tensor, 1])
+        xx_range = tf.cast(xx_range, tf.float32)
+        xx_range = tf.expand_dims(xx_range, axis=1)
+        
+        xx_channel = tf.matmul(xx_ones, xx_range)
+        xx_channel = tf.expand_dims(xx_channel, axis=-1)
+              
+        xx_channel = xx_channel / tf.cast(x_dim - 1, tf.float32)
+        
+        xx_channel = xx_channel*2 - 1
+        xx_channel = tf.transpose(xx_channel, (0, 2, 1, 3))
+        xx_channel= tf.repeat(xx_channel,y_dim,2)
+        if not self.frequency_first:
+            xx_channel = tf.transpose(xx_channel, (0, 2, 1, 3))
+        ret = tf.concat([inputs, xx_channel], axis=-1)
+        return ret
+
+    def _get_input_channel(self, input_shape):
+        channel_axis = self._get_channel_axis()
+        if input_shape.dims[channel_axis].value is None:
+          raise ValueError('The channel dimension of the inputs '
+                           'should be defined. Found `None`.')
+        original_input_channels=int(input_shape[channel_axis])
+        return original_input_channels+1

@@ -4,7 +4,7 @@ import tensorflow as tf
 import tensorflow.keras
 import tensorflow.keras.backend as K
 import librosa
-from kapre.time_frequency import STFT, Magnitude, Phase, Delta
+from kapre.time_frequency import STFT, Magnitude, Phase, Delta, FreqAwareConv
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
@@ -375,6 +375,16 @@ def test_save_load():
         batch_src,
         np.testing.assert_allclose,
     )
+
+
+@pytest.mark.parametrize('hop_ratio', [0.5, 0.25, 0.125])
+def test_frequency_aware_conv2d(hop_ratio):
+    input_shape = (4, 28, 28, 3)
+    x = tf.random.normal(input_shape)
+    y = FreqAwareConv(
+     10, 3, activation='relu', input_shape=input_shape[1:])(x)
+    print(y.shape)
+    np.testing.assert_equal(y.shape, (4, 26, 26, 10))
 
 
 if __name__ == '__main__':
