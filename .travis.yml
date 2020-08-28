@@ -5,6 +5,7 @@ python:
     - "3.7"
 
 install:
+    - python -m pip install --upgrade pip
     - pip install --pre -e .
     - pip install black
 
