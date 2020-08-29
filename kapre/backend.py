@@ -162,10 +162,11 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
 
 
 def mu_law_encoding(signal, quantization_channels):
-    """Encode signal based on mu-law companding.
+    """Encode signal based on mu-law companding. Also called mu-law compressing.
 
     This algorithm assumes the signal has been scaled to between -1 and 1 and returns a signal encoded
     with values from 0 to quantization_channels - 1.
+    See `Wikipedia <https://en.wikipedia.org/wiki/Μ-law_algorithm>`_ for more details.
 
     Args:
         signal (float `Tensor`): audio signal to encode
@@ -181,7 +182,9 @@ def mu_law_encoding(signal, quantization_channels):
 
 
 def mu_law_decoding(signal_mu, quantization_channels):
-    """Decode mu-law encoded signals
+    """Decode mu-law encoded signals based on mu-law companding. Also called mu-law expanding.
+
+    See `Wikipedia <https://en.wikipedia.org/wiki/Μ-law_algorithm>`_ for more details.
 
     Args:
         signal_mu (int `Tensor`): mu-encoded signal to decode

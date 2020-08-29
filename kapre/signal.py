@@ -171,4 +171,61 @@ class Energy(Layer):
 
 
 class MuLawEncoding(Layer):
-    pass
+    """
+    Mu-law encoding (compression) of audio signal, in [-1, 1], to [0, quantization_channels - 1].
+    See `Wikipedia <https://en.wikipedia.org/wiki/Μ-law_algorithm>`_ for more details.
+
+    Args:
+        quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+
+    Note:
+        Mu-law encoding was originally developed to increase signal-to-noise ratio of signal during transmission.
+        In deep learning, mu-law became popular by `WaveNet <https://arxiv.org/abs/1609.03499>`_ where
+        8-bit (256 channels) mu-law quantization was applied to the signal so that the generation of waveform amplitudes
+        became a single-label 256-class classification problem.
+
+    """
+
+    def __init__(
+        self, quantization_channels, **kwargs,
+    ):
+        super(MuLawEncoding, self).__init__(**kwargs)
+        self.quantization_channels = quantization_channels
+
+    def call(self, x):
+        """
+
+        Args:
+            x (float `Tensor`): audio signal to encode. Shape doesn't matter.
+
+        Returns:
+            (int `Tensor`): mu-law encoded x. Shape doesn't change.
+        """
+        return backend.mu_law_encoding(x, self.quantization_channels)
+
+
+class MuLawDecoding(Layer):
+    """
+    Mu-law decoding (expansion) of mu-law encoded audio signal to [-1, 1].
+    See `Wikipedia <https://en.wikipedia.org/wiki/Μ-law_algorithm>`_ for more details.
+
+    Args:
+        quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+    """
+
+    def __init__(
+        self, quantization_channels, **kwargs,
+    ):
+        super(MuLawDecoding, self).__init__(**kwargs)
+        self.quantization_channels = quantization_channels
+
+    def call(self, x):
+        """
+
+        Args:
+            x (int `Tensor`): audio signal to decode. Shape doesn't matter.
+
+        Returns:
+            (float `Tensor`): mu-law encoded x. Shape doesn't change.
+        """
+        return backend.mu_law_decoding(x, self.quantization_channels)

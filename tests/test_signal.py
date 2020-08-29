@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import tensorflow as tf
 import librosa
-from kapre.signal import Frame, Energy
+from kapre.signal import Frame, Energy, MuLawEncoding, MuLawDecoding
 from kapre.backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 from utils import get_audio, save_load_compare
@@ -88,6 +88,15 @@ def test_save_load():
     save_load_compare(
         Energy(frame_length=128, hop_length=64, input_shape=input_shape),
         batch_src,
+        np.testing.assert_allclose,
+    )
+    # test mu law layers
+    save_load_compare(
+        MuLawEncoding(quantization_channels=256), batch_src, np.testing.assert_allclose,
+    )
+    save_load_compare(
+        MuLawDecoding(quantization_channels=256),
+        np.arange(0, 256, 1).reshape((1, 256, 1)),
         np.testing.assert_allclose,
     )
 
