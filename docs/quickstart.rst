@@ -6,7 +6,7 @@ One-shot example
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.layers import Conv2D, BatchNormalization, ReLU, GlobalAveragePooling2D, Dense, Softmax
     from kapre.time_frequency import STFT, Magnitude, MagnitudeToDecibel
-    from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer
+    from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer, get_stft_magnitude_layer
 
     # 6 channels (!), maybe 1-sec audio signal, for an example.
     input_shape = (6, 44100)
@@ -18,7 +18,7 @@ One-shot example
                    input_data_format='channels_last', output_data_format='channels_last',
                    input_shape=input_shape))
     model.add(Magnitude())
-    model.add(MagnitudeToDecibel())
+    model.add(MagnitudeToDecibel())  # these three layers can be replaced with get_stft_magnitude_layer()
     # Alternatively, you may want to use a melspectrogram layer
     # melgram_layer = get_melspectrogram_layer()
     # or log-frequency layer

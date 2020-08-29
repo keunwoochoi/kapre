@@ -168,3 +168,7 @@ class Energy(Layer):
         )
 
         return config
+
+
+class MuLawEncoding(Layer):
+    

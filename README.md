@@ -58,7 +58,7 @@ model.add(STFT(n_fft=2048, win_length=2018, hop_length=1024,
                input_data_format='channels_last', output_data_format='channels_last',
                input_shape=input_shape))
 model.add(Magnitude())
-model.add(MagnitudeToDecibel())
+model.add(MagnitudeToDecibel())  # these three layers can be replaced with get_stft_magnitude_layer()
 # Alternatively, you may want to use a melspectrogram layer
 # melgram_layer = get_melspectrogram_layer()
 # or log-frequency layer
