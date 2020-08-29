@@ -103,11 +103,12 @@ Please cite this paper if you use Kapre for your work.
 ## News
 * ?? Aug 2020
   - 0.3.2
-    - `kapre.signal.Frame` is added
-    - `kapre.composed.get_stft_magnitude_layer()` is added 
+    - `kapre.signal.Frame` and `kapre.signal.Energy` are added
+    - `kapre.composed.get_stft_magnitude_layer()` is added
+    - `kapre.time_frequency.FrequencyAwareConv2D()` is added 
 * 21 Aug 2020
   - 0.3.1
-    - Inverse STFT
+    - `Inverse STFT` is added
 * 15 Aug 2020
   - 0.3.0
     - Breaking and simplifying changes with Tensorflow 2.0 and more tests. Some features are removed.
