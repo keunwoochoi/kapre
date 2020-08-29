@@ -1,6 +1,6 @@
 """Layers that are composed using time-frequency layers.
 
-This module provides more complicated and high-level layers using other Kapre layers and operations.
+This module provides complicated and high-level layers using other Kapre layers and operations.
 """
 from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
 from . import backend
@@ -29,14 +29,6 @@ def get_stft_magnitude_layer(
     """A function that retunrs a stft magnitude layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, and optionally `MagnitudeToDecibel`.
 
-    Note:
-        STFT magnitude represents a linear-frequency spectrum of audio signal and probably the most popular choice
-        when it comes to audio analysis in general. By using magnitude, this layer discard the phase information,
-        which is generally known to be irrelevant to human auditory perception.
-
-        Although by default it's turned off, we'd like to recommend to use `return_decibel` for many ML problems.
-        Decibel scaling is perceptually plausible and numerically stable. (related paper: https://arxiv.org/abs/1709.01922)
-
     Args:
         input_shape (None or tuple of integers): input shape of the model. Necessary only if this melspectrogram layer is
             is the first layer of your model (see `keras.model.Sequential()` for more details)
@@ -59,6 +51,25 @@ def get_stft_magnitude_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+
+    Note:
+        STFT magnitude represents a linear-frequency spectrum of audio signal and probably the most popular choice
+        when it comes to audio analysis in general. By using magnitude, this layer discard the phase information,
+        which is generally known to be irrelevant to human auditory perception.
+
+    Note:
+        For audio analysis (when the output is tag/label/etc), we'd like to recommend to use `return_decibel`.
+        Decibel scaling is perceptually plausible and numerically stable
+        (related paper: `A Comparison of Audio Signal Preprocessing Methods for Deep Neural Networks on Music Tagging <https://arxiv.org/abs/1709.01922>`_)
+        Many music, speech, and audio applications have used this log-magnitude STFT, e.g.,
+        `Learning to Pinpoint Singing Voice from Weakly Labeled Examples <https://wp.nyu.edu/ismir2016/wp-content/uploads/sites/2294/2016/07/315_Paper.pdf>`_,
+        `Joint Beat and Downbeat Tracking with Recurrent Neural Networks <https://archives.ismir.net/ismir2016/paper/000186.pdf>`_,
+        and many more.
+
+        For audio processing (when the output is audio signal), it might be better to use STFT as it is (`return_decibel=False`).
+        Example: `Singing voice separation with deep U-Net convolutional networks <https://openaccess.city.ac.uk/id/eprint/19289/>`_.
+        This is because decibel scaling is has some clipping at the noise floor which is irreversible.
+        One may use `log(1+X)` instead of `log(X)` to avoid the clipping but it is not included in Kapre at the moment.
 
     """
     backend.validate_data_format_str(input_data_format)
@@ -116,11 +127,6 @@ def get_melspectrogram_layer(
     """A function that retunrs a melspectrogram layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_mel_filterbank)`, and optionally `MagnitudeToDecibel`.
 
-    Note:
-        Melspectrogram is originally developed for speech applications and has been widely used for audio signal analysis
-        including music information retrieval. As its mel-axis is a non-linear compression of (linear) frequency axis,
-        a melspectrogram can be an efficient choice as an input of a machine learning model.
-
     Args:
         input_shape (None or tuple of integers): input shape of the model. Necessary only if this melspectrogram layer is
             is the first layer of your model (see `keras.model.Sequential()` for more details)
@@ -149,6 +155,20 @@ def get_melspectrogram_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+
+    Note:
+        Melspectrogram is originally developed for speech applications and has been *very* widely used for audio signal
+        analysis including music information retrieval. As its mel-axis is a non-linear compression of (linear)
+        frequency axis, a melspectrogram can be an efficient choice as an input of a machine learning model.
+        We recommend to set `return_decibel=True`.
+
+        **References**:
+        `Automatic tagging using deep convolutional neural networks <https://arxiv.org/abs/1606.00298>`_,
+        `Deep content-based music recommendation <http://papers.nips.cc/paper/5004-deep-content-based-music-recommen>`_,
+        `CNN Architectures for Large-Scale Audio Classification <https://arxiv.org/abs/1609.09430>`_,
+        `Multi-label vs. combined single-label sound event detection with deep neural networks <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.711.74&rep=rep1&type=pdf>`_,
+        `Deep Convolutional Neural Networks and Data Augmentation for Environmental Sound Classification <https://arxiv.org/pdf/1608.04363.pdf>`_,
+        and way too many speech applications.
 
     """
     backend.validate_data_format_str(input_data_format)
@@ -316,17 +336,6 @@ def get_perfectly_reconstructing_stft_istft(
 ):
     """A function that returns two layers, stft and inverse stft, which would be perfectly reconstructing pair.
 
-    Note:
-        Without a careful setting, `tf.signal.stft` and `tf.signal.istft` is not perfectly reconstructing.
-
-    Note:
-        Imagine `x` --> `STFT` --> `InverseSTFT` --> `y`.
-        The length of `x` will be longer than `y` due to the padding at the beginning and the end.
-        To compare them, you would need to trim `y` along time axis.
-
-        The formula: if `trim_begin = win_length - hop_length` and `len_signal` is length of `x`,
-        `y_trimmed = y[trim_begin: trim_begin + len_signal, :]` (in the case of `channels_last`).
-
     Args:
         stft_input_shape (tuple): Input shape of single waveform.
             Must specify this if the returned stft layer is going to be used as first layer of a Sequential model.
@@ -344,6 +353,17 @@ def get_perfectly_reconstructing_stft_istft(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+
+    Note:
+        Without a careful setting, `tf.signal.stft` and `tf.signal.istft` is not perfectly reconstructing.
+
+    Note:
+        Imagine `x` --> `STFT` --> `InverseSTFT` --> `y`.
+        The length of `x` will be longer than `y` due to the padding at the beginning and the end.
+        To compare them, you would need to trim `y` along time axis.
+
+        The formula: if `trim_begin = win_length - hop_length` and `len_signal` is length of `x`,
+        `y_trimmed = y[trim_begin: trim_begin + len_signal, :]` (in the case of `channels_last`).
     """
     backend.validate_data_format_str(waveform_data_format)
     backend.validate_data_format_str(stft_data_format)

@@ -106,10 +106,6 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
     """A function that returns a approximation of constant-Q filter banks for a fixed-window STFT.
     Each filter is a log-normal window centered at the corresponding frequency.
 
-    Note:
-        The code is originally from `logfrequency` in librosa 0.4 (deprecated) and copy-and-pasted.
-        `tuning` parameter was removed and we use `n_freq` instead of `n_fft`.
-
     Args:
         sample_rate (`int`): audio sampling rate
         n_freq (`int`): number of the input frequency bins. E.g., `n_fft / 2 + 1`
@@ -120,6 +116,10 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
 
     Returns:
         (`Tensor`): log-frequency filterbanks. Shape=`(n_freq, n_bins)`
+
+    Note:
+        The code is originally from `logfrequency` in librosa 0.4 (deprecated) and copy-and-pasted.
+        `tuning` parameter was removed and we use `n_freq` instead of `n_fft`.
     """
 
     if f_min is None:

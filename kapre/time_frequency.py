@@ -1,9 +1,21 @@
 """Time-frequency Keras layers.
 
 This module has low-level implementations of some popular time-frequency operations such as STFT and inverse STFT.
+We're using these layers to compose layers in `kapre.composed` where more high-level and popular layers
+such as melspectrogram layer are provided. You should go check it out!
 
-Note that more high-level layers such as melspectrogram layer and convenient layers such as STFT magnitudes are
-supposed to be made by composing the layers in this module. Popular choices are provided in `kapre.composed`.
+Note:
+    **Why time-frequency representation?**
+
+    Every representation (STFT, melspectrogram, etc) has something in common - they're all 2D representations
+    (time, frequency-ish) of audio signals. They're helpful because they decompose an audio signal, which is a simultaneous
+    mixture of a lot of frequency components into different frequency bins. They have spatial property; the frequency
+    bins are *sorted*, so frequency bins nearby has represent only slightly different frequency components. The
+    frequency decomposition is also what's happening during human auditory perception through cochlea.
+
+    **Which representation to use as input?**
+
+    For a quick summary, check out my tutorial paper, `A Tutorial on Deep Learning for Music Information Retrieval <https://arxiv.org/abs/1709.04396>`_.
 
 """
 import warnings
