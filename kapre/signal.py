@@ -171,4 +171,4 @@ class Energy(Layer):
 
 
 class MuLawEncoding(Layer):
-    
+    pass

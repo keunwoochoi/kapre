@@ -3,7 +3,7 @@ import tensorflow as tf
 import tempfile
 from tensorflow.keras import backend as K
 
-SRC = np.load('tests/speech_test_file.npz')['audio_data']
+SRC = np.load('tests/speech_test_file.npz')['audio_data'].astype(np.float32)
 
 
 def get_audio(data_format, n_ch, length=8000):

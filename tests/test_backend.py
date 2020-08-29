@@ -1,9 +1,12 @@
 import pytest
 import numpy as np
 import librosa
+import tensorflow as tf
 from tensorflow.keras import backend as K
 from kapre import backend as KPB
 from kapre.backend import magnitude_to_decibel, validate_data_format_str
+
+from utils import SRC
 
 TOL = 1e-5
 
@@ -85,6 +88,29 @@ def test_filterbank_log(sample_rate, n_freq, n_bins, bins_per_octave, f_min, spr
 
     assert log_fb.dtype == K.floatx()
     assert log_fb.shape == (n_freq, n_bins)
+
+
+@pytest.mark.parametrize('quantization_channels', [100, 256])
+def test_mu_law_correctness(quantization_channels):
+    # test reconstruction
+    mu_src = np.arange(0, quantization_channels).astype(np.int)
+    src = KPB.mu_law_decoding(mu_src, quantization_channels=quantization_channels)
+    mu_src_recon = KPB.mu_law_encoding(src, quantization_channels=quantization_channels)
+
+    np.testing.assert_equal(mu_src, mu_src_recon)
+
+    # test against librosa
+    resol = 1 / (2 ** 16)
+    src = np.arange(-1.0, 1.0, resol).astype(np.float32)
+    mu = quantization_channels - 1
+    mu_src_ref = librosa.mu_compress(src, mu=quantization_channels - 1, quantize=False)
+    mu_src_ref = (mu_src_ref + 1.0) / 2.0 * mu + 0.5
+    mu_src_ref = mu_src_ref.astype(np.int)
+
+    mu_src_kapre = KPB.mu_law_encoding(
+        tf.convert_to_tensor(src), quantization_channels=quantization_channels
+    )
+    np.testing.assert_equal(mu_src_ref, mu_src_kapre.numpy())
 
 
 @pytest.mark.xfail()

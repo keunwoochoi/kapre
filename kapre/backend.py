@@ -159,3 +159,42 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
     basis = basis.astype(K.floatx())
 
     return tf.convert_to_tensor(basis.T)
+
+
+def mu_law_encoding(signal, quantization_channels):
+    """Encode signal based on mu-law companding.
+
+    This algorithm assumes the signal has been scaled to between -1 and 1 and returns a signal encoded
+    with values from 0 to quantization_channels - 1.
+
+    Args:
+        signal (float `Tensor`): audio signal to encode
+        quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+
+    Returns:
+        signal_mu (int `Tensor`): mu-encoded signal
+    """
+    mu = quantization_channels - 1.0
+    signal_mu = tf.math.sign(signal) * tf.math.log1p(mu * tf.math.abs(signal)) / tf.math.log1p(mu)
+    signal_mu = tf.cast(((signal_mu + 1) / 2.0 * mu + 0.5), tf.int32)
+    return signal_mu
+
+
+def mu_law_decoding(signal_mu, quantization_channels):
+    """Decode mu-law encoded signals
+
+    Args:
+        signal_mu (int `Tensor`): mu-encoded signal to decode
+        quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+
+    Returns:
+        signal (float `Tensor`): decoded audio signal
+    """
+    mu = quantization_channels - 1.0
+    signal_mu = K.cast_to_floatx(signal_mu)
+
+    signal = (signal_mu / mu) * 2 - 1.0
+    signal = (
+        tf.math.sign(signal) * (tf.math.exp(tf.math.abs(signal) * tf.math.log1p(mu)) - 1.0) / mu
+    )
+    return signal
