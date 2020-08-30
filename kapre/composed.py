@@ -1,6 +1,4 @@
-"""Layers that are composed using time-frequency layers.
-
-This module provides complicated and high-level layers using other Kapre layers and operations.
+"""Functions that returns high-level layers that are composed using other Kapre layers.
 """
 from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
 from . import backend

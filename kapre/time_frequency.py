@@ -26,6 +26,17 @@ from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 
+__all__ = [
+    'STFT',
+    'InverseSTFT',
+    'Magnitude',
+    'Phase',
+    'MagnitudeToDecibel',
+    'ApplyFilterbank',
+    'Delta',
+]
+
+
 def _shape_spectrum_output(spectrums, data_format):
     """Shape batch spectrograms into the right format.
 

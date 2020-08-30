@@ -10,6 +10,9 @@ from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 
+__all__ = ['Frame', 'Energy', 'MuLawEncoding', 'MuLawDecoding', 'LogmelToMFCC']
+
+
 class Frame(Layer):
     """
     Frame input audio signal. It is a wrapper of `tf.signal.frame`.
@@ -21,6 +24,12 @@ class Frame(Layer):
         pad_value (int or float): value to use in the padding
         data_format (str): 'channels_first', 'channels_last', or `default`
             **kwargs:
+
+    Examples:
+        input_shape = (22050, 2)  # stereo signal
+        model = Sequential()
+        model.add(kapre.Frame(frame_length=1024, hop_length=512, input_shape=input_shape))
+
     """
 
     def __init__(
@@ -287,7 +296,8 @@ class LogmelToMFCC(Layer):
             `(b, ch, time, mel)` if `channels_first`.
 
         Returns:
-
+            (float `Tensor`): MFCCs. `(b, time, n_mfccs, ch)` if `channels_last`.
+            `(b, ch, time, n_mfccs)` if `channels_first`.
         """
         if self.permutation is not None:  # reshape so that last channel == mel
             log_melgrams = K.permute_dimensions(log_melgrams, pattern=self.permutation)

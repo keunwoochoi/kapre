@@ -83,13 +83,17 @@ def test_mfcc_correctness(data_format, n_mfccs):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     melgram = librosa.power_to_db(librosa.feature.melspectrogram(src_mono))  # mel, time
 
-    mfcc_ref = librosa.feature.mfcc(S=melgram, n_mfcc=n_mfccs, norm='ortho')  # 'ortho' -> 5% mismatch but..
+    mfcc_ref = librosa.feature.mfcc(
+        S=melgram, n_mfcc=n_mfccs, norm='ortho'
+    )  # 'ortho' -> 5% mismatch but..
     expand_dim = (0, 3) if data_format in (_CH_LAST_STR, _CH_DEFAULT_STR) else (0, 1)
 
     melgram_batch = np.expand_dims(melgram.T, expand_dim)
 
     model = tf.keras.Sequential()
-    model.add(LogmelToMFCC(n_mfccs=n_mfccs, data_format=data_format, input_shape=melgram_batch.shape[1:]))
+    model.add(
+        LogmelToMFCC(n_mfccs=n_mfccs, data_format=data_format, input_shape=melgram_batch.shape[1:])
+    )
 
     mfcc_kapre = model.predict(melgram_batch)
     ch_axis = 1 if data_format == _CH_FIRST_STR else 3

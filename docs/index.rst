@@ -80,7 +80,7 @@ Visit `github.com/keunwoochoi/kapre <https://github.com/keunwoochoi/kapre>`_ and
    :caption: API
 
    time_frequency
-   composed
    signal
+   composed
    backend
 
