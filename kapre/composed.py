@@ -400,6 +400,7 @@ def get_perfectly_reconstructing_stft_istft(
 
     Example:
         ::
+
             stft_input_shape = (2048, 2)  # stereo and channels_last
             stft_layer, istft_layer = get_perfectly_reconstructing_stft_istft(
                 stft_input_shape=stft_input_shape
@@ -511,6 +512,7 @@ def get_stft_mag_phase(
 
     Example:
         ::
+
             input_shape = (2048, 3)  # stereo and channels_last
             model = Sequential()
             model.add(
