@@ -25,10 +25,13 @@ class Frame(Layer):
         data_format (str): 'channels_first', 'channels_last', or `default`
             **kwargs:
 
-    Examples:
-        input_shape = (22050, 2)  # stereo signal
-        model = Sequential()
-        model.add(kapre.Frame(frame_length=1024, hop_length=512, input_shape=input_shape))
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.Frame(frame_length=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, n_frame=3, frame_length=1024, ch=1)
 
     """
 
@@ -101,6 +104,15 @@ class Energy(Layer):
         pad_value (int or float): value to use in the padding
         data_format (str): 'channels_first', 'channels_last', or `default`
         **kwargs:
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.Energy(frame_length=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, n_frame=3, ch=1)
+
     """
 
     def __init__(
@@ -193,6 +205,15 @@ class MuLawEncoding(Layer):
         8-bit (256 channels) mu-law quantization was applied to the signal so that the generation of waveform amplitudes
         became a single-label 256-class classification problem.
 
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal (float in [-1, 1])
+            model = Sequential()
+            model.add(kapre.MuLawEncoding(quantization_channels=256, input_shape=input_shape))
+            # now the shape is (batch, time=2048, ch=1) with int in [0, quantization_channels - 1]
+
+
     """
 
     def __init__(
@@ -228,6 +249,15 @@ class MuLawDecoding(Layer):
 
     Args:
         quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal (int in [0, quantization_channels - 1])
+            model = Sequential()
+            model.add(kapre.MuLawDecoding(quantization_channels=256, input_shape=input_shape))
+            # now the shape is (batch, time=2048, ch=1) with float dtype in [-1, 1]
+
     """
 
     def __init__(
@@ -263,13 +293,20 @@ class LogmelToMFCC(Layer):
     It wraps `tf.signal.mfccs_from_log_mel_spectrogram()`, which performs DCT-II.
 
     Note:
-        In librosa, the DCT-II scales by sqrt(1/n) where n is the bin index of MFCC as it uses
+        In librosa, the DCT-II scales by `sqrt(1/n)` where n is the bin index of MFCC as it uses
         scipy and that's true orthogonal DCT.
-        In Tensorflow, because it follows HTK, it scales by (0.5 * sqrt(2/n)). This results in
-        `* sqrt(2)` difference in the first MFCC bins.
+        In Tensorflow, because it follows HTK, it scales by `(0.5 * sqrt(2/n))`. This results in
+        `sqrt(2)` scale difference in the first MFCC bins.
 
         This itself would not lead to any critical result, but be careful so that this difference might play any role!
 
+    Example:
+        ::
+
+            input_shape = (40, 128, 1)  # mono melspectrogram with 40 frames and n_mels=128
+            model = Sequential()
+            model.add(kapre.LogmelToMFCC(n_mfccs=20, input_shape=input_shape))
+            # now the shape is (batch, time=40, n_mfccs=20, ch=1)
 
     """
 

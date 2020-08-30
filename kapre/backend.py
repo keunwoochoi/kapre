@@ -50,6 +50,18 @@ def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
     Notes:
         In many deep learning based application, the input spectrogram magnitudes (e.g., abs(STFT)) are decibel-scaled
         (=logarithmically mapped) for a better performance.
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.Frame(frame_length=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, n_frame=3, frame_length=1024, ch=1)
+
+
+
+
     """
 
     def _log10(x):

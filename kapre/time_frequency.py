@@ -46,6 +46,7 @@ def _shape_spectrum_output(spectrums, data_format):
 
     Returns:
         spectrums (`Tensor`): a transposed version of input `spectrums`
+
     """
     if data_format == _CH_FIRST_STR:
         pass  # probably it's already (batch, channel, time, freq)
@@ -80,6 +81,15 @@ class STFT(Layer):
             Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1)
+            # and the dtype is complex
 
     """
 
@@ -206,6 +216,15 @@ class InverseSTFT(Layer):
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
+    Example:
+        ::
+
+            input_shape = (3, 513, 1)  # 3 frames, 513 frequency bins, 1 channel
+            # and input dtype is complex
+            model = Sequential()
+            model.add(kapre.InverseSTFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, time=2048, ch=1)
+
     """
 
     def __init__(
@@ -295,7 +314,18 @@ class InverseSTFT(Layer):
 
 
 class Magnitude(Layer):
-    """Compute the magnitude of the complex input, resulting in a float tensor"""
+    """Compute the magnitude of the complex input, resulting in a float tensor
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            mode.add(Magnitude())
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
+
+    """
 
     def call(self, x):
         """
@@ -309,7 +339,18 @@ class Magnitude(Layer):
 
 
 class Phase(Layer):
-    """Compute the phase of the complex input in radian, resulting in a float tensor"""
+    """Compute the phase of the complex input in radian, resulting in a float tensor
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            mode.add(Phase())
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
+
+    """
 
     def call(self, x):
         """
@@ -332,6 +373,16 @@ class MagnitudeToDecibel(Layer):
         amin (`float`): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin.
         dynamic_range (`float`): range of the resulting value. E.g., if the maximum magnitude is 30 dB,
             the noise floor of the output would become (30 - dynamic_range) dB
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            mode.add(Magnitude())
+            mode.add(MagnitudeToDecibel())
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
 
@@ -369,6 +420,28 @@ class ApplyFilterbank(Layer):
         filterbank (`Tensor`): filterbank tensor in a shape of (n_freq, n_filterbanks)
         data_format (`str`): specifies the data format of batch input/output
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            n_fft = 1024
+            n_hop = n_fft // 2
+            kwargs = {
+                'sample_rate': 22050,
+                'n_freq': n_fft // 2 + 1,
+                'n_mels': 128,
+                'f_min': 0.0,
+                'f_max': 8000,
+            }
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=n_fft, hop_length=n_hop, input_shape=input_shape))
+            mode.add(Magnitude())
+            # (batch, n_frame=3, n_freq=n_fft // 2 + 1, ch=1) and dtype is float
+            mode.add(ApplyFilterbank(type='mel', filterbank_kwargs=kwargs))
+            # (batch, n_frame=3, n_mels=128, ch=1)
+
+
     """
 
     def __init__(
@@ -431,6 +504,16 @@ class Delta(Layer):
         win_length (int): Window length of the derivative estimation. Defaults to 5
         mode (`str`): Specifies pad mode of `tf.pad`. Case-insensitive. Defaults to 'symmetric'.
             Can be 'symmetric', 'reflect', 'constant', or whatever `tf.pad` supports.
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            mode.add(Delta())
+            # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
+
     """
 
     def __init__(self, win_length=5, mode='symmetric', data_format='default', **kwargs):
