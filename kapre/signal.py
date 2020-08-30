@@ -62,9 +62,10 @@ class Frame(Layer):
         Args:
             x (`Tensor`): batch audio signal in the specified 1D format in initiation.
 
-        Returns: (`Tensor`): A framed tensor. The shape is
-            (batch, time (frames), frame_length, channel) if `channels_last`, and
-            (batch, channel, time (frames), frame_length) if `channels_first`.
+        Returns:
+            (`Tensor`): A framed tensor. The shape is
+                (batch, time (frames), frame_length, channel) if `channels_last`, and
+                (batch, channel, time (frames), frame_length) if `channels_first`.
         """
         return tf.signal.frame(
             x,
@@ -152,9 +153,10 @@ class Energy(Layer):
         Args:
             x (`Tensor`): batch audio signal in the specified 1D format in initiation.
 
-        Returns: (`Tensor`): A framed tensor. The shape is
-            (batch, time (frames), channel) if `channels_last`, and
-            (batch, channel, time (frames)) if `channels_first`.
+        Returns:
+            (`Tensor`): A framed tensor. The shape is
+                (batch, time (frames), channel) if `channels_last`, and
+                (batch, channel, time (frames)) if `channels_first`.
         """
         frames = tf.signal.frame(
             x,
@@ -298,7 +300,8 @@ class LogmelToMFCC(Layer):
         In Tensorflow, because it follows HTK, it scales by `(0.5 * sqrt(2/n))`. This results in
         `sqrt(2)` scale difference in the first MFCC bins.
 
-        This itself would not lead to any critical result, but be careful so that this difference might play any role!
+        As long as all of your data in training / inference / deployment is consistent (i.e., do not
+        mix librosa and kapre MFCC), it'll be fine!
 
     Example:
         ::
