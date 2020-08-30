@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import tensorflow as tf
 import librosa
-from kapre.signal import Frame, Energy, MuLawEncoding, MuLawDecoding
+from kapre.signal import Frame, Energy, MuLawEncoding, MuLawDecoding, LogmelToMFCC
 from kapre.backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 from utils import get_audio, save_load_compare
@@ -76,7 +76,34 @@ def test_energy_correctness(data_format):
     np.testing.assert_allclose(energies_kapre, energies_ref, atol=1e-5)
 
 
-def test_save_load():
+# @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('data_format', ['default'])
+@pytest.mark.parametrize('n_mfccs', [1, 20, 40])
+def test_mfcc_correctness(data_format, n_mfccs):
+    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+    melgram = librosa.power_to_db(librosa.feature.melspectrogram(src_mono))  # mel, time
+
+    mfcc_ref = librosa.feature.mfcc(S=melgram, n_mfcc=n_mfccs, norm='ortho')  # 'ortho' -> 5% mismatch but..
+    expand_dim = (0, 3) if data_format in (_CH_LAST_STR, _CH_DEFAULT_STR) else (0, 1)
+
+    melgram_batch = np.expand_dims(melgram.T, expand_dim)
+
+    model = tf.keras.Sequential()
+    model.add(LogmelToMFCC(n_mfccs=n_mfccs, data_format=data_format, input_shape=melgram_batch.shape[1:]))
+
+    mfcc_kapre = model.predict(melgram_batch)
+    ch_axis = 1 if data_format == _CH_FIRST_STR else 3
+    mfcc_kapre = np.squeeze(mfcc_kapre, axis=ch_axis)
+    mfcc_kapre = mfcc_kapre[0].T
+
+    if n_mfccs > 1:
+        np.testing.assert_allclose(mfcc_ref[1:], mfcc_kapre[1:], atol=1e-4)
+
+    np.testing.assert_allclose(mfcc_ref[0], mfcc_kapre[0] / np.sqrt(2.0), atol=1e-4)
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_save_load(data_format):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test Frame save/load
     save_load_compare(
@@ -92,11 +119,18 @@ def test_save_load():
     )
     # test mu law layers
     save_load_compare(
-        MuLawEncoding(quantization_channels=256), batch_src, np.testing.assert_allclose,
+        MuLawEncoding(quantization_channels=128), batch_src, np.testing.assert_allclose,
     )
     save_load_compare(
-        MuLawDecoding(quantization_channels=256),
+        MuLawDecoding(quantization_channels=128),
         np.arange(0, 256, 1).reshape((1, 256, 1)),
+        np.testing.assert_allclose,
+    )
+    # test mfcc layer
+    expand_dim = (0, 3) if data_format in (_CH_LAST_STR, _CH_DEFAULT_STR) else (0, 1)
+    save_load_compare(
+        LogmelToMFCC(n_mfccs=10),
+        np.expand_dims(librosa.power_to_db(librosa.feature.melspectrogram(src_mono).T), expand_dim),
         np.testing.assert_allclose,
     )
 

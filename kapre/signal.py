@@ -1,6 +1,6 @@
 """Signal layers.
 
-This module includes Kapre layers that process audio signals (waveforms).
+This module includes Kapre layers that deal with audio signals (waveforms).
 
 """
 import tensorflow as tf
@@ -203,6 +203,14 @@ class MuLawEncoding(Layer):
         """
         return backend.mu_law_encoding(x, self.quantization_channels)
 
+    def get_config(self):
+        config = super(MuLawEncoding, self).get_config()
+        config.update(
+            {'quantization_channels': self.quantization_channels,}
+        )
+
+        return config
+
 
 class MuLawDecoding(Layer):
     """
@@ -229,3 +237,71 @@ class MuLawDecoding(Layer):
             (float `Tensor`): mu-law encoded x. Shape doesn't change.
         """
         return backend.mu_law_decoding(x, self.quantization_channels)
+
+    def get_config(self):
+        config = super(MuLawDecoding, self).get_config()
+        config.update(
+            {'quantization_channels': self.quantization_channels,}
+        )
+
+        return config
+
+
+class LogmelToMFCC(Layer):
+    """
+    Compute MFCC from log-melspectrogram.
+
+    It wraps `tf.signal.mfccs_from_log_mel_spectrogram()`, which performs DCT-II.
+
+    Note:
+        In librosa, the DCT-II scales by sqrt(1/n) where n is the bin index of MFCC as it uses
+        scipy and that's true orthogonal DCT.
+        In Tensorflow, because it follows HTK, it scales by (0.5 * sqrt(2/n)). This results in
+        `* sqrt(2)` difference in the first MFCC bins.
+
+        This itself would not lead to any critical result, but be careful so that this difference might play any role!
+
+
+    """
+
+    def __init__(self, n_mfccs=20, data_format='default', **kwargs):
+        super(LogmelToMFCC, self).__init__(**kwargs)
+        backend.validate_data_format_str(data_format)
+
+        self.n_mfccs = n_mfccs
+        if data_format == _CH_DEFAULT_STR:
+            self.data_format = K.image_data_format()
+        else:
+            self.data_format = data_format
+
+        if self.data_format == _CH_LAST_STR:
+            self.permutation = (0, 1, 3, 2)
+        else:
+            self.permutation = None
+
+    def call(self, log_melgrams):
+        """
+
+        Args:
+            log_melgrams (float `Tensor`): a batch of log_melgrams. `(b, time, mel, ch)` if `channels_last`.
+            `(b, ch, time, mel)` if `channels_first`.
+
+        Returns:
+
+        """
+        if self.permutation is not None:  # reshape so that last channel == mel
+            log_melgrams = K.permute_dimensions(log_melgrams, pattern=self.permutation)
+
+        mfccs = tf.signal.mfccs_from_log_mel_spectrograms(log_melgrams)
+        mfccs = mfccs[..., : self.n_mfccs]
+
+        if self.permutation is not None:
+            mfccs = K.permute_dimensions(mfccs, pattern=self.permutation)
+
+        return mfccs
+
+    def get_config(self):
+        config = super(LogmelToMFCC, self).get_config()
+        config.update({'n_mfccs': self.n_mfccs, 'data_format': self.data_format})
+
+        return config

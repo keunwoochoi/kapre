@@ -58,7 +58,7 @@ def get_stft_magnitude_layer(
         which is generally known to be irrelevant to human auditory perception.
 
     Note:
-        For audio analysis (when the output is tag/label/etc), we'd like to recommend to use `return_decibel`.
+        For audio analysis (when the output is tag/label/etc), we'd like to recommend to set `return_decibel=True`.
         Decibel scaling is perceptually plausible and numerically stable
         (related paper: `A Comparison of Audio Signal Preprocessing Methods for Deep Neural Networks on Music Tagging <https://arxiv.org/abs/1709.01922>`_)
         Many music, speech, and audio applications have used this log-magnitude STFT, e.g.,
@@ -238,10 +238,6 @@ def get_log_frequency_spectrogram_layer(
     """A function that retunrs a log-frequency STFT layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_log_filterbank)`, and optionally `MagnitudeToDecibel`.
 
-    Note:
-        Log-frequency spectrogram is similar to melspectrogram but its frequency axis is perfectly linear to octave scale.
-        For some pitch-related applications, a log-frequency spectrogram can be a good choice.
-
     Args:
         input_shape (None or tuple of integers): input shape of the model if this melspectrogram layer is
             is the first layer of your model (see `keras.model.Sequential()` for more details)
@@ -269,6 +265,10 @@ def get_log_frequency_spectrogram_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+
+    Note:
+        Log-frequency spectrogram is similar to melspectrogram but its frequency axis is perfectly linear to octave scale.
+        For some pitch-related applications, a log-frequency spectrogram can be a good choice.
 
     """
     backend.validate_data_format_str(input_data_format)

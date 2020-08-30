@@ -104,6 +104,7 @@ Please cite this paper if you use Kapre for your work.
 * ?? Aug 2020
   - 0.3.2
     - `kapre.signal.Frame` and `kapre.signal.Energy` are added
+    - `kapre.signal.LogmelToMFCC` is added
     - `kapre.composed.get_stft_magnitude_layer()` is added
     - `kapre.time_frequency.FrequencyAwareConv2D()` is added 
 * 21 Aug 2020
