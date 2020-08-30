@@ -1,6 +1,21 @@
-"""Time-frequency layers.
+"""Time-frequency Keras layers.
 
-This module has implementations of some popular time-frequency operations such as STFT and inverse STFT.
+This module has low-level implementations of some popular time-frequency operations such as STFT and inverse STFT.
+We're using these layers to compose layers in `kapre.composed` where more high-level and popular layers
+such as melspectrogram layer are provided. You should go check it out!
+
+Note:
+    **Why time-frequency representation?**
+
+    Every representation (STFT, melspectrogram, etc) has something in common - they're all 2D representations
+    (time, frequency-ish) of audio signals. They're helpful because they decompose an audio signal, which is a simultaneous
+    mixture of a lot of frequency components into different frequency bins. They have spatial property; the frequency
+    bins are *sorted*, so frequency bins nearby has represent only slightly different frequency components. The
+    frequency decomposition is also what's happening during human auditory perception through cochlea.
+
+    **Which representation to use as input?**
+
+    For a quick summary, check out my tutorial paper, `A Tutorial on Deep Learning for Music Information Retrieval <https://arxiv.org/abs/1709.04396>`_.
 
 """
 import warnings
@@ -8,7 +23,18 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from . import backend
 from tensorflow.keras import backend as K
-from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
+from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
+
+
+__all__ = [
+    'STFT',
+    'InverseSTFT',
+    'Magnitude',
+    'Phase',
+    'MagnitudeToDecibel',
+    'ApplyFilterbank',
+    'Delta',
+]
 
 
 def _shape_spectrum_output(spectrums, data_format):
@@ -20,8 +46,9 @@ def _shape_spectrum_output(spectrums, data_format):
 
     Returns:
         spectrums (`Tensor`): a transposed version of input `spectrums`
+
     """
-    if data_format == CH_FIRST_STR:
+    if data_format == _CH_FIRST_STR:
         pass  # probably it's already (batch, channel, time, freq)
     else:
         spectrums = tf.transpose(spectrums, perm=(0, 2, 3, 1))  # (batch, time, freq, channel)
@@ -38,22 +65,31 @@ class STFT(Layer):
     If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time, freq)
 
     Args:
-        n_fft (`int`): Number of FFTs. Defaults to `2048`
-        win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
-        hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        n_fft (int): Number of FFTs. Defaults to `2048`
+        win_length (int or None): Window length in sample. Defaults to `n_fft`.
+        hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
         window_fn (function or None): A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
-        pad_begin(`bool`): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
-        pad_end (`bool`): Whether to pad with zeros at the finishing end of the signal.
-        input_data_format (`str`): the audio data format of input waveform batch.
-            `'channels_last'` if it's `(batch, time, channels)`
-            `'channels_first'` if it's `(batch, channels, time)`
-            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-        output_data_format (`str`): The data format of output STFT.
-            `'channels_last'` if you want `(batch, time, frequency, channels)`
+        pad_begin (bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_end (bool): Whether to pad with zeros at the finishing end of the signal.
+        input_data_format (str): the audio data format of input waveform batch.
+            `'channels_last'` if it's `(batch, time, channels)` and
+            `'channels_first'` if it's `(batch, channels, time)`.
+            Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
+        output_data_format (str): The data format of output STFT.
+            `'channels_last'` if you want `(batch, time, frequency, channels)` and
             `'channels_first'` if you want `(batch, channels, time, frequency)`
-            Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+            Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1)
+            # and the dtype is complex
 
     """
 
@@ -89,8 +125,8 @@ class STFT(Layer):
         self.pad_end = pad_end
 
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = K.image_data_format() if odt == CH_DEFAULT_STR else odt
-        self.input_data_format = K.image_data_format() if idt == CH_DEFAULT_STR else idt
+        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -110,7 +146,7 @@ class STFT(Layer):
         # (batch, time, ch) if input_data_format == 'channels_last'.
 
         # this is needed because tf.signal.stft lives in channels_first land.
-        if self.input_data_format == CH_LAST_STR:
+        if self.input_data_format == _CH_LAST_STR:
             waveforms = tf.transpose(
                 waveforms, perm=(0, 2, 1)
             )  # always (batch, ch, time) from here
@@ -130,7 +166,7 @@ class STFT(Layer):
             name='%s_tf.signal.stft' % self.name,
         )  # (batch, ch, time, freq)
 
-        if self.output_data_format == CH_LAST_STR:
+        if self.output_data_format == _CH_LAST_STR:
             stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
 
         return stfts
@@ -162,7 +198,7 @@ class InverseSTFT(Layer):
     size of the result by yourself and trim it if needed.
 
     Args:
-        n_fft (`int`): Number of FFTs. Defaults to `2048`
+        n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
         hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
         window_fn (function or `None`): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`, but
@@ -179,6 +215,15 @@ class InverseSTFT(Layer):
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (3, 513, 1)  # 3 frames, 513 frequency bins, 1 channel
+            # and input dtype is complex
+            model = Sequential()
+            model.add(kapre.InverseSTFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, time=2048, ch=1)
 
     """
 
@@ -218,8 +263,8 @@ class InverseSTFT(Layer):
         self.window_fn = window_fn
 
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = K.image_data_format() if odt == CH_DEFAULT_STR else odt
-        self.input_data_format = K.image_data_format() if idt == CH_DEFAULT_STR else idt
+        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -236,7 +281,7 @@ class InverseSTFT(Layer):
         # (batch, time, freq, ch) if input_data_format == 'channels_last'.
 
         # this is needed because tf.signal.stft lives in channels_first land.
-        if self.input_data_format == CH_LAST_STR:
+        if self.input_data_format == _CH_LAST_STR:
             stfts = tf.transpose(stfts, perm=(0, 3, 1, 2))  # now always (b, ch, t, f)
 
         waveforms = tf.signal.inverse_stft(
@@ -248,7 +293,7 @@ class InverseSTFT(Layer):
             name='%s_tf.signal.istft' % self.name,
         )  # (batch, ch, time)
 
-        if self.output_data_format == CH_LAST_STR:
+        if self.output_data_format == _CH_LAST_STR:
             waveforms = tf.transpose(waveforms, perm=(0, 2, 1))  # (batch, time, ch)
 
         return waveforms
@@ -269,16 +314,52 @@ class InverseSTFT(Layer):
 
 
 class Magnitude(Layer):
-    """Compute the magnitude of the complex input, resulting in a float tensor"""
+    """Compute the magnitude of the complex input, resulting in a float tensor
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            mode.add(Magnitude())
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
+
+    """
 
     def call(self, x):
+        """
+        Args:
+            x (complex `Tensor`): input complex tensor
+
+        Returns:
+            (float `Tensor`): magnitude of `x`
+        """
         return tf.abs(x)
 
 
 class Phase(Layer):
-    """Compute the phase of the complex input in radian, resulting in a float tensor"""
+    """Compute the phase of the complex input in radian, resulting in a float tensor
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            model.add(Phase())
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
+
+    """
 
     def call(self, x):
+        """
+        Args:
+            x (complex `Tensor`): input complex tensor
+
+        Returns:
+            (float `Tensor`): phase of `x` (Radian)
+        """
         return tf.math.angle(x)
 
 
@@ -292,6 +373,16 @@ class MagnitudeToDecibel(Layer):
         amin (`float`): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin.
         dynamic_range (`float`): range of the resulting value. E.g., if the maximum magnitude is 30 dB,
             the noise floor of the output would become (30 - dynamic_range) dB
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            model.add(Magnitude())
+            model.add(MagnitudeToDecibel())
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
 
@@ -325,11 +416,32 @@ class ApplyFilterbank(Layer):
     """
     Apply a filterbank to the input spectrograms.
 
-
     Args:
         filterbank (`Tensor`): filterbank tensor in a shape of (n_freq, n_filterbanks)
         data_format (`str`): specifies the data format of batch input/output
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            n_fft = 1024
+            n_hop = n_fft // 2
+            kwargs = {
+                'sample_rate': 22050,
+                'n_freq': n_fft // 2 + 1,
+                'n_mels': 128,
+                'f_min': 0.0,
+                'f_max': 8000,
+            }
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=n_fft, hop_length=n_hop, input_shape=input_shape))
+            model.add(Magnitude())
+            # (batch, n_frame=3, n_freq=n_fft // 2 + 1, ch=1) and dtype is float
+            model.add(ApplyFilterbank(type='mel', filterbank_kwargs=kwargs))
+            # (batch, n_frame=3, n_mels=128, ch=1)
+
+
     """
 
     def __init__(
@@ -346,12 +458,12 @@ class ApplyFilterbank(Layer):
         elif type == 'mel':
             self.filterbank = _mel_filterbank = backend.filterbank_mel(**filterbank_kwargs)
 
-        if data_format == CH_DEFAULT_STR:
+        if data_format == _CH_DEFAULT_STR:
             self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
 
-        if self.data_format == CH_FIRST_STR:
+        if self.data_format == _CH_FIRST_STR:
             self.freq_axis = 3
         else:
             self.freq_axis = 2
@@ -368,7 +480,7 @@ class ApplyFilterbank(Layer):
         # x: 2d batch input. (b, t, fr, ch) or (b, ch, t, fr)
         output = tf.tensordot(x, self.filterbank, axes=(self.freq_axis, 0))
         # ch_last -> (b, t, ch, new_fr). ch_first -> (b, ch, t, new_fr)
-        if self.data_format == CH_LAST_STR:
+        if self.data_format == _CH_LAST_STR:
             output = tf.transpose(output, (0, 1, 3, 2))
         return output
 
@@ -389,9 +501,18 @@ class Delta(Layer):
     See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
 
     Args:
-        win_length (`int`): Window length of the derivative estimation. Defaults to 5
+        win_length (int): Window length of the derivative estimation. Defaults to 5
         mode (`str`): Specifies pad mode of `tf.pad`. Case-insensitive. Defaults to 'symmetric'.
             Can be 'symmetric', 'reflect', 'constant', or whatever `tf.pad` supports.
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            model.add(Delta())
+            # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
 
@@ -410,7 +531,7 @@ class Delta(Layer):
                 + 'but it is {}'.format(mode)
             )
 
-        if data_format == CH_DEFAULT_STR:
+        if data_format == _CH_DEFAULT_STR:
             self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
@@ -428,7 +549,6 @@ class Delta(Layer):
 
         Returns:
             (`Tensor`): A tensor with the same shape as input data.
-
         """
         if self.data_format == 'channels_first':
             x = K.permute_dimensions(x, (0, 2, 3, 1))
@@ -439,8 +559,8 @@ class Delta(Layer):
         kernel = K.arange(-self.n, self.n + 1, 1, dtype=K.floatx())
         kernel = K.reshape(kernel, (-1, 1, 1, 1))  # time, freq, in_ch, out_ch
 
-        x = K.conv2d(x, kernel, data_format=CH_LAST_STR) / self.denom
-        if self.data_format == CH_FIRST_STR:
+        x = K.conv2d(x, kernel, data_format=_CH_LAST_STR) / self.denom
+        if self.data_format == _CH_FIRST_STR:
             x = K.permute_dimensions(x, (0, 3, 1, 2))
 
         return x

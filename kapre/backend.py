@@ -3,9 +3,9 @@
 This module summarizes operations and functions that are used in Kapre layers.
 
 Attributes:
-    CH_FIRST_STR (str): 'channels_first', a pre-defined string.
-    CH_LAST_STR (str): 'channels_last', a pre-defined string.
-    CH_DEFAULT_STR (str): 'default', a pre-defined string.
+    _CH_FIRST_STR (str): 'channels_first', a pre-defined string.
+    _CH_LAST_STR (str): 'channels_last', a pre-defined string.
+    _CH_DEFAULT_STR (str): 'default', a pre-defined string.
 
 """
 from tensorflow.keras import backend as K
@@ -13,17 +13,17 @@ import tensorflow as tf
 import numpy as np
 import librosa
 
-CH_FIRST_STR = 'channels_first'
-CH_LAST_STR = 'channels_last'
-CH_DEFAULT_STR = 'default'
+_CH_FIRST_STR = 'channels_first'
+_CH_LAST_STR = 'channels_last'
+_CH_DEFAULT_STR = 'default'
 
 
 def validate_data_format_str(data_format):
     """A function that validates the data format string."""
-    if data_format not in (CH_DEFAULT_STR, CH_FIRST_STR, CH_LAST_STR):
+    if data_format not in (_CH_DEFAULT_STR, _CH_FIRST_STR, _CH_LAST_STR):
         raise ValueError(
             'data_format should be one of {}'.format(
-                str([CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR])
+                str([_CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR])
             )
             + ' but we received {}'.format(data_format)
         )
@@ -40,7 +40,7 @@ def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
         ref_value (`float`): an input value that would become 0 dB in the result.
             For spectrogram magnitudes, ref_value=1.0 usually make the decibel-sclaed output to be around zero
             if the input audio was in [-1, 1].
-        amin (`float`): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin.
+        amin (`float`): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin`.
         dynamic_range (`float`): range of the resulting value. E.g., if the maximum magnitude is 30 dB,
             the noise floor of the output would become (30 - dynamic_range) dB
 
@@ -50,6 +50,15 @@ def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
     Notes:
         In many deep learning based application, the input spectrogram magnitudes (e.g., abs(STFT)) are decibel-scaled
         (=logarithmically mapped) for a better performance.
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.Frame(frame_length=1024, hop_length=512, input_shape=input_shape))
+            # now the shape is (batch, n_frame=3, frame_length=1024, ch=1)
+
     """
 
     def _log10(x):
@@ -106,10 +115,6 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
     """A function that returns a approximation of constant-Q filter banks for a fixed-window STFT.
     Each filter is a log-normal window centered at the corresponding frequency.
 
-    Note:
-        The code is originally from `logfrequency` in librosa 0.4 (deprecated) and copy-and-pasted.
-        `tuning` parameter was removed and we use `n_freq` instead of `n_fft`.
-
     Args:
         sample_rate (`int`): audio sampling rate
         n_freq (`int`): number of the input frequency bins. E.g., `n_fft / 2 + 1`
@@ -120,6 +125,10 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
 
     Returns:
         (`Tensor`): log-frequency filterbanks. Shape=`(n_freq, n_bins)`
+
+    Note:
+        The code is originally from `logfrequency` in librosa 0.4 (deprecated) and copy-and-pasted.
+        `tuning` parameter was removed and we use `n_freq` instead of `n_fft`.
     """
 
     if f_min is None:
@@ -159,3 +168,45 @@ def filterbank_log(sample_rate, n_freq, n_bins=84, bins_per_octave=12, f_min=Non
     basis = basis.astype(K.floatx())
 
     return tf.convert_to_tensor(basis.T)
+
+
+def mu_law_encoding(signal, quantization_channels):
+    """Encode signal based on mu-law companding. Also called mu-law compressing.
+
+    This algorithm assumes the signal has been scaled to between -1 and 1 and returns a signal encoded
+    with values from 0 to quantization_channels - 1.
+    See `Wikipedia <https://en.wikipedia.org/wiki/Μ-law_algorithm>`_ for more details.
+
+    Args:
+        signal (float `Tensor`): audio signal to encode
+        quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+
+    Returns:
+        signal_mu (int `Tensor`): mu-encoded signal
+    """
+    mu = quantization_channels - 1.0
+    signal_mu = tf.math.sign(signal) * tf.math.log1p(mu * tf.math.abs(signal)) / tf.math.log1p(mu)
+    signal_mu = tf.cast(((signal_mu + 1) / 2.0 * mu + 0.5), tf.int32)
+    return signal_mu
+
+
+def mu_law_decoding(signal_mu, quantization_channels):
+    """Decode mu-law encoded signals based on mu-law companding. Also called mu-law expanding.
+
+    See `Wikipedia <https://en.wikipedia.org/wiki/Μ-law_algorithm>`_ for more details.
+
+    Args:
+        signal_mu (int `Tensor`): mu-encoded signal to decode
+        quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+
+    Returns:
+        signal (float `Tensor`): decoded audio signal
+    """
+    mu = quantization_channels - 1.0
+    signal_mu = K.cast_to_floatx(signal_mu)
+
+    signal = (signal_mu / mu) * 2 - 1.0
+    signal = (
+        tf.math.sign(signal) * (tf.math.exp(tf.math.abs(signal) * tf.math.log1p(mu)) - 1.0) / mu
+    )
+    return signal
