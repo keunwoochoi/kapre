@@ -22,7 +22,7 @@ class Frame(Layer):
         hop_length (int): hop length aka frame rate
         pad_end (bool): whether to pad at the end of the signal of there would be a otherwise-discarded partial frame
         pad_value (int or float): value to use in the padding
-        data_format (str): 'channels_first', 'channels_last', or `default`
+        data_format (str): `channels_first`, `channels_last`, or `default`
             **kwargs:
 
     Example:
@@ -64,7 +64,7 @@ class Frame(Layer):
 
         Returns:
             (`Tensor`): A framed tensor. The shape is
-                (batch, time (frames), frame_length, channel) if `channels_last`, and
+                (batch, time (frames), frame_length, channel) if `channels_last` and
                 (batch, channel, time (frames), frame_length) if `channels_first`.
         """
         return tf.signal.frame(
@@ -103,7 +103,7 @@ class Energy(Layer):
         hop_length (int): hop length aka frame rate. time resolution of the energy computation.
         pad_end (bool): whether to pad at the end of the signal of there would be a otherwise-discarded partial frame
         pad_value (int or float): value to use in the padding
-        data_format (str): 'channels_first', 'channels_last', or `default`
+        data_format (str): `channels_first`, `channels_last`, or `default`
         **kwargs:
 
     Example:
@@ -332,12 +332,12 @@ class LogmelToMFCC(Layer):
         """
 
         Args:
-            log_melgrams (float `Tensor`): a batch of log_melgrams. `(b, time, mel, ch)` if `channels_last`.
-            `(b, ch, time, mel)` if `channels_first`.
+            log_melgrams (float `Tensor`): a batch of log_melgrams. `(b, time, mel, ch)` if `channels_last`
+                and `(b, ch, time, mel)` if `channels_first`.
 
         Returns:
-            (float `Tensor`): MFCCs. `(b, time, n_mfccs, ch)` if `channels_last`.
-            `(b, ch, time, n_mfccs)` if `channels_first`.
+            (float `Tensor`): MFCCs. `(batch, time, n_mfccs, ch)` if `channels_last`
+                and `(batch, ch, time, n_mfccs)` if `channels_first`.
         """
         if self.permutation is not None:  # reshape so that last channel == mel
             log_melgrams = K.permute_dimensions(log_melgrams, pattern=self.permutation)
