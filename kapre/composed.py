@@ -70,6 +70,17 @@ def get_stft_magnitude_layer(
         This is because decibel scaling is has some clipping at the noise floor which is irreversible.
         One may use `log(1+X)` instead of `log(X)` to avoid the clipping but it is not included in Kapre at the moment.
 
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal, audio is channels_last
+            stft_mag = get_stft_magnitude_layer(input_shape=input_shape, n_fft=1024, return_decibel=True,
+                input_data_format='channels_last', output_data_format='channels_first')
+            model = Sequential()
+            model.add(stft_mag)
+            # now the shape is (batch, ch=1, n_frame=3, n_freq=513) because output_data_format is 'channels_first'
+            # and the dtype is float
+
     """
     backend.validate_data_format_str(input_data_format)
     backend.validate_data_format_str(output_data_format)
@@ -168,6 +179,17 @@ def get_melspectrogram_layer(
         `Multi-label vs. combined single-label sound event detection with deep neural networks <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.711.74&rep=rep1&type=pdf>`_,
         `Deep Convolutional Neural Networks and Data Augmentation for Environmental Sound Classification <https://arxiv.org/pdf/1608.04363.pdf>`_,
         and way too many speech applications.
+
+    Example:
+        ::
+
+            input_shape = (2, 2048)  # stereo signal, audio is channels_first
+            melgram = get_melspectrogram_layer(input_shape=input_shape, n_fft=1024, return_decibel=True,
+                n_mels=96, input_data_format='channels_first', output_data_format='channels_last')
+            model = Sequential()
+            model.add(melgram)
+            # now the shape is (batch, n_frame=3, n_mels=96, n_ch=2) because output_data_format is 'channels_last'
+            # and the dtype is float
 
     """
     backend.validate_data_format_str(input_data_format)
@@ -269,6 +291,18 @@ def get_log_frequency_spectrogram_layer(
         Log-frequency spectrogram is similar to melspectrogram but its frequency axis is perfectly linear to octave scale.
         For some pitch-related applications, a log-frequency spectrogram can be a good choice.
 
+    Example:
+        ::
+
+            input_shape = (2048, 2)  # stereo signal, audio is channels_last
+            logfreq_stft_mag = get_log_frequency_spectrogram_layer(
+                input_shape=input_shape, n_fft=1024, return_decibel=True,
+                log_n_bins=84, input_data_format='channels_last', output_data_format='channels_last')
+            model = Sequential()
+            model.add(logfreq_stft_mag)
+            # now the shape is (batch, n_frame=3, n_bins=84, n_ch=2) because output_data_format is 'channels_last'
+            # and the dtype is float
+
     """
     backend.validate_data_format_str(input_data_format)
     backend.validate_data_format_str(output_data_format)
@@ -363,6 +397,21 @@ def get_perfectly_reconstructing_stft_istft(
 
         The formula: if `trim_begin = win_length - hop_length` and `len_signal` is length of `x`,
         `y_trimmed = y[trim_begin: trim_begin + len_signal, :]` (in the case of `channels_last`).
+
+    Example:
+        ::
+            stft_input_shape = (2048, 2)  # stereo and channels_last
+            stft_layer, istft_layer = get_perfectly_reconstructing_stft_istft(
+                stft_input_shape=stft_input_shape
+            )
+
+            unet = get_unet()  input: stft (complex value), output: stft (complex value)
+
+            model = Sequential()
+            model.add(stft_layer)  # input is waveform
+            model.add(unet)
+            model.add(istft_layer)  # output is also waveform
+
     """
     backend.validate_data_format_str(waveform_data_format)
     backend.validate_data_format_str(stft_data_format)
@@ -459,6 +508,16 @@ def get_stft_mag_phase(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+
+    Example:
+        ::
+            input_shape = (2048, 3)  # stereo and channels_last
+            model = Sequential()
+            model.add(
+                get_stft_mag_phase(input_shape=input_shape, return_decibel=True, n_fft=1024)
+            )
+            # now output shape is (batch, n_frame=3, freq=513, ch=6). 6 channels = [3 mag ch; 3 phase ch]
+
     """
     backend.validate_data_format_str(input_data_format)
     backend.validate_data_format_str(output_data_format)

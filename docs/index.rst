@@ -8,7 +8,7 @@ Kapre
 
 Keras Audio Preprocessors - compute STFT, InverseSTFT, Melspectrogram, and others on GPU real-time.
   
-Tested on Python 3.3, 3.6, and 3.7.
+Tested on Python 3.6, and 3.7.
 
 Why Kapre?
 ----------
@@ -17,7 +17,7 @@ vs. Pre-computation
 ^^^^^^^^^^^^^^^^^^^
 
 * You can optimize DSP parameters
-* Your model deployment becomes much simpler
+* Your model deployment becomes much simpler and consistent.
 * Your code and model has less dependencies
 
 vs. Your own implementation
@@ -31,6 +31,15 @@ vs. Your own implementation
   - A perfectly invertible `STFT` and `InverseSTFT` pair
   - Mel-spectrogram with more options
 * Reproducibility - Kapre is available on pip with versioning
+
+Workflow with Kapre
+-------------------
+
+1. Preprocess your audio dataset. Resample the audio to the right sampling rate and store the audio signals (waveforms).
+2. In your ML model, add Kapre layer e.g. `kapre.time_frequency.STFT()` as the first layer of the model.
+3. The data loader simply loads audio signals and feed them into the model
+4. In your hyperparameter search, include DSP parameters like `n_fft` to boost the performance.
+5. When deploying the final model, all you need to remember is the sampling rate of the signal. No dependency or preprocessing!
 
 Installation
 ------------

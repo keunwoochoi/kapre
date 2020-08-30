@@ -295,10 +295,10 @@ class LogmelToMFCC(Layer):
     It wraps `tf.signal.mfccs_from_log_mel_spectrogram()`, which performs DCT-II.
 
     Note:
-        In librosa, the DCT-II scales by `sqrt(1/n)` where n is the bin index of MFCC as it uses
-        scipy and that's true orthogonal DCT.
-        In Tensorflow, because it follows HTK, it scales by `(0.5 * sqrt(2/n))`. This results in
-        `sqrt(2)` scale difference in the first MFCC bins.
+        In librosa, the DCT-II scales by `sqrt(1/n)` where `n` is the bin index of MFCC as it uses
+        scipy. This is the correct orthogonal DCT.
+        In Tensorflow though, because it follows HTK, it scales by `(0.5 * sqrt(2/n))`. This results in
+        `sqrt(2)` scale difference in the first MFCC bins (`n=1`).
 
         As long as all of your data in training / inference / deployment is consistent (i.e., do not
         mix librosa and kapre MFCC), it'll be fine!

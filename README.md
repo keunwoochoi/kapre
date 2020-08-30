@@ -8,7 +8,7 @@ Tested on Python 3.6 and 3.7
 ### vs. Pre-computation
 
 * You can optimize DSP parameters
-* Your model deployment becomes much simpler
+* Your model deployment becomes much simpler and consistent.
 * Your code and model has less dependencies
 
 ### vs. Your own implementation
@@ -105,8 +105,8 @@ Please cite this paper if you use Kapre for your work.
   - 0.3.2
     - `kapre.signal.Frame` and `kapre.signal.Energy` are added
     - `kapre.signal.LogmelToMFCC` is added
-    - `kapre.composed.get_stft_magnitude_layer()` is added
-    - `kapre.time_frequency.FrequencyAwareConv2D()` is added 
+    - `kapre.signal.MuLawEncoder` and `kapre.signal.MuLawDecoder` are added
+    - `kapre.composed.get_stft_magnitude_layer()` is added 
 * 21 Aug 2020
   - 0.3.1
     - `Inverse STFT` is added

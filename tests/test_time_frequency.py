@@ -9,6 +9,7 @@ from kapre.composed import (
     get_log_frequency_spectrogram_layer,
     get_stft_mag_phase,
     get_perfectly_reconstructing_stft_istft,
+    get_stft_magnitude_layer,
 )
 
 from utils import get_audio, save_load_compare
@@ -328,6 +329,10 @@ def test_save_load():
         get_stft_mag_phase(input_shape=input_shape, return_decibel=True),
         batch_src,
         np.testing.assert_allclose,
+    )
+    # test stft mag
+    save_load_compare(
+        get_stft_magnitude_layer(input_shape=input_shape), batch_src, np.testing.assert_allclose
     )
 
 
