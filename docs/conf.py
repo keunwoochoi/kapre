@@ -38,8 +38,11 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.viewcode",  # source linkage
     "sphinx.ext.napoleon",
-    # 'autoapi.extension'
+    # "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",  # source linkage
 ]
+
+# autosummary_generate = True
 
 # autoapi_type = 'python'
 # autoapi_dirs = ['../kapre']

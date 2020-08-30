@@ -1,5 +1,7 @@
-composed (also time-frequency)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+composed
+^^^^^^^^
 
 .. automodule:: kapre.composed
     :members:
+
+

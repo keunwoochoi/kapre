@@ -1,4 +1,5 @@
 """Functions that returns high-level layers that are composed using other Kapre layers.
+
 """
 from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
 from . import backend
@@ -24,8 +25,8 @@ def get_stft_magnitude_layer(
     input_data_format='default',
     output_data_format='default',
 ):
-    """A function that retunrs a stft magnitude layer, which is a `keras.Sequential` model consists of
-    `STFT`, `Magnitude`, and optionally `MagnitudeToDecibel`.
+    """A function that retunrs a stft magnitude layer.
+    The layer is a `keras.Sequential` model consists of `STFT`, `Magnitude`, and optionally `MagnitudeToDecibel`.
 
     Args:
         input_shape (None or tuple of integers): input shape of the model. Necessary only if this melspectrogram layer is
@@ -341,7 +342,7 @@ def get_perfectly_reconstructing_stft_istft(
             Must specify this if the returned istft layer is going to be used as first layer of a Sequential model.
         n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
-        hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following librosa.
         forward_window_fn (function or `None`): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`.
         waveform_data_format (str): The audio data format of waveform batch.
             `'channels_last'` if it's `(batch, time, channels)`
