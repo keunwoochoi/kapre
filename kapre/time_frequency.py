@@ -347,7 +347,7 @@ class Phase(Layer):
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
-            mode.add(Phase())
+            model.add(Phase())
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
@@ -380,8 +380,8 @@ class MagnitudeToDecibel(Layer):
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
-            mode.add(Magnitude())
-            mode.add(MagnitudeToDecibel())
+            model.add(Magnitude())
+            model.add(MagnitudeToDecibel())
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
@@ -436,9 +436,9 @@ class ApplyFilterbank(Layer):
             }
             model = Sequential()
             model.add(kapre.STFT(n_fft=n_fft, hop_length=n_hop, input_shape=input_shape))
-            mode.add(Magnitude())
+            model.add(Magnitude())
             # (batch, n_frame=3, n_freq=n_fft // 2 + 1, ch=1) and dtype is float
-            mode.add(ApplyFilterbank(type='mel', filterbank_kwargs=kwargs))
+            model.add(ApplyFilterbank(type='mel', filterbank_kwargs=kwargs))
             # (batch, n_frame=3, n_mels=128, ch=1)
 
 
@@ -511,7 +511,7 @@ class Delta(Layer):
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
-            mode.add(Delta())
+            model.add(Delta())
             # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
