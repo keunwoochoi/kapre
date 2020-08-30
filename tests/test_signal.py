@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import tensorflow as tf
 import librosa
-from kapre.signal import Frame, Energy, MuLawEncoding, MuLawDecoding, LogmelToMFCC
+from kapre import Frame, Energy, MuLawEncoding, MuLawDecoding, LogmelToMFCC
 from kapre.backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 from utils import get_audio, save_load_compare

@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras
 import librosa
-from kapre.time_frequency import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank
+from kapre import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
