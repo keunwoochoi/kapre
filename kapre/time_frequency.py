@@ -578,33 +578,20 @@ class FrequencyAwareConv2D(Conv2D):
         return outputs
 
     def _add_freq_info_channel(self, inputs):
-        # adapted from https://github.com/tchaton/CoordConv-keras/blob/master/coord.py
         shape = tf.shape(inputs)
         time_axis, freq_axis, ch_axis = (1, 2, 3) if self.data_format == 'channels_last' \
             else (2, 3, 1)
-        batch_size_tensor, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
-
-        xx_ones = tf.ones([batch_size_tensor, 1], dtype=tf.float32)
-        
-        xx_ones = tf.expand_dims(xx_ones, axis=-1)
-        
-        xx_range = tf.tile(tf.expand_dims(tf.range(n_time), 0), [batch_size_tensor, 1])
-        xx_range = tf.cast(xx_range, tf.float32)
-        xx_range = tf.expand_dims(xx_range, axis=1)
-        
-        xx_channel = tf.matmul(xx_ones, xx_range)
-        xx_channel = tf.expand_dims(xx_channel, axis=-1)
-              
-        xx_channel = xx_channel / tf.cast(n_time - 1, tf.float32)
-        
-        xx_channel = xx_channel*2 - 1
-        xx_channel = tf.transpose(xx_channel, (0, 2, 1, 3))
-        xx_channel= tf.repeat(xx_channel,n_freq,2)
-        
-        #xx_channel = tf.transpose(xx_channel, (0, 2, 1, 3))
-        #print(xx_channel)
-        ret = tf.concat([xx_channel, inputs], axis=ch_axis)
-        return ret
+        n_batch, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
+        # freq_info shape: n_freq
+        freq_info=tf.cast(tf.range(n_freq) , tf.float32) / tf.cast(n_freq - 1, tf.float32)
+        # repeate over time, shape: n_time,n_freq
+        time_freq_info=tf.tile(tf.expand_dims(freq_info, 0),[n_time,1])
+        # expand to a channels dim (n_time,n_freq,1)
+        time_freq_channel_info=tf.expand_dims(time_freq_info, ch_axis-1)
+        # repeate over batch (n_time,n_freq,1)
+        batch_time_freq_channel_info=tf.tile(tf.expand_dims(time_freq_channel_info, 0),
+            [n_batch,1,1,1])
+        return  tf.concat([batch_time_freq_channel_info, inputs], axis=ch_axis)
 
     def _get_input_channel(self, input_shape):
         channel_axis = self._get_channel_axis()

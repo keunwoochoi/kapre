@@ -388,8 +388,8 @@ def test_frequency_aware_conv2d_channel_add():
     input_shape = (4, 10, 5, 3)
     x = tf.random.normal(input_shape)
     f = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])
-    np.testing.assert_allclose(f._add_freq_info_channel(x)[0,:,0,0].numpy(),
-        f._add_freq_info_channel(x)[0,:,1,0].numpy())
+    np.testing.assert_allclose(f._add_freq_info_channel(x)[0,0,:,0].numpy(),
+        f._add_freq_info_channel(x)[0,1,:,0].numpy())
 
 
 if __name__ == '__main__':
