@@ -467,19 +467,19 @@ class FrequencyAwareConv2D(Conv2D):
     When using this layer as the first layer in a model,
     provide the keyword argument `input_shape`
     (tuple of integers, does not include the sample axis),
-    e.g. `input_shape=(128, 300, 1)?` for  128x300 spectograms with 1 channel
+    e.g. `input_shape=(300, 128, 1)?` for  300x128 spectograms with 1 channel
     in `data_format="channels_last"`.
 
     Examples:
 
-    >>> # The inputs are 128x300 spectogram images with `channels_last` and the batch
+    >>> # The inputs are 300x128 spectogram images with `channels_last` and the batch
     >>> # size is 4.
-    >>> input_shape = (4, 128, 300, 1)
+    >>> input_shape = (4, 300, 128, 1)
     >>> x = tf.random.normal(input_shape)
     >>> y = kapre.time_frequency.FreqAwareConv(
     ... 2, 3, activation='relu', input_shape=input_shape[1:])(x)
     >>> print(y.shape)
-    (4, 128, 300, 2)
+    (4, 300, 128, 2)
     References:
         Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019). Receptive-Field-Regularized CNN 
         Variants for Acoustic Scene Classification. In Proceedings of the Detection 
