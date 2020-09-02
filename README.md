@@ -38,7 +38,7 @@ pip install kapre
 
 ## API Documentation
 
-Please refer to Kapre API Documentation at (https://kapre.readthedocs.io/)[https://kapre.readthedocs.io/]
+Please refer to Kapre API Documentation at https://kapre.readthedocs.io
 
 ## One-shot example
 
