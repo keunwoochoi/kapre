@@ -123,7 +123,9 @@ def test_save_load(data_format):
     )
     # test mu law layers
     save_load_compare(
-        MuLawEncoding(quantization_channels=128), batch_src, np.testing.assert_allclose,
+        MuLawEncoding(quantization_channels=128),
+        batch_src,
+        np.testing.assert_allclose,
     )
     save_load_compare(
         MuLawDecoding(quantization_channels=128),
