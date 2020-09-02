@@ -368,7 +368,7 @@ class MagnitudeToDecibel(Layer):
 
     Args:
         ref_value (`float`): an input value that would become 0 dB in the result.
-            For spectrogram magnitudes, ref_value=1.0 usually make the decibel-sclaed output to be around zero
+            For spectrogram magnitudes, ref_value=1.0 usually make the decibel-scaled output to be around zero
             if the input audio was in [-1, 1].
         amin (`float`): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin.
         dynamic_range (`float`): range of the resulting value. E.g., if the maximum magnitude is 30 dB,
