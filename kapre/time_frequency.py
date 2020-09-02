@@ -407,7 +407,11 @@ class MagnitudeToDecibel(Layer):
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
         config.update(
-            {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
+            {
+                'amin': self.amin,
+                'dynamic_range': self.dynamic_range,
+                'ref_value': self.ref_value,
+            }
         )
         return config
 
@@ -445,7 +449,11 @@ class ApplyFilterbank(Layer):
     """
 
     def __init__(
-        self, type, filterbank_kwargs, data_format='default', **kwargs,
+        self,
+        type,
+        filterbank_kwargs,
+        data_format='default',
+        **kwargs,
     ):
 
         backend.validate_data_format_str(data_format)
