@@ -212,52 +212,26 @@ def mu_law_decoding(signal_mu, quantization_channels):
     return signal
 
 
-def freq_mask(self, input_f, param, name='freq_mask'):
-    """Apply masking to a spectrogram in the freq domain.
-    TensorFlow/io
-    
+def random_masking_along_axis(input_f, param, axis, name='masking'):
+    """
+    Apply masking to a spectrogram in the time/freq domain.
     Args:
       input: An audio spectogram.
       param: Parameter of freq masking.
       name: A name for the operation (optional).
-
     Returns:
       A tensor of spectrogram.
     """
     # TODO: Support audio with channel > 1.
-    freq_max = tf.shape(input_f)[1]
+    _max = tf.shape(input_f)[axis + 1]
+    _shape = [-1, 1, 1, 1]
+    _shape[axis + 1] = _max
     f = tf.random.uniform(shape=(), minval=0, maxval=param, dtype=tf.dtypes.int32)
     f0 = tf.random.uniform(
-        shape=(), minval=0, maxval=freq_max - f, dtype=tf.dtypes.int32
+        shape=(), minval=0, maxval=_max - f, dtype=tf.dtypes.int32
     )
-    indices = tf.reshape(tf.range(freq_max), (-1,freq_max,1,1))
+    indices = tf.reshape(tf.range(_max), tuple(_shape))
     condition = tf.math.logical_and(
         tf.math.greater_equal(indices, f0), tf.math.less(indices, f0 + f)
     )
     return tf.compat.v2.where(condition, 0.0, input_f)
-
-
-def time_mask(self,input_t, param, name=None):
-    """Apply masking to a spectrogram in the time domain.
-    Apply masking to a spectrogram in the time domain.
-    TensorFlow/io
-
-    Args:
-      input: An audio spectogram.
-      param: Parameter of time masking.
-      name: A name for the operation (optional).
-
-    Returns:
-      A tensor of spectrogram.
-    """
-    # TODO: Support audio with channel > 1.
-    time_max = tf.shape(input_t)[2]
-    t = tf.random.uniform(shape=(), minval=0, maxval=param, dtype=tf.dtypes.int32)
-    t0 = tf.random.uniform(
-        shape=(), minval=0, maxval=time_max - t, dtype=tf.dtypes.int32
-    )
-    indices = tf.reshape(tf.range(time_max), (-1,1,time_max,1))
-    condition = tf.math.logical_and(
-        tf.math.greater_equal(indices, t0), tf.math.less(indices, t0 + t)
-    )
-    return tf.compat.v2.where(condition, 0.0, input_t)
