@@ -600,3 +600,61 @@ class FrequencyAwareConv2D(Conv2D):
                            'should be defined. Found `None`.')
         original_input_channels=int(input_shape[channel_axis])
         return original_input_channels+1
+
+
+
+
+
+
+
+class ConcatenateFrequencyMap(Layer):
+    """Addes a frequency information channel to the 4D input feature map.
+    References:
+        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019). Receptive-Field-Regularized CNN 
+        Variants for Acoustic Scene Classification. In Proceedings of the Detection 
+        and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
+
+        Liu, R., Lehman, J., Molino, P., Such, F. P., Frank, E., Sergeev, A., & Yosinski, J.
+         (2018). An intriguing failing of convolutional neural networks and the coordconv
+          solution. In Advances in Neural Information Processing Systems (pp. 9605-9616).
+
+    Args:
+        data_format (str, optional): A string, one of `channels_last` (default) or `channels_first`.
+          The ordering of the dimensions in the inputs. `channels_last` corresponds
+          to inputs with shape `(batch_size, height, width, channels)` while
+          `channels_first` corresponds to inputs with shape `(batch_size, channels,
+          height, width)`. It defaults to the `image_data_format` value found in
+          your Keras config file at `~/.keras/keras.json`. If you never set it, then
+          it will be `channels_last`.
+
+    """
+
+    def __init__(self,data_format= 'channels_last',**kwargs):
+        super(ConcatenateFrequencyMap, self).__init__(**kwargs)
+        self.data_format = 'channels_last'
+
+    def call(self, inputs):
+        return self._add_freq_info_channel(inputs)
+    def get_config(self):
+        config = super(ConcatenateFrequencyMap, self).get_config()
+        config.update(
+            {
+                'data_format': self.data_format,
+            }
+        )
+        return config
+    def _add_freq_info_channel(self, inputs):
+        shape = tf.shape(inputs)
+        time_axis, freq_axis, ch_axis = (1, 2, 3) if self.data_format == 'channels_last' \
+            else (2, 3, 1)
+        n_batch, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
+        # freq_info shape: n_freq
+        freq_info=tf.cast(tf.range(n_freq) , tf.float32) / tf.cast(n_freq - 1, tf.float32)
+        # repeate over time, shape: n_time,n_freq
+        time_freq_info=tf.tile(tf.expand_dims(freq_info, 0),[n_time,1])
+        # expand to a channels dim (n_time,n_freq,1)
+        time_freq_channel_info=tf.expand_dims(time_freq_info, ch_axis-1)
+        # repeate over batch (n_time,n_freq,1)
+        batch_time_freq_channel_info=tf.tile(tf.expand_dims(time_freq_channel_info, 0),
+            [n_batch,1,1,1])
+        return  tf.concat([batch_time_freq_channel_info, inputs], axis=ch_axis)

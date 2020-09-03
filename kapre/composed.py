@@ -3,12 +3,13 @@
 This module provides more complicated layers using layers and operations in Kapre.
 
 """
-from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
+from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank, ConcatenateFrequencyMap
 from . import backend
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Sequential, Model
+from tensorflow.keras.layers import  Conv2D
 from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
 
 
@@ -387,3 +388,11 @@ def get_log_frequency_spectrogram_layer(
         layers.append(mag_to_decibel)
 
     return Sequential(layers)
+
+
+
+def get_freq_aware_2d(*args, **kwargs):
+  freq_map_concat_layer = ConcatenateFrequencyMap()
+  conv2d = Conv2D(*args, **kwargs)
+  return keras.models.Sequential([freq_map_concat_layer, conv2d])
+

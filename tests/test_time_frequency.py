@@ -4,12 +4,20 @@ import tensorflow as tf
 import tensorflow.keras
 import tensorflow.keras.backend as K
 import librosa
-from kapre.time_frequency import STFT, Magnitude, Phase, Delta, FrequencyAwareConv2D
+from kapre.time_frequency import (
+    STFT, 
+    Magnitude, 
+    Phase, 
+    Delta, 
+    FrequencyAwareConv2D,
+    ConcatenateFrequencyMap,
+)
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
     get_stft_mag_phase,
     get_perfectly_reconstructing_stft_istft,
+    get_freq_aware_2d,
 )
 import tempfile
 
@@ -375,6 +383,13 @@ def test_save_load():
         batch_src,
         np.testing.assert_allclose,
     )
+    # test composed frequency aware 
+    specs_batch=get_stft_mag_phase(input_shape=input_shape, return_decibel=True)(batch_src)
+    _test(
+         get_freq_aware_2d(10, 3, activation='relu', input_shape=input_shape[1:]),
+        specs_batch,
+        np.testing.assert_allclose,
+    )
 
 
 
@@ -390,6 +405,20 @@ def test_frequency_aware_conv2d_channel_add():
     f = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])
     np.testing.assert_allclose(f._add_freq_info_channel(x)[0,0,:,0].numpy(),
         f._add_freq_info_channel(x)[0,1,:,0].numpy())
+
+def test_frequency_aware_composed_conv2d():
+    input_shape = (4, 50, 50, 3)
+    x = tf.random.normal(input_shape)
+    y = get_freq_aware_2d(10, 3, activation='relu', input_shape=input_shape[1:])(x)
+    np.testing.assert_equal(y.shape, (4, 48, 48, 10))
+
+def test_ConcatenateFrequencyMap():
+    input_shape = (4, 10, 5, 3)
+    x = tf.random.normal(input_shape)
+    f = ConcatenateFrequencyMap()
+    np.testing.assert_allclose(f(x)[0,0,:,0].numpy(),
+        f(x)[0,1,:,0].numpy())
+
 
 
 if __name__ == '__main__':
