@@ -3,13 +3,21 @@
 This module provides more complicated layers using layers and operations in Kapre.
 
 """
-from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank, ConcatenateFrequencyMap
+from .time_frequency import (
+    STFT,
+    InverseSTFT,
+    Magnitude,
+    Phase,
+    MagnitudeToDecibel,
+    ApplyFilterbank,
+    ConcatenateFrequencyMap,
+)
 from . import backend
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Sequential, Model
-from tensorflow.keras.layers import  Conv2D
+from tensorflow.keras.layers import Conv2D
 from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
 
 
@@ -390,9 +398,33 @@ def get_log_frequency_spectrogram_layer(
     return Sequential(layers)
 
 
+def get_frequency_aware_conv2d(data_format='default', *args, **kwargs):
+    """Returns a frequency-aware conv2d layer.
 
-def get_freq_aware_2d(*args, **kwargs):
-  freq_map_concat_layer = ConcatenateFrequencyMap()
-  conv2d = Conv2D(*args, **kwargs)
-  return keras.models.Sequential([freq_map_concat_layer, conv2d])
+    Args:
+        data_format (str): specifies the data format of batch input/output.
+        *args: position args for `keras.layers.Conv2D`.
+        **kwargs: keyword args for `keras.layers.Conv2D`.
 
+    Returns:
+        A sequential model of ConcatenateFrequencyMap and Conv2D.
+
+    References:
+        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
+        `Receptive-Field-Regularized CNN Variants for Acoustic Scene Classification <https://arxiv.org/abs/1909.02859>`_.
+        In Proceedings of the Detection and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
+
+    """
+    if ('groups' in kwargs and kwargs.get('groups') > 1) or (len(args) >= 7 and args[7] > 1):
+        raise ValueError(
+            'Group convolution is not supported with frequency_aware layer because only the last group'
+            'would be frequency-aware, which might not be expected.'
+        )
+
+    freq_map_concat_layer = ConcatenateFrequencyMap(data_format=data_format)
+
+    if data_format != CH_DEFAULT_STR:
+        kwargs['data_format'] = data_format
+
+    conv2d = Conv2D(*args, **kwargs)
+    return Sequential([freq_map_concat_layer, conv2d], name='frequency_aware_conv2d')

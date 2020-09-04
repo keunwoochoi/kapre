@@ -5,11 +5,10 @@ import tensorflow.keras
 import tensorflow.keras.backend as K
 import librosa
 from kapre.time_frequency import (
-    STFT, 
-    Magnitude, 
-    Phase, 
-    Delta, 
-    FrequencyAwareConv2D,
+    STFT,
+    Magnitude,
+    Phase,
+    Delta,
     ConcatenateFrequencyMap,
 )
 from kapre.composed import (
@@ -17,7 +16,7 @@ from kapre.composed import (
     get_log_frequency_spectrogram_layer,
     get_stft_mag_phase,
     get_perfectly_reconstructing_stft_istft,
-    get_freq_aware_2d,
+    get_frequency_aware_conv2d,
 )
 import tempfile
 
@@ -363,7 +362,7 @@ def test_save_load():
         return model
 
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
-    # test STFT save/load
+    # test STFT
     _test(STFT(input_shape=input_shape, pad_begin=True), batch_src, allclose_complex_numbers)
     # test melspectrogram save/load
     _test(
@@ -383,42 +382,72 @@ def test_save_load():
         batch_src,
         np.testing.assert_allclose,
     )
-    # test composed frequency aware 
-    specs_batch=get_stft_mag_phase(input_shape=input_shape, return_decibel=True)(batch_src)
+    # test ConcatenateFrequencyMap
+    specs_batch = np.random.randn(2, 3, 5, 4).astype(np.float32)
     _test(
-         get_freq_aware_2d(10, 3, activation='relu', input_shape=input_shape[1:]),
+        ConcatenateFrequencyMap(input_shape=specs_batch.shape[1:]),
         specs_batch,
         np.testing.assert_allclose,
     )
 
 
+# def test_frequency_aware_conv2d():
+#     input_shape = (4, 50, 50, 3)
+#     x = tf.random.normal(input_shape)
+#     y = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])(x)
+#     np.testing.assert_equal(y.shape, (4, 48, 48, 10))
+#
+# def test_frequency_aware_conv2d_channel_add():
+#     input_shape = (4, 10, 5, 3)
+#     x = tf.random.normal(input_shape)
+#     f = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])
+#     np.testing.assert_allclose(f._concat_frequency_map(x)[0, 0, :, 0].numpy(),
+#                                f._concat_frequency_map(x)[0, 1, :, 0].numpy())
+#
+# def test_frequency_aware_composed_conv2d():
+#     input_shape = (4, 50, 50, 3)
+#     x = tf.random.normal(input_shape)
+#     y = get_freq_aware_2d(10, 3, activation='relu', input_shape=input_shape[1:])(x)
+#     np.testing.assert_equal(y.shape, (4, 48, 48, 10))
 
-def test_frequency_aware_conv2d():
-    input_shape = (4, 50, 50, 3)
-    x = tf.random.normal(input_shape)
-    y = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])(x)
-    np.testing.assert_equal(y.shape, (4, 48, 48, 10))
 
-def test_frequency_aware_conv2d_channel_add():
-    input_shape = (4, 10, 5, 3)
-    x = tf.random.normal(input_shape)
-    f = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])
-    np.testing.assert_allclose(f._add_freq_info_channel(x)[0,0,:,0].numpy(),
-        f._add_freq_info_channel(x)[0,1,:,0].numpy())
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_concatenate_frequency_map(data_format):
+    shape = (4, 10, 5, 3)
 
-def test_frequency_aware_composed_conv2d():
-    input_shape = (4, 50, 50, 3)
-    x = tf.random.normal(input_shape)
-    y = get_freq_aware_2d(10, 3, activation='relu', input_shape=input_shape[1:])(x)
-    np.testing.assert_equal(y.shape, (4, 48, 48, 10))
+    time_axis, freq_axis, ch_axis = (
+        (1, 2, 3) if data_format == 'channels_last' else (2, 3, 1)
+    )  # todo - replace it with CH_LAST_STR
+    batch_size, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
 
-def test_ConcatenateFrequencyMap():
-    input_shape = (4, 10, 5, 3)
-    x = tf.random.normal(input_shape)
-    f = ConcatenateFrequencyMap()
-    np.testing.assert_allclose(f(x)[0,0,:,0].numpy(),
-        f(x)[0,1,:,0].numpy())
+    x = tf.random.normal(shape, dtype=tf.float32)
+    concat_freq_map = ConcatenateFrequencyMap(data_format=data_format)
+    x_concat = concat_freq_map(x).numpy()
 
+    # test shape
+    new_shape = list(shape)
+    new_shape[ch_axis] += 1
+    np.testing.assert_equal(tuple(new_shape), x_concat.shape)
+    # test freq map
+    freq_map = x_concat[0, 0, :, -1] if data_format == 'channels_last' else x_concat[0, -1, 0, :]
+    np.testing.assert_allclose(freq_map, np.linspace(0, 1, num=n_freq))
+    # test original input
+    other_channels = (
+        x_concat[:, :, :, :-1] if data_format == 'channels_last' else x_concat[:, :-1, :, :]
+    )
+    np.testing.assert_equal(x, other_channels)
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_get_frequency_aware_conv2d(data_format):
+    shape = (4, 10, 5, 3)
+    x = tf.random.normal(shape, dtype=tf.float32)
+
+    freq_aware_conv2d = get_frequency_aware_conv2d(data_format, 4, (3, 3), strides=(2, 2))
+    if (
+        data_format != 'channels_first'
+    ):  # because on cpu, channel_first conv doesn't work in typical tensorflow.
+        _ = freq_aware_conv2d(x)
 
 
 if __name__ == '__main__':

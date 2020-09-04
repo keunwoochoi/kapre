@@ -454,207 +454,80 @@ class Delta(Layer):
         return config
 
 
-
-class FrequencyAwareConv2D(Conv2D):
-    """2D Frequency-Aware convolution layer (useful for Conv2D over spectograms).
-    This layer has the same interface as Conv2D with one extra parameter
-     indicating the frequency dimension
-    This layer creates a convolution kernel that is convolved
-    with the layer input to produce a tensor of
-    outputs. If `use_bias` is True,
-    a bias vector is created and added to the outputs. Finally, if
-    `activation` is not `None`, it is applied to the outputs as well.
-    When using this layer as the first layer in a model,
-    provide the keyword argument `input_shape`
-    (tuple of integers, does not include the sample axis),
-    e.g. `input_shape=(300, 128, 1)?` for  300x128 spectograms with 1 channel
-    in `data_format="channels_last"`.
-
-    Examples:
-
-    >>> # The inputs are 300x128 spectogram images with `channels_last` and the batch
-    >>> # size is 4.
-    >>> input_shape = (4, 300, 128, 1)
-    >>> x = tf.random.normal(input_shape)
-    >>> y = kapre.time_frequency.FreqAwareConv(
-    ... 2, 3, activation='relu', input_shape=input_shape[1:])(x)
-    >>> print(y.shape)
-    (4, 300, 128, 2)
-    References:
-        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019). Receptive-Field-Regularized CNN 
-        Variants for Acoustic Scene Classification. In Proceedings of the Detection 
-        and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
-
-        Liu, R., Lehman, J., Molino, P., Such, F. P., Frank, E., Sergeev, A., & Yosinski, J.
-         (2018). An intriguing failing of convolutional neural networks and the coordconv
-          solution. In Advances in Neural Information Processing Systems (pp. 9605-9616).
-
-    Args:
-        filters (int): the dimensionality of the output space (i.e. the number of
-          output filters in the convolution).
-        kernel_size (Union[int, tuple, list]): An integer or tuple/list of 2 integers, specifying the height
-          and width of the 2D convolution window. Can be a single integer to specify
-          the same value for all spatial dimensions.
-        strides (Union[int, tuple, list], optional): An integer or tuple/list of 2 integers, specifying the strides of
-          the convolution along the height and width. Can be a single integer to
-          specify the same value for all spatial dimensions. Specifying any stride
-          value != 1 is incompatible with specifying any `dilation_rate` value != 1.
-        padding (str, optional): one of `"valid"` or `"same"` (case-insensitive).
-          `"valid"` means no padding. `"same"` results in padding evenly to 
-          the left/right or up/down of the input such that output has the same 
-          height/width dimension as the input.
-        data_format (str, optional): A string, one of `channels_last` (default) or `channels_first`.
-          The ordering of the dimensions in the inputs. `channels_last` corresponds
-          to inputs with shape `(batch_size, height, width, channels)` while
-          `channels_first` corresponds to inputs with shape `(batch_size, channels,
-          height, width)`. It defaults to the `image_data_format` value found in
-          your Keras config file at `~/.keras/keras.json`. If you never set it, then
-          it will be `channels_last`.
-        dilation_rate (Union[int, tuple, list], optional): specifying the
-          dilation rate to use for dilated convolution. Can be a single integer to
-          specify the same value for all spatial dimensions. Currently, specifying
-          any `dilation_rate` value != 1 is incompatible with specifying any stride
-          value != 1.
-        groups (int, optional): A positive integer specifying the number of groups in which the
-          input is split along the channel axis. Each group is convolved separately
-          with `filters / groups` filters. The output is the concatenation of all
-          the `groups` results along the channel axis. Input channels and `filters`
-          must both be divisible by `groups`.
-        activation (Union[str, :obj:`keras.activations`], optional): Activation function to use. If you don't specify anything, no
-          activation is applied (see `keras.activations`).
-        use_bias: Boolean, whether the layer uses a bias vector.
-        kernel_initializer (Union[str, :obj:`keras.initializers`], optional): Initializer for the `kernel` weights matrix (see
-          `keras.initializers`).
-        bias_initializer (Union[str, :obj:`keras.initializers`], optional): Initializer for the bias vector (see
-          `keras.initializers`).
-        kernel_regularizer (Union[str, :obj:`keras.regularizers`], optional): Regularizer function applied to the `kernel` weights
-          matrix (see `keras.regularizers`).
-        bias_regularizer (Union[str, :obj:`keras.regularizers`], optional): Regularizer function applied to the bias vector (see
-          `keras.regularizers`).
-        activity_regularizer (Union[str, :obj:`keras.regularizers`], optional): Regularizer function applied to the output of the
-          layer (its "activation") (see `keras.regularizers`).
-        kernel_constraint (Union[str, :obj:`keras.constraints`], optional): Constraint function applied to the kernel matrix (see
-          `keras.constraints`).
-        bias_constraint (Union[str, :obj:`keras.constraints`], optional): Constraint function applied to the bias vector (see
-          `keras.constraints`).
-
-
-    Input shape:
-        4+D tensor with shape: `batch_shape + (channels, time, freq)` if
-          `data_format='channels_first'`
-        or 4+D tensor with shape: `batch_shape + (time, freq, channels)` if
-          `data_format='channels_last'`.
-
-    Output shape:
-        4+D tensor with shape: `batch_shape + (filters, new_time, new_freq)` if
-        `data_format='channels_first'` or 4+D tensor with shape: `batch_shape +
-          (new_time, new_freq, filters)` if `data_format='channels_last'`.  `time`
-          and `freq` values might have changed due to padding.
-
-    Returns:
-        A tensor of rank 4+ representing
-        `activation(conv2d(inputs, kernel) + bias)`.
-
-    Raises:
-        ValueError: if `padding` is `"causal"`.
-        ValueError: when both `strides > 1` and `dilation_rate > 1`.
-        """
-    def __init__(self,
-               *args,
-               **kwargs):
-        if ('groups' in kwargs and kwargs.get('groups')>1 ) or \
-             (len(args) >= 7 and args[7]>1):
-            warnings.warn(
-                'Grouped Conv2D are not supported.'
-                'Only the first group will be frequency aware.'
-            )
-        super(FrequencyAwareConv2D, self).__init__(*args,
-            **kwargs)
-
-
-    def call(self, inputs):
-        inputs = self._add_freq_info_channel(inputs)
-        outputs = super(FrequencyAwareConv2D, self).call(inputs)
-        return outputs
-
-    def _add_freq_info_channel(self, inputs):
-        shape = tf.shape(inputs)
-        time_axis, freq_axis, ch_axis = (1, 2, 3) if self.data_format == 'channels_last' \
-            else (2, 3, 1)
-        n_batch, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
-        # freq_info shape: n_freq
-        freq_info=tf.cast(tf.range(n_freq) , tf.float32) / tf.cast(n_freq - 1, tf.float32)
-        # repeate over time, shape: n_time,n_freq
-        time_freq_info=tf.tile(tf.expand_dims(freq_info, 0),[n_time,1])
-        # expand to a channels dim (n_time,n_freq,1)
-        time_freq_channel_info=tf.expand_dims(time_freq_info, ch_axis-1)
-        # repeate over batch (n_time,n_freq,1)
-        batch_time_freq_channel_info=tf.tile(tf.expand_dims(time_freq_channel_info, 0),
-            [n_batch,1,1,1])
-        return  tf.concat([batch_time_freq_channel_info, inputs], axis=ch_axis)
-
-    def _get_input_channel(self, input_shape):
-        channel_axis = self._get_channel_axis()
-        if input_shape.dims[channel_axis].value is None:
-          raise ValueError('The channel dimension of the inputs '
-                           'should be defined. Found `None`.')
-        original_input_channels=int(input_shape[channel_axis])
-        return original_input_channels+1
-
-
-
-
-
-
-
 class ConcatenateFrequencyMap(Layer):
-    """Addes a frequency information channel to the 4D input feature map.
-    References:
-        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019). Receptive-Field-Regularized CNN 
-        Variants for Acoustic Scene Classification. In Proceedings of the Detection 
-        and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
+    """Addes a frequency information channel to spectrograms.
 
-        Liu, R., Lehman, J., Molino, P., Such, F. P., Frank, E., Sergeev, A., & Yosinski, J.
-         (2018). An intriguing failing of convolutional neural networks and the coordconv
-          solution. In Advances in Neural Information Processing Systems (pp. 9605-9616).
+    The added frequency channel (=frequency map) has a linearly increasing values from 0.0 to 1.0,
+    indicating the normalize frequency of a time-frequency bin. This layer can be applied to input audio spectrograms
+    or any feature maps so that the following layers can be conditioned on the frequency. (Imagine something like
+    positional encoding in NLP but the position is on frequency axis).
+
+    A combination of `ConcatenateFrequencyMap` and `Conv2D` is known as frequency-aware convolution (see References).
+    For your convenience, such a layer is supported at `karep.composed`.
 
     Args:
-        data_format (str, optional): A string, one of `channels_last` (default) or `channels_first`.
-          The ordering of the dimensions in the inputs. `channels_last` corresponds
-          to inputs with shape `(batch_size, height, width, channels)` while
-          `channels_first` corresponds to inputs with shape `(batch_size, channels,
-          height, width)`. It defaults to the `image_data_format` value found in
-          your Keras config file at `~/.keras/keras.json`. If you never set it, then
-          it will be `channels_last`.
+        data_format (str): specifies the data format of batch input/output.
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    References:
+        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
+        `Receptive-Field-Regularized CNN Variants for Acoustic Scene Classification <https://arxiv.org/abs/1909.02859>`_.
+        In Proceedings of the Detection and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
 
     """
 
-    def __init__(self,data_format= 'channels_last',**kwargs):
-        super(ConcatenateFrequencyMap, self).__init__(**kwargs)
-        self.data_format = 'channels_last'
+    def __init__(self, data_format='default', **kwargs):
+        backend.validate_data_format_str(data_format)
 
-    def call(self, inputs):
-        return self._add_freq_info_channel(inputs)
+        if data_format == CH_DEFAULT_STR:
+            self.data_format = K.image_data_format()
+        else:
+            self.data_format = data_format
+
+        self.data_format = data_format
+
+        super(ConcatenateFrequencyMap, self).__init__(**kwargs)
+
+    def call(self, x):
+        """
+        Args:
+            x (`Tensor`): a 2d batch (b, t, f, ch) or (b, ch, t, f)
+
+        Returns:
+            x (`Tensor`): a 2d batch (b, t, f, ch + 1) or (b, ch + 1, t, f)
+        """
+        return self._concat_frequency_map(x)
+
+    def _concat_frequency_map(self, inputs):
+        shape = tf.shape(inputs)
+        time_axis, freq_axis, ch_axis = (
+            (1, 2, 3) if self.data_format == 'channels_last' else (2, 3, 1)
+        )
+        batch_size, n_freq, n_time, n_ch = (
+            shape[0],
+            shape[freq_axis],
+            shape[time_axis],
+            shape[ch_axis],
+        )
+
+        # freq_info shape: n_freq
+        freq_map_1d = tf.cast(tf.linspace(start=0.0, stop=1.0, num=n_freq), dtype=tf.float32)
+
+        new_shape = (1, 1, -1, 1) if self.data_format == CH_LAST_STR else (1, 1, 1, -1)
+        freq_map_1d = tf.reshape(freq_map_1d, new_shape)  # 4D now
+
+        multiples = (
+            (batch_size, n_time, 1, 1)
+            if self.data_format == CH_LAST_STR
+            else (batch_size, 1, n_time, 1)
+        )
+        freq_map_4d = tf.tile(freq_map_1d, multiples)
+
+        return tf.concat([inputs, freq_map_4d], axis=ch_axis)
+
     def get_config(self):
         config = super(ConcatenateFrequencyMap, self).get_config()
         config.update(
-            {
-                'data_format': self.data_format,
-            }
+            {'data_format': self.data_format,}
         )
         return config
-    def _add_freq_info_channel(self, inputs):
-        shape = tf.shape(inputs)
-        time_axis, freq_axis, ch_axis = (1, 2, 3) if self.data_format == 'channels_last' \
-            else (2, 3, 1)
-        n_batch, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
-        # freq_info shape: n_freq
-        freq_info=tf.cast(tf.range(n_freq) , tf.float32) / tf.cast(n_freq - 1, tf.float32)
-        # repeate over time, shape: n_time,n_freq
-        time_freq_info=tf.tile(tf.expand_dims(freq_info, 0),[n_time,1])
-        # expand to a channels dim (n_time,n_freq,1)
-        time_freq_channel_info=tf.expand_dims(time_freq_info, ch_axis-1)
-        # repeate over batch (n_time,n_freq,1)
-        batch_time_freq_channel_info=tf.tile(tf.expand_dims(time_freq_channel_info, 0),
-            [n_batch,1,1,1])
-        return  tf.concat([batch_time_freq_channel_info, inputs], axis=ch_axis)
