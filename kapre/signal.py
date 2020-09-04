@@ -219,9 +219,7 @@ class MuLawEncoding(Layer):
     """
 
     def __init__(
-        self,
-        quantization_channels,
-        **kwargs,
+        self, quantization_channels, **kwargs,
     ):
         super(MuLawEncoding, self).__init__(**kwargs)
         self.quantization_channels = quantization_channels
@@ -240,9 +238,7 @@ class MuLawEncoding(Layer):
     def get_config(self):
         config = super(MuLawEncoding, self).get_config()
         config.update(
-            {
-                'quantization_channels': self.quantization_channels,
-            }
+            {'quantization_channels': self.quantization_channels,}
         )
 
         return config
@@ -267,9 +263,7 @@ class MuLawDecoding(Layer):
     """
 
     def __init__(
-        self,
-        quantization_channels,
-        **kwargs,
+        self, quantization_channels, **kwargs,
     ):
         super(MuLawDecoding, self).__init__(**kwargs)
         self.quantization_channels = quantization_channels
@@ -288,9 +282,7 @@ class MuLawDecoding(Layer):
     def get_config(self):
         config = super(MuLawDecoding, self).get_config()
         config.update(
-            {
-                'quantization_channels': self.quantization_channels,
-            }
+            {'quantization_channels': self.quantization_channels,}
         )
 
         return config

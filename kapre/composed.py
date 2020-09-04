@@ -363,7 +363,7 @@ def get_log_frequency_spectrogram_layer(
         layers.append(mag_to_decibel)
 
     return Sequential(layers)
-  
+
 
 def get_perfectly_reconstructing_stft_istft(
     stft_input_shape=None,
@@ -566,7 +566,7 @@ def get_stft_mag_phase(
 
     model = Model(inputs=waveforms, outputs=stfts_mag_phase)
     return model
-  
+
 
 def get_frequency_aware_conv2d(data_format='default', *args, **kwargs):
     """Returns a frequency-aware conv2d layer.
