@@ -603,13 +603,11 @@ class ConcatenateFrequencyMap(Layer):
             # (batch, n_frame=3, n_freq=513, ch=2)
             # now add your model
             mode.add(keras.layers.Conv2D(16, (3, 3), strides=(2, 2), activation='relu')
-            # you can concatenate frequency map before other conv layers, too.
+            # you can concatenate frequency map before other conv layers,
+            # but probably, you wouldn't want to add it right before batch normalization.
             model.add(kapre.ConcatenateFrequencyMap())
             model.add(keras.layers.Conv2D(32, (3, 3), strides=(1, 1), activation='relu')
             model.add(keras.layers.MaxPooling2D((2, 2)))  # length of frequency axis doesn't matter
-            model.add(kapre.ConcatenateFrequencyMap())
-            # but you probably don't want to do it right befor batch normalization.
-
 
     References:
         Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
