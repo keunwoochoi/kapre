@@ -512,6 +512,7 @@ class Delta(Layer):
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            model.add(kapre.Magnitude())
             model.add(Delta())
             # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
@@ -584,11 +585,31 @@ class ConcatenateFrequencyMap(Layer):
     positional encoding in NLP but the position is on frequency axis).
 
     A combination of `ConcatenateFrequencyMap` and `Conv2D` is known as frequency-aware convolution (see References).
-    For your convenience, such a layer is supported at `karep.composed`.
+    For your convenience, such a layer is supported by `karep.composed.get_frequency_aware_conv2d()`.
 
     Args:
         data_format (str): specifies the data format of batch input/output.
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
+            model.add(kapre.Magnitude())
+            # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
+            model.add(kapre.ConcatenateFrequencyMap())
+            # (batch, n_frame=3, n_freq=513, ch=2)
+            # now add your model
+            mode.add(keras.layers.Conv2D(16, (3, 3), strides=(2, 2), activation='relu')
+            # you can concatenate frequency map before other conv layers, too.
+            model.add(kapre.ConcatenateFrequencyMap())
+            model.add(keras.layers.Conv2D(32, (3, 3), strides=(1, 1), activation='relu')
+            model.add(keras.layers.MaxPooling2D((2, 2)))  # length of frequency axis doesn't matter
+            model.add(kapre.ConcatenateFrequencyMap())
+            # but you probably don't want to do it right befor batch normalization.
+
 
     References:
         Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
