@@ -34,6 +34,7 @@ __all__ = [
     'MagnitudeToDecibel',
     'ApplyFilterbank',
     'Delta',
+    'ConcatenateFrequencyMap',
 ]
 
 
@@ -607,7 +608,7 @@ class ConcatenateFrequencyMap(Layer):
     def __init__(self, data_format='default', **kwargs):
         backend.validate_data_format_str(data_format)
 
-        if data_format == CH_DEFAULT_STR:
+        if data_format == _CH_DEFAULT_STR:
             self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
@@ -629,7 +630,7 @@ class ConcatenateFrequencyMap(Layer):
     def _concat_frequency_map(self, inputs):
         shape = tf.shape(inputs)
         time_axis, freq_axis, ch_axis = (
-            (1, 2, 3) if self.data_format == 'channels_last' else (2, 3, 1)
+            (1, 2, 3) if self.data_format == _CH_LAST_STR else (2, 3, 1)
         )
         batch_size, n_freq, n_time, n_ch = (
             shape[0],
@@ -641,12 +642,12 @@ class ConcatenateFrequencyMap(Layer):
         # freq_info shape: n_freq
         freq_map_1d = tf.cast(tf.linspace(start=0.0, stop=1.0, num=n_freq), dtype=tf.float32)
 
-        new_shape = (1, 1, -1, 1) if self.data_format == CH_LAST_STR else (1, 1, 1, -1)
+        new_shape = (1, 1, -1, 1) if self.data_format == _CH_LAST_STR else (1, 1, 1, -1)
         freq_map_1d = tf.reshape(freq_map_1d, new_shape)  # 4D now
 
         multiples = (
             (batch_size, n_time, 1, 1)
-            if self.data_format == CH_LAST_STR
+            if self.data_format == _CH_LAST_STR
             else (batch_size, 1, n_time, 1)
         )
         freq_map_4d = tf.tile(freq_map_1d, multiples)

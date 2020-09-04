@@ -3,17 +3,14 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras
 import librosa
-from kapre.time_frequency import (
-    ConcatenateFrequencyMap,
-)
-from kapre import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank
+from kapre import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank, ConcatenateFrequencyMap
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
     get_stft_mag_phase,
     get_perfectly_reconstructing_stft_istft,
-    get_frequency_aware_conv2d,
     get_stft_magnitude_layer,
+    get_frequency_aware_conv2d,
 )
 
 from utils import get_audio, save_load_compare
