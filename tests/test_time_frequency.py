@@ -3,7 +3,15 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras
 import librosa
-from kapre import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank, ConcatenateFrequencyMap
+from kapre import (
+    STFT,
+    Magnitude,
+    Phase,
+    Delta,
+    InverseSTFT,
+    ApplyFilterbank,
+    ConcatenateFrequencyMap,
+)
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
@@ -230,11 +238,7 @@ def test_mag_phase(data_format):
     mag_phase_ref = np.stack(
         librosa.magphase(
             librosa.stft(
-                src_mono,
-                n_fft=n_fft,
-                hop_length=hop_length,
-                win_length=win_length,
-                center=False,
+                src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False,
             ).T
         ),
         axis=ch_axis,
@@ -242,20 +246,8 @@ def test_mag_phase(data_format):
     np.testing.assert_equal(mag_phase_kapre.shape, mag_phase_ref.shape)
     # magnitude test
     np.testing.assert_allclose(
-        np.take(
-            mag_phase_kapre,
-            [
-                0,
-            ],
-            axis=ch_axis,
-        ),
-        np.take(
-            mag_phase_ref,
-            [
-                0,
-            ],
-            axis=ch_axis,
-        ),
+        np.take(mag_phase_kapre, [0,], axis=ch_axis,),
+        np.take(mag_phase_ref, [0,], axis=ch_axis,),
         atol=2e-4,
     )
     # phase test - todo - yeah..
@@ -398,7 +390,7 @@ def test_get_frequency_aware_conv2d(data_format):
     ):  # because on cpu, channel_first conv doesn't work in typical tensorflow.
         _ = freq_aware_conv2d(x)
 
-        
+
 @pytest.mark.xfail()
 @pytest.mark.parametrize('layer', [STFT, InverseSTFT])
 def test_wrong_input_data_format(layer):
@@ -415,6 +407,7 @@ def test_wrong_input_data_format(layer):
 @pytest.mark.parametrize('layer', [Delta, ApplyFilterbank])
 def test_wrong_data_format(layer):
     _ = layer(data_format='weird_string')
+
 
 if __name__ == '__main__':
     pytest.main([__file__])
