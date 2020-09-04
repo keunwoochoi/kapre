@@ -17,7 +17,6 @@ from . import backend
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Sequential, Model
-from tensorflow.keras.layers import Conv2D
 from .backend import CH_FIRST_STR, CH_LAST_STR, CH_DEFAULT_STR
 
 
@@ -426,5 +425,5 @@ def get_frequency_aware_conv2d(data_format='default', *args, **kwargs):
     if data_format != CH_DEFAULT_STR:
         kwargs['data_format'] = data_format
 
-    conv2d = Conv2D(*args, **kwargs)
+    conv2d = keras.layers.Conv2D(*args, **kwargs)
     return Sequential([freq_map_concat_layer, conv2d], name='frequency_aware_conv2d')

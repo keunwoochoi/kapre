@@ -391,26 +391,6 @@ def test_save_load():
     )
 
 
-# def test_frequency_aware_conv2d():
-#     input_shape = (4, 50, 50, 3)
-#     x = tf.random.normal(input_shape)
-#     y = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])(x)
-#     np.testing.assert_equal(y.shape, (4, 48, 48, 10))
-#
-# def test_frequency_aware_conv2d_channel_add():
-#     input_shape = (4, 10, 5, 3)
-#     x = tf.random.normal(input_shape)
-#     f = FrequencyAwareConv2D(10, 3, activation='relu', input_shape=input_shape[1:])
-#     np.testing.assert_allclose(f._concat_frequency_map(x)[0, 0, :, 0].numpy(),
-#                                f._concat_frequency_map(x)[0, 1, :, 0].numpy())
-#
-# def test_frequency_aware_composed_conv2d():
-#     input_shape = (4, 50, 50, 3)
-#     x = tf.random.normal(input_shape)
-#     y = get_freq_aware_2d(10, 3, activation='relu', input_shape=input_shape[1:])(x)
-#     np.testing.assert_equal(y.shape, (4, 48, 48, 10))
-
-
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
 def test_concatenate_frequency_map(data_format):
     shape = (4, 10, 5, 3)
