@@ -593,7 +593,7 @@ def get_frequency_aware_conv2d(data_format='default', *args, **kwargs):
 
     freq_map_concat_layer = ConcatenateFrequencyMap(data_format=data_format)
 
-    if data_format != CH_DEFAULT_STR:
+    if data_format != _CH_DEFAULT_STR:
         kwargs['data_format'] = data_format
 
     conv2d = keras.layers.Conv2D(*args, **kwargs)
