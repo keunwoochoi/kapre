@@ -101,7 +101,7 @@ Please cite this paper if you use Kapre for your work.
 ```
 
 ## News
-* ?? Aug 2020
+* 28 Aug 2020
   - 0.3.2
     - `kapre.signal.Frame` and `kapre.signal.Energy` are added
     - `kapre.signal.LogmelToMFCC` is added
