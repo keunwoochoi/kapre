@@ -3,12 +3,16 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras
 import librosa
+from kapre.time_frequency import (
+    ConcatenateFrequencyMap,
+)
 from kapre import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
     get_stft_mag_phase,
     get_perfectly_reconstructing_stft_istft,
+    get_frequency_aware_conv2d,
     get_stft_magnitude_layer,
 )
 
@@ -350,8 +354,54 @@ def test_save_load():
     save_load_compare(
         get_stft_magnitude_layer(input_shape=input_shape), batch_src, np.testing.assert_allclose
     )
+    # test ConcatenateFrequencyMap
+    specs_batch = np.random.randn(2, 3, 5, 4).astype(np.float32)
+    save_load_compare(
+        ConcatenateFrequencyMap(input_shape=specs_batch.shape[1:]),
+        specs_batch,
+        np.testing.assert_allclose,
+    )
 
 
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_concatenate_frequency_map(data_format):
+    shape = (4, 10, 5, 3)
+
+    time_axis, freq_axis, ch_axis = (
+        (1, 2, 3) if data_format == 'channels_last' else (2, 3, 1)
+    )  # todo - replace it with CH_LAST_STR
+    batch_size, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
+
+    x = tf.random.normal(shape, dtype=tf.float32)
+    concat_freq_map = ConcatenateFrequencyMap(data_format=data_format)
+    x_concat = concat_freq_map(x).numpy()
+
+    # test shape
+    new_shape = list(shape)
+    new_shape[ch_axis] += 1
+    np.testing.assert_equal(tuple(new_shape), x_concat.shape)
+    # test freq map
+    freq_map = x_concat[0, 0, :, -1] if data_format == 'channels_last' else x_concat[0, -1, 0, :]
+    np.testing.assert_allclose(freq_map, np.linspace(0, 1, num=n_freq))
+    # test original input
+    other_channels = (
+        x_concat[:, :, :, :-1] if data_format == 'channels_last' else x_concat[:, :-1, :, :]
+    )
+    np.testing.assert_equal(x, other_channels)
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_get_frequency_aware_conv2d(data_format):
+    shape = (4, 10, 5, 3)
+    x = tf.random.normal(shape, dtype=tf.float32)
+
+    freq_aware_conv2d = get_frequency_aware_conv2d(data_format, 4, (3, 3), strides=(2, 2))
+    if (
+        data_format != 'channels_first'
+    ):  # because on cpu, channel_first conv doesn't work in typical tensorflow.
+        _ = freq_aware_conv2d(x)
+
+        
 @pytest.mark.xfail()
 @pytest.mark.parametrize('layer', [STFT, InverseSTFT])
 def test_wrong_input_data_format(layer):
@@ -368,7 +418,6 @@ def test_wrong_input_data_format(layer):
 @pytest.mark.parametrize('layer', [Delta, ApplyFilterbank])
 def test_wrong_data_format(layer):
     _ = layer(data_format='weird_string')
-
 
 if __name__ == '__main__':
     pytest.main([__file__])

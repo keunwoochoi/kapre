@@ -20,7 +20,7 @@ Note:
 """
 import warnings
 import tensorflow as tf
-from tensorflow.keras.layers import Layer
+from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
@@ -579,4 +579,83 @@ class Delta(Layer):
             {'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format}
         )
 
+        return config
+
+
+class ConcatenateFrequencyMap(Layer):
+    """Addes a frequency information channel to spectrograms.
+
+    The added frequency channel (=frequency map) has a linearly increasing values from 0.0 to 1.0,
+    indicating the normalize frequency of a time-frequency bin. This layer can be applied to input audio spectrograms
+    or any feature maps so that the following layers can be conditioned on the frequency. (Imagine something like
+    positional encoding in NLP but the position is on frequency axis).
+
+    A combination of `ConcatenateFrequencyMap` and `Conv2D` is known as frequency-aware convolution (see References).
+    For your convenience, such a layer is supported at `karep.composed`.
+
+    Args:
+        data_format (str): specifies the data format of batch input/output.
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    References:
+        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
+        `Receptive-Field-Regularized CNN Variants for Acoustic Scene Classification <https://arxiv.org/abs/1909.02859>`_.
+        In Proceedings of the Detection and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
+
+    """
+
+    def __init__(self, data_format='default', **kwargs):
+        backend.validate_data_format_str(data_format)
+
+        if data_format == CH_DEFAULT_STR:
+            self.data_format = K.image_data_format()
+        else:
+            self.data_format = data_format
+
+        self.data_format = data_format
+
+        super(ConcatenateFrequencyMap, self).__init__(**kwargs)
+
+    def call(self, x):
+        """
+        Args:
+            x (`Tensor`): a 2d batch (b, t, f, ch) or (b, ch, t, f)
+
+        Returns:
+            x (`Tensor`): a 2d batch (b, t, f, ch + 1) or (b, ch + 1, t, f)
+        """
+        return self._concat_frequency_map(x)
+
+    def _concat_frequency_map(self, inputs):
+        shape = tf.shape(inputs)
+        time_axis, freq_axis, ch_axis = (
+            (1, 2, 3) if self.data_format == 'channels_last' else (2, 3, 1)
+        )
+        batch_size, n_freq, n_time, n_ch = (
+            shape[0],
+            shape[freq_axis],
+            shape[time_axis],
+            shape[ch_axis],
+        )
+
+        # freq_info shape: n_freq
+        freq_map_1d = tf.cast(tf.linspace(start=0.0, stop=1.0, num=n_freq), dtype=tf.float32)
+
+        new_shape = (1, 1, -1, 1) if self.data_format == CH_LAST_STR else (1, 1, 1, -1)
+        freq_map_1d = tf.reshape(freq_map_1d, new_shape)  # 4D now
+
+        multiples = (
+            (batch_size, n_time, 1, 1)
+            if self.data_format == CH_LAST_STR
+            else (batch_size, 1, n_time, 1)
+        )
+        freq_map_4d = tf.tile(freq_map_1d, multiples)
+
+        return tf.concat([inputs, freq_map_4d], axis=ch_axis)
+
+    def get_config(self):
+        config = super(ConcatenateFrequencyMap, self).get_config()
+        config.update(
+            {'data_format': self.data_format,}
+        )
         return config
