@@ -57,7 +57,7 @@ def _shape_spectrum_output(spectrums, data_format):
 
 class STFT(Layer):
     """
-    A Shor-time Fourier transform layer.
+    A Short-time Fourier transform layer.
 
     It uses `tf.signal.stft` to compute complex STFT. Additionally, it reshapes the output to be a proper 2D batch.
 
