@@ -210,3 +210,28 @@ def mu_law_decoding(signal_mu, quantization_channels):
         tf.math.sign(signal) * (tf.math.exp(tf.math.abs(signal) * tf.math.log1p(mu)) - 1.0) / mu
     )
     return signal
+
+
+def random_masking_along_axis(input_f, param, axis, name='masking'):
+    """
+    Apply masking to a spectrogram in the time/freq domain.
+    Args:
+      input: An audio spectogram.
+      param: Parameter of freq masking.
+      name: A name for the operation (optional).
+    Returns:
+      A tensor of spectrogram.
+    """
+    # TODO: Support audio with channel > 1.
+    _max = tf.shape(input_f)[axis + 1]
+    _shape = [-1, 1, 1, 1]
+    _shape[axis + 1] = _max
+    f = tf.random.uniform(shape=(), minval=0, maxval=param, dtype=tf.dtypes.int32)
+    f0 = tf.random.uniform(
+        shape=(), minval=0, maxval=_max - f, dtype=tf.dtypes.int32
+    )
+    indices = tf.reshape(tf.range(_max), tuple(_shape))
+    condition = tf.math.logical_and(
+        tf.math.greater_equal(indices, f0), tf.math.less(indices, f0 + f)
+    )
+    return tf.compat.v2.where(condition, 0.0, input_f)
