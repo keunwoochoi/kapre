@@ -25,7 +25,7 @@ def get_stft_magnitude_layer(
     input_data_format='default',
     output_data_format='default',
 ):
-    """A function that retunrs a stft magnitude layer.
+    """A function that returns a stft magnitude layer.
     The layer is a `keras.Sequential` model consists of `STFT`, `Magnitude`, and optionally `MagnitudeToDecibel`.
 
     Args:
