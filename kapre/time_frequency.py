@@ -36,6 +36,13 @@ __all__ = [
     'Delta',
 ]
 
+WINDOW_TYPES = {
+    'hamming_window': tf.signal.hamming_window,
+    'hann_window': tf.signal.hann_window,
+    'kaiser_bessel_derived_window': tf.signal.kaiser_bessel_derived_window,
+    'kaiser_window': tf.signal.kaiser_window,
+    'vorbis_window': tf.signal.vorbis_window
+}
 
 def _shape_spectrum_output(spectrums, data_format):
     """Shape batch spectrograms into the right format.
@@ -116,6 +123,8 @@ class STFT(Layer):
             hop_length = win_length // 4
         if window_fn is None:
             window_fn = tf.signal.hann_window
+        elif type(window_fn) == str:
+            window_fn = WINDOW_TYPES.get(window_fn, tf.signal.hann_window)
 
         self.n_fft = n_fft
         self.win_length = win_length
@@ -256,6 +265,8 @@ class InverseSTFT(Layer):
                 'For more details, see how kapre.composed.get_perfectly_reconstructing_stft_istft() is'
                 'implemented. '
             )
+        elif type(window_fn) == str:
+            window_fn = WINDOW_TYPES.get(window_fn, tf.signal.hann_window)
 
         self.n_fft = n_fft
         self.win_length = win_length
