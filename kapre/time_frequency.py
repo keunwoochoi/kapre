@@ -69,7 +69,7 @@ class STFT(Layer):
         win_length (int or None): Window length in sample. Defaults to `n_fft`.
         hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
         window_fn (function or None): A function that returns a 1D tensor window that is used in analysis. Defaults to `tf.signal.hann_window`
-        pad_begin (bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): Whether to pad with zeros at the finishing end of the signal.
         input_data_format (str): the audio data format of input waveform batch.
             `'channels_last'` if it's `(batch, time, channels)` and
