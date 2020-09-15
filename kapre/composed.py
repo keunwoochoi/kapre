@@ -154,7 +154,7 @@ def get_melspectrogram_layer(
     input_data_format='default',
     output_data_format='default',
 ):
-    """A function that retunrs a melspectrogram layer, which is a `keras.Sequential` model consists of
+    """A function that returns a melspectrogram layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_mel_filterbank)`, and optionally `MagnitudeToDecibel`.
 
     Args:
@@ -277,7 +277,7 @@ def get_log_frequency_spectrogram_layer(
     input_data_format='default',
     output_data_format='default',
 ):
-    """A function that retunrs a log-frequency STFT layer, which is a `keras.Sequential` model consists of
+    """A function that returns a log-frequency STFT layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_log_filterbank)`, and optionally `MagnitudeToDecibel`.
 
     Args:
