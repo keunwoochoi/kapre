@@ -43,6 +43,7 @@ def get_stft_magnitude_layer(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='stft_magnitude',
 ):
     """A function that returns a stft magnitude layer.
     The layer is a `keras.Sequential` model consists of `STFT`, `Magnitude`, and optionally `MagnitudeToDecibel`.
@@ -70,6 +71,7 @@ def get_stft_magnitude_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Note:
         STFT magnitude represents a linear-frequency spectrum of audio signal and probably the most popular choice
@@ -130,7 +132,7 @@ def get_stft_magnitude_layer(
         )
         layers.append(mag_to_decibel)
 
-    return Sequential(layers)
+    return Sequential(layers, name=name)
 
 
 def get_melspectrogram_layer(
@@ -153,6 +155,7 @@ def get_melspectrogram_layer(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='melspectrogram',
 ):
     """A function that returns a melspectrogram layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_mel_filterbank)`, and optionally `MagnitudeToDecibel`.
@@ -186,6 +189,7 @@ def get_melspectrogram_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Note:
         Melspectrogram is originally developed for speech applications and has been *very* widely used for audio signal
@@ -254,7 +258,7 @@ def get_melspectrogram_layer(
         )
         layers.append(mag_to_decibel)
 
-    return Sequential(layers)
+    return Sequential(layers, name=name)
 
 
 def get_log_frequency_spectrogram_layer(
@@ -276,6 +280,7 @@ def get_log_frequency_spectrogram_layer(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='log_frequency_spectrogram',
 ):
     """A function that returns a log-frequency STFT layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_log_filterbank)`, and optionally `MagnitudeToDecibel`.
@@ -308,6 +313,7 @@ def get_log_frequency_spectrogram_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Note:
         Log-frequency spectrogram is similar to melspectrogram but its frequency axis is perfectly linear to octave scale.
@@ -376,7 +382,7 @@ def get_log_frequency_spectrogram_layer(
         )
         layers.append(mag_to_decibel)
 
-    return Sequential(layers)
+    return Sequential(layers, name=name)
 
 
 def get_perfectly_reconstructing_stft_istft(
@@ -388,6 +394,8 @@ def get_perfectly_reconstructing_stft_istft(
     forward_window_name=None,
     waveform_data_format='default',
     stft_data_format='default',
+    stft_name='stft',
+    istft_name='istft',
 ):
     """A function that returns two layers, stft and inverse stft, which would be perfectly reconstructing pair.
 
@@ -410,6 +418,9 @@ def get_perfectly_reconstructing_stft_istft(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        stft_name (str): name of the returned STFT layer
+        istft_name (str): name of the returned ISTFT layer
+
 
     Note:
         Without a careful setting, `tf.signal.stft` and `tf.signal.istft` is not perfectly reconstructing.
@@ -471,6 +482,7 @@ def get_perfectly_reconstructing_stft_istft(
         pad_end=True,
         input_data_format=waveform_data_format,
         output_data_format=stft_data_format,
+        name=stft_name,
     )
 
     stft_to_waveform = InverseSTFT(
@@ -481,6 +493,7 @@ def get_perfectly_reconstructing_stft_istft(
         forward_window_name=forward_window_name,
         input_data_format=stft_data_format,
         output_data_format=waveform_data_format,
+        name=istft_name,
     )
 
     return waveform_to_stft, stft_to_waveform
@@ -500,6 +513,7 @@ def get_stft_mag_phase(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='stft_mag_phase',
 ):
     """A function that returns magnitude and phase of input audio.
 
@@ -527,6 +541,7 @@ def get_stft_mag_phase(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Example:
         ::
@@ -574,15 +589,18 @@ def get_stft_mag_phase(
 
     stfts_mag_phase = concat_layer([mag_stfts, phase_stfts])
 
-    model = Model(inputs=waveforms, outputs=stfts_mag_phase)
+    model = Model(inputs=waveforms, outputs=stfts_mag_phase, name=name)
     return model
 
 
-def get_frequency_aware_conv2d(data_format='default', *args, **kwargs):
+def get_frequency_aware_conv2d(
+    data_format='default', freq_aware_name='frequency_aware_conv2d', *args, **kwargs
+):
     """Returns a frequency-aware conv2d layer.
 
     Args:
         data_format (str): specifies the data format of batch input/output.
+        freq_aware_name (str): name of the returned layer
         *args: position args for `keras.layers.Conv2D`.
         **kwargs: keyword args for `keras.layers.Conv2D`.
 
@@ -607,4 +625,4 @@ def get_frequency_aware_conv2d(data_format='default', *args, **kwargs):
         kwargs['data_format'] = data_format
 
     conv2d = keras.layers.Conv2D(*args, **kwargs)
-    return Sequential([freq_map_concat_layer, conv2d], name='frequency_aware_conv2d')
+    return Sequential([freq_map_concat_layer, conv2d], name=freq_aware_name)

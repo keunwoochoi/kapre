@@ -400,7 +400,9 @@ def test_get_frequency_aware_conv2d(data_format):
     shape = (4, 10, 5, 3)
     x = tf.random.normal(shape, dtype=tf.float32)
 
-    freq_aware_conv2d = get_frequency_aware_conv2d(data_format, 4, (3, 3), strides=(2, 2))
+    freq_aware_conv2d = get_frequency_aware_conv2d(
+        data_format, 'freq_aware_conv2d', 4, (3, 3), strides=(2, 2)
+    )
     if (
         data_format != 'channels_first'
     ):  # because on cpu, channel_first conv doesn't work in typical tensorflow.
