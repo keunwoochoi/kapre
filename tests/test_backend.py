@@ -119,6 +119,11 @@ def test_fb_log_fail():
 
 
 @pytest.mark.xfail()
+def test_unsupported_window():
+    _ = KPB.get_window_fn('wrong_window_name')
+
+
+@pytest.mark.xfail()
 def test_validate_fail():
     _ = validate_data_format_str('weird_string')
 

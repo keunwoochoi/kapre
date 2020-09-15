@@ -320,7 +320,11 @@ def test_save_load(save_format):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test STFT save/load
     save_load_compare(
-        STFT(input_shape=input_shape, pad_begin=True), batch_src, allclose_complex_numbers
+        STFT(input_shape=input_shape, pad_begin=True),
+        batch_src,
+        allclose_complex_numbers,
+        save_format,
+        STFT,
     )
 
     # test ConcatenateFrequencyMap
@@ -329,6 +333,8 @@ def test_save_load(save_format):
         ConcatenateFrequencyMap(input_shape=specs_batch.shape[1:]),
         specs_batch,
         np.testing.assert_allclose,
+        save_format,
+        ConcatenateFrequencyMap,
     )
 
     if save_format == 'tf':

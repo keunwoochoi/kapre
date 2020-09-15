@@ -33,9 +33,15 @@ def test_channel_swap_correctness(n_ch, data_format, data_type):
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-def test_save_load(data_format):
+@pytest.mark.parametrize('save_format', ['tf', 'h5'])
+def test_save_load(data_format, save_format):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
 
     save_load_compare(
-        ChannelSwap(input_shape=input_shape), batch_src, np.testing.assert_allclose, training=None
+        ChannelSwap(input_shape=input_shape),
+        batch_src,
+        np.testing.assert_allclose,
+        save_format=save_format,
+        layer_class=ChannelSwap,
+        training=None,
     )

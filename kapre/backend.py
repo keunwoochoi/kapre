@@ -24,7 +24,7 @@ def get_window_fn(window_name=None):
 
     Args:
         window_name (None or str): name of window function. On Tensorflow 2.3, there are five windows available in
-        `tf.signal` - `hamming_window`, `hann_window`, `kaiser_bessel_derived_window`, `kaiser_window`, `vorbis_window`.
+        `tf.signal` (`hamming_window`, `hann_window`, `kaiser_bessel_derived_window`, `kaiser_window`, `vorbis_window`).
 
     """
 
@@ -85,7 +85,7 @@ def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
     Returns:
         log_spec (`Tensor`): a decibel-scaled version of `x`.
 
-    Notes:
+    Note:
         In many deep learning based application, the input spectrogram magnitudes (e.g., abs(STFT)) are decibel-scaled
         (=logarithmically mapped) for a better performance.
 
