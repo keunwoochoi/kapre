@@ -4,7 +4,11 @@ Release Note
 * 15 Sep 2020
   - 0.3.3
     - `kapre.augmentation` is added
-    -
+    - `kapre.time_frequency.ConcatenateFrequencyMap` is added
+    - `kapre.composed.get_frequency_aware_conv2d` is added
+    - In `STFT` and `InverseSTFT`, keyword arg `window_fn` is renamed to `window_name` and it expects string value, not function.
+      - With this change, models with Kapre layers can be loaded with `h5` file format.
+    - `kapre.backend.get_window_fn` is added
 
 * 28 Aug 2020
   - 0.3.2

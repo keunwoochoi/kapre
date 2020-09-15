@@ -92,5 +92,9 @@ Visit `github.com/keunwoochoi/kapre <https://github.com/keunwoochoi/kapre>`_ and
    signal
    composed
    backend
+
+.. toctree::
+   :hidden:
+   :caption: Info
    release_note
 
