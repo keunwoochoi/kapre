@@ -71,7 +71,7 @@ class STFT(Layer):
         window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
             Defaults to `hann_window` which uses `tf.signal.hann_window`.
             Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
-        pad_begin (bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+        pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): Whether to pad with zeros at the finishing end of the signal.
         input_data_format (str): the audio data format of input waveform batch.
             `'channels_last'` if it's `(batch, time, channels)` and

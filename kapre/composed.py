@@ -1,6 +1,4 @@
 """Functions that returns high-level layers that are composed using other Kapre layers.
-<<<<<<< HEAD
-=======
 
 Warnings:
     Functions in this module returns a composed Keras layer, which is an instance of `keras.Sequential` or `keras.Functional`.
@@ -13,7 +11,6 @@ Warnings:
         for layer in composed_melgram_layer.layers:
             your_model.add(layer)
 
->>>>>>> fix typo
 
 """
 from .time_frequency import (
@@ -56,15 +53,10 @@ def get_stft_magnitude_layer(
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
-<<<<<<< HEAD
-        window_fn (function or `None`): windowing function of `STFT`.
-            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
-        pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
-=======
         window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
             Defaults to `hann_window` which uses `tf.signal.hann_window`.
-            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.pad_begin (bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
->>>>>>> fix typo
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
+        pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         return_decibel (bool): whether to apply decibel scaling at the end
         db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
@@ -171,15 +163,10 @@ def get_melspectrogram_layer(
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
-<<<<<<< HEAD
-        window_fn (function or `None`): windowing function of `STFT`.
-            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
-        pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
-=======
         window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
             Defaults to `hann_window` which uses `tf.signal.hann_window`.
-            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.pad_begin (bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
->>>>>>> fix typo
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
+        pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         sample_rate (int): sample rate of the input audio
         n_mels (int): number of mel bins in the mel filterbank
@@ -299,15 +286,10 @@ def get_log_frequency_spectrogram_layer(
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
-<<<<<<< HEAD
-        window_fn (function or `None`): windowing function of `STFT`.
-            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
-        pad_begin(bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
-=======
         window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
             Defaults to `hann_window` which uses `tf.signal.hann_window`.
-            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
->>>>>>> fix typo
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
+        pad_begin(bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         sample_rate (int): sample rate of the input audio
         log_n_bins (int): number of the bins in the log-frequency filterbank
@@ -530,7 +512,8 @@ def get_stft_mag_phase(
         hop_length (int): hop length of `STFT`
         window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
             Defaults to `hann_window` which uses `tf.signal.hann_window`.
-            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.pad_begin(bool): Whether to pad with zeros along time axis (legnth: win_length - hop_length). Defaults to `False`.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`
+        .pad_begin(bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         return_decibel (bool): whether to apply decibel scaling at the end
         db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.

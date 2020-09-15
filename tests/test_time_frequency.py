@@ -360,7 +360,7 @@ def test_save_load(save_format):
             np.testing.assert_allclose,
             save_format,
         )
-        
+
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
 def test_concatenate_frequency_map(data_format):
