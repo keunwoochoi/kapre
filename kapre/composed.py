@@ -1,10 +1,29 @@
 """Functions that returns high-level layers that are composed using other Kapre layers.
 
+Warnings:
+    Functions in this module returns a composed Keras layer, which is an instance of `keras.Sequential` or `keras.Functional`.
+    They are not compatible with `keras.load_model()` if `save_format == 'h5'`. The solution would be to use `save_format='tf'` (`.pb`
+    file format). Or, you can decompose the returned layers and add it to your model manually. E.g.,
+    ::
+
+        your_model = keras.Sequentual()
+        composed_melgram_layer = kapre.composed.get_melspectrogram_layer(input_shape=(44100, 1))
+        for layer in composed_melgram_layer.layers:
+            your_model.add(layer)
+
+
 """
-from .time_frequency import STFT, InverseSTFT, Magnitude, Phase, MagnitudeToDecibel, ApplyFilterbank
+from .time_frequency import (
+    STFT,
+    InverseSTFT,
+    Magnitude,
+    Phase,
+    MagnitudeToDecibel,
+    ApplyFilterbank,
+    ConcatenateFrequencyMap,
+)
 from . import backend
 
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Sequential, Model
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
@@ -15,7 +34,7 @@ def get_stft_magnitude_layer(
     n_fft=2048,
     win_length=None,
     hop_length=None,
-    window_fn=None,
+    window_name=None,
     pad_begin=False,
     pad_end=False,
     return_decibel=False,
@@ -24,6 +43,7 @@ def get_stft_magnitude_layer(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='stft_magnitude',
 ):
     """A function that returns a stft magnitude layer.
     The layer is a `keras.Sequential` model consists of `STFT`, `Magnitude`, and optionally `MagnitudeToDecibel`.
@@ -34,8 +54,9 @@ def get_stft_magnitude_layer(
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
-        window_fn (function or `None`): windowing function of `STFT`.
-            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
+        window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
+            Defaults to `hann_window` which uses `tf.signal.hann_window`.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
         pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         return_decibel (bool): whether to apply decibel scaling at the end
@@ -50,6 +71,7 @@ def get_stft_magnitude_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Note:
         STFT magnitude represents a linear-frequency spectrum of audio signal and probably the most popular choice
@@ -94,7 +116,7 @@ def get_stft_magnitude_layer(
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
-        window_fn=window_fn,
+        window_name=window_name,
         pad_begin=pad_begin,
         pad_end=pad_end,
         input_data_format=input_data_format,
@@ -110,7 +132,7 @@ def get_stft_magnitude_layer(
         )
         layers.append(mag_to_decibel)
 
-    return Sequential(layers)
+    return Sequential(layers, name=name)
 
 
 def get_melspectrogram_layer(
@@ -118,7 +140,7 @@ def get_melspectrogram_layer(
     n_fft=2048,
     win_length=None,
     hop_length=None,
-    window_fn=None,
+    window_name=None,
     pad_begin=False,
     pad_end=False,
     sample_rate=22050,
@@ -133,8 +155,9 @@ def get_melspectrogram_layer(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='melspectrogram',
 ):
-    """A function that retunrs a melspectrogram layer, which is a `keras.Sequential` model consists of
+    """A function that returns a melspectrogram layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_mel_filterbank)`, and optionally `MagnitudeToDecibel`.
 
     Args:
@@ -143,8 +166,9 @@ def get_melspectrogram_layer(
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
-        window_fn (function or `None`): windowing function of `STFT`.
-            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
+        window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
+            Defaults to `hann_window` which uses `tf.signal.hann_window`.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
         pad_begin (bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         sample_rate (int): sample rate of the input audio
@@ -165,6 +189,7 @@ def get_melspectrogram_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Note:
         Melspectrogram is originally developed for speech applications and has been *very* widely used for audio signal
@@ -204,7 +229,7 @@ def get_melspectrogram_layer(
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
-        window_fn=window_fn,
+        window_name=window_name,
         pad_begin=pad_begin,
         pad_end=pad_end,
         input_data_format=input_data_format,
@@ -233,7 +258,7 @@ def get_melspectrogram_layer(
         )
         layers.append(mag_to_decibel)
 
-    return Sequential(layers)
+    return Sequential(layers, name=name)
 
 
 def get_log_frequency_spectrogram_layer(
@@ -241,7 +266,7 @@ def get_log_frequency_spectrogram_layer(
     n_fft=2048,
     win_length=None,
     hop_length=None,
-    window_fn=None,
+    window_name=None,
     pad_begin=False,
     pad_end=False,
     sample_rate=22050,
@@ -255,8 +280,9 @@ def get_log_frequency_spectrogram_layer(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='log_frequency_spectrogram',
 ):
-    """A function that retunrs a log-frequency STFT layer, which is a `keras.Sequential` model consists of
+    """A function that returns a log-frequency STFT layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_log_filterbank)`, and optionally `MagnitudeToDecibel`.
 
     Args:
@@ -265,8 +291,9 @@ def get_log_frequency_spectrogram_layer(
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
-        window_fn (function or `None`): windowing function of `STFT`.
-            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
+        window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
+            Defaults to `hann_window` which uses `tf.signal.hann_window`.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
         pad_begin(bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         sample_rate (int): sample rate of the input audio
@@ -286,6 +313,7 @@ def get_log_frequency_spectrogram_layer(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Note:
         Log-frequency spectrogram is similar to melspectrogram but its frequency axis is perfectly linear to octave scale.
@@ -316,7 +344,7 @@ def get_log_frequency_spectrogram_layer(
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
-        window_fn=window_fn,
+        window_name=window_name,
         pad_begin=pad_begin,
         pad_end=pad_end,
         input_data_format=input_data_format,
@@ -354,7 +382,7 @@ def get_log_frequency_spectrogram_layer(
         )
         layers.append(mag_to_decibel)
 
-    return Sequential(layers)
+    return Sequential(layers, name=name)
 
 
 def get_perfectly_reconstructing_stft_istft(
@@ -363,9 +391,11 @@ def get_perfectly_reconstructing_stft_istft(
     n_fft=2048,
     win_length=None,
     hop_length=None,
-    forward_window_fn=None,
+    forward_window_name=None,
     waveform_data_format='default',
     stft_data_format='default',
+    stft_name='stft',
+    istft_name='istft',
 ):
     """A function that returns two layers, stft and inverse stft, which would be perfectly reconstructing pair.
 
@@ -377,7 +407,9 @@ def get_perfectly_reconstructing_stft_istft(
         n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
         hop_length (`int` or `None`): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following librosa.
-        forward_window_fn (function or `None`): A function that returns a 1D tensor window. Defaults to `tf.signal.hann_window`.
+        forward_window_name (function or `None`): *Name* of `tf.signal` function that returns a 1D tensor window that is used.
+            Defaults to `hann_window` which uses `tf.signal.hann_window`.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
         waveform_data_format (str): The audio data format of waveform batch.
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
@@ -386,6 +418,9 @@ def get_perfectly_reconstructing_stft_istft(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        stft_name (str): name of the returned STFT layer
+        istft_name (str): name of the returned ISTFT layer
+
 
     Note:
         Without a careful setting, `tf.signal.stft` and `tf.signal.istft` is not perfectly reconstructing.
@@ -417,9 +452,6 @@ def get_perfectly_reconstructing_stft_istft(
     backend.validate_data_format_str(waveform_data_format)
     backend.validate_data_format_str(stft_data_format)
 
-    if forward_window_fn is None:
-        forward_window_fn = tf.signal.hann_window
-
     if win_length is None:
         win_length = n_fft
 
@@ -431,10 +463,6 @@ def get_perfectly_reconstructing_stft_istft(
             'The ratio of win_length and hop_length must be power of 2 to get a '
             'perfectly reconstructing stft-istft pair.'
         )
-
-    backward_window_fn = tf.signal.inverse_stft_window_fn(
-        frame_step=int(hop_length), forward_window_fn=forward_window_fn
-    )
 
     stft_kwargs = {}
     if stft_input_shape is not None:
@@ -449,11 +477,12 @@ def get_perfectly_reconstructing_stft_istft(
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
-        window_fn=forward_window_fn,
+        window_name=forward_window_name,
         pad_begin=True,
         pad_end=True,
         input_data_format=waveform_data_format,
         output_data_format=stft_data_format,
+        name=stft_name,
     )
 
     stft_to_waveform = InverseSTFT(
@@ -461,9 +490,10 @@ def get_perfectly_reconstructing_stft_istft(
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
-        window_fn=backward_window_fn,
+        forward_window_name=forward_window_name,
         input_data_format=stft_data_format,
         output_data_format=waveform_data_format,
+        name=istft_name,
     )
 
     return waveform_to_stft, stft_to_waveform
@@ -474,7 +504,7 @@ def get_stft_mag_phase(
     n_fft=2048,
     win_length=None,
     hop_length=None,
-    window_fn=None,
+    window_name=None,
     pad_begin=False,
     pad_end=False,
     return_decibel=False,
@@ -483,6 +513,7 @@ def get_stft_mag_phase(
     db_dynamic_range=80.0,
     input_data_format='default',
     output_data_format='default',
+    name='stft_mag_phase',
 ):
     """A function that returns magnitude and phase of input audio.
 
@@ -493,9 +524,10 @@ def get_stft_mag_phase(
         n_fft (int): number of FFT points in `STFT`
         win_length (int): window length of `STFT`
         hop_length (int): hop length of `STFT`
-        window_fn (function or `None`): windowing function of `STFT`.
-            Defaults to `None`, which would follow tf.signal.stft default (hann window at the moment)
-        pad_begin(bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
+        window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
+            Defaults to `hann_window` which uses `tf.signal.hann_window`.
+            Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`
+        .pad_begin(bool): Whether to pad with zeros along time axis (length: win_length - hop_length). Defaults to `False`.
         pad_end (bool): whether to pad the input signal at the end in `STFT`.
         return_decibel (bool): whether to apply decibel scaling at the end
         db_amin (float): noise floor of decibel scaling input. See `MagnitudeToDecibel` for more details.
@@ -509,6 +541,7 @@ def get_stft_mag_phase(
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
+        name (str): name of the returned layer
 
     Example:
         ::
@@ -528,7 +561,7 @@ def get_stft_mag_phase(
         n_fft=n_fft,
         win_length=win_length,
         hop_length=hop_length,
-        window_fn=window_fn,
+        window_name=window_name,
         pad_begin=pad_begin,
         pad_end=pad_end,
         input_data_format=input_data_format,
@@ -556,5 +589,40 @@ def get_stft_mag_phase(
 
     stfts_mag_phase = concat_layer([mag_stfts, phase_stfts])
 
-    model = Model(inputs=waveforms, outputs=stfts_mag_phase)
+    model = Model(inputs=waveforms, outputs=stfts_mag_phase, name=name)
     return model
+
+
+def get_frequency_aware_conv2d(
+    data_format='default', freq_aware_name='frequency_aware_conv2d', *args, **kwargs
+):
+    """Returns a frequency-aware conv2d layer.
+
+    Args:
+        data_format (str): specifies the data format of batch input/output.
+        freq_aware_name (str): name of the returned layer
+        *args: position args for `keras.layers.Conv2D`.
+        **kwargs: keyword args for `keras.layers.Conv2D`.
+
+    Returns:
+        A sequential model of ConcatenateFrequencyMap and Conv2D.
+
+    References:
+        Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
+        `Receptive-Field-Regularized CNN Variants for Acoustic Scene Classification <https://arxiv.org/abs/1909.02859>`_.
+        In Proceedings of the Detection and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
+
+    """
+    if ('groups' in kwargs and kwargs.get('groups') > 1) or (len(args) >= 7 and args[7] > 1):
+        raise ValueError(
+            'Group convolution is not supported with frequency_aware layer because only the last group'
+            'would be frequency-aware, which might not be expected.'
+        )
+
+    freq_map_concat_layer = ConcatenateFrequencyMap(data_format=data_format)
+
+    if data_format != _CH_DEFAULT_STR:
+        kwargs['data_format'] = data_format
+
+    conv2d = keras.layers.Conv2D(*args, **kwargs)
+    return Sequential([freq_map_concat_layer, conv2d], name=freq_aware_name)

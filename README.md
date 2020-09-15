@@ -54,7 +54,7 @@ sr = 44100
 model = Sequential()
 # A STFT layer
 model.add(STFT(n_fft=2048, win_length=2018, hop_length=1024,
-               window_fn=None, pad_end=False,
+               window_name=None, pad_end=False,
                input_data_format='channels_last', output_data_format='channels_last',
                input_shape=input_shape))
 model.add(Magnitude())
@@ -100,32 +100,3 @@ Please cite this paper if you use Kapre for your work.
 }
 ```
 
-## News
-* ?? Aug 2020
-  - 0.3.2
-    - `kapre.signal.Frame` and `kapre.signal.Energy` are added
-    - `kapre.signal.LogmelToMFCC` is added
-    - `kapre.signal.MuLawEncoder` and `kapre.signal.MuLawDecoder` are added
-    - `kapre.composed.get_stft_magnitude_layer()` is added 
-* 21 Aug 2020
-  - 0.3.1
-    - `Inverse STFT` is added
-* 15 Aug 2020
-  - 0.3.0
-    - Breaking and simplifying changes with Tensorflow 2.0 and more tests. Some features are removed.
-
-* 29 Jul 2020
-  - 0.2.0
-    - Change melspectrogram filterbank from `norm=1` to `norm='slaney'` (w.r.t. Librosa) due to the update from Librosa ([#77](https://github.com/keunwoochoi/kapre/issues/77)). 
-    This would change the behavior of melspectrogram slightly.
-    - Bump librosa version to 0.7.2 or higher.
-* 17 Mar 2020
-  - 0.1.8
-    - added `utils.Delta` layer
-* 20 Feb 2020
-  - Kapre ver 0.1.7
-    - No vanilla Keras dependency
-    - Tensorflow >= 1.15 only
-    - Not tested on Python 2.7 anymore; only on Python 3.6 and 3.7 locally (by `tox`) and 3.6 on Travis 
-
-..and more at `news.md`. 

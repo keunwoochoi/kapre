@@ -93,3 +93,9 @@ Visit `github.com/keunwoochoi/kapre <https://github.com/keunwoochoi/kapre>`_ and
    composed
    backend
 
+.. toctree::
+   :hidden:
+   :caption: Info
+
+   release_note
+

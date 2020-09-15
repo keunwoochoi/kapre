@@ -3,13 +3,22 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras
 import librosa
-from kapre import STFT, Magnitude, Phase, Delta, InverseSTFT, ApplyFilterbank
+from kapre import (
+    STFT,
+    Magnitude,
+    Phase,
+    Delta,
+    InverseSTFT,
+    ApplyFilterbank,
+    ConcatenateFrequencyMap,
+)
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
     get_stft_mag_phase,
     get_perfectly_reconstructing_stft_istft,
     get_stft_magnitude_layer,
+    get_frequency_aware_conv2d,
 )
 
 from utils import get_audio, save_load_compare
@@ -57,7 +66,7 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
                 n_fft=n_fft,
                 win_length=win_length,
                 hop_length=hop_length,
-                window_fn=None,
+                window_name=None,
                 pad_end=False,
                 input_data_format=data_format,
                 output_data_format=data_format,
@@ -237,8 +246,8 @@ def test_mag_phase(data_format):
     np.testing.assert_equal(mag_phase_kapre.shape, mag_phase_ref.shape)
     # magnitude test
     np.testing.assert_allclose(
-        np.take(mag_phase_kapre, [0,], axis=ch_axis),
-        np.take(mag_phase_ref, [0,], axis=ch_axis),
+        np.take(mag_phase_kapre, [0,], axis=ch_axis,),
+        np.take(mag_phase_ref, [0,], axis=ch_axis,),
         atol=2e-4,
     )
     # phase test - todo - yeah..
@@ -304,36 +313,100 @@ def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_for
     allclose_complex_numbers(S, recon_S)
 
 
-def test_save_load():
+@pytest.mark.parametrize('save_format', ['tf', 'h5'])
+def test_save_load(save_format):
     """test saving/loading of models that has stft, melspectorgrma, and log frequency."""
 
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test STFT save/load
     save_load_compare(
-        STFT(input_shape=input_shape, pad_begin=True), batch_src, allclose_complex_numbers
-    )
-    # test melspectrogram save/load
-    save_load_compare(
-        get_melspectrogram_layer(input_shape=input_shape, return_decibel=True),
+        STFT(input_shape=input_shape, pad_begin=True),
         batch_src,
-        np.testing.assert_allclose,
+        allclose_complex_numbers,
+        save_format,
+        STFT,
     )
-    # test log frequency spectrogram save/load
+
+    # test ConcatenateFrequencyMap
+    specs_batch = np.random.randn(2, 3, 5, 4).astype(np.float32)
     save_load_compare(
-        get_log_frequency_spectrogram_layer(input_shape=input_shape, return_decibel=True),
-        batch_src,
+        ConcatenateFrequencyMap(input_shape=specs_batch.shape[1:]),
+        specs_batch,
         np.testing.assert_allclose,
+        save_format,
+        ConcatenateFrequencyMap,
     )
-    # test stft_mag_phase
-    save_load_compare(
-        get_stft_mag_phase(input_shape=input_shape, return_decibel=True),
-        batch_src,
-        np.testing.assert_allclose,
+
+    if save_format == 'tf':
+        # test melspectrogram save/load
+        save_load_compare(
+            get_melspectrogram_layer(input_shape=input_shape, return_decibel=True),
+            batch_src,
+            np.testing.assert_allclose,
+            save_format,
+        )
+        # test log frequency spectrogram save/load
+        save_load_compare(
+            get_log_frequency_spectrogram_layer(input_shape=input_shape, return_decibel=True),
+            batch_src,
+            np.testing.assert_allclose,
+            save_format,
+        )
+        # test stft_mag_phase
+        save_load_compare(
+            get_stft_mag_phase(input_shape=input_shape, return_decibel=True),
+            batch_src,
+            np.testing.assert_allclose,
+            save_format,
+        )
+        # test stft mag
+        save_load_compare(
+            get_stft_magnitude_layer(input_shape=input_shape),
+            batch_src,
+            np.testing.assert_allclose,
+            save_format,
+        )
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_concatenate_frequency_map(data_format):
+    shape = (4, 10, 5, 3)
+
+    time_axis, freq_axis, ch_axis = (
+        (1, 2, 3) if data_format == 'channels_last' else (2, 3, 1)
+    )  # todo - replace it with CH_LAST_STR
+    batch_size, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
+
+    x = tf.random.normal(shape, dtype=tf.float32)
+    concat_freq_map = ConcatenateFrequencyMap(data_format=data_format)
+    x_concat = concat_freq_map(x).numpy()
+
+    # test shape
+    new_shape = list(shape)
+    new_shape[ch_axis] += 1
+    np.testing.assert_equal(tuple(new_shape), x_concat.shape)
+    # test freq map
+    freq_map = x_concat[0, 0, :, -1] if data_format == 'channels_last' else x_concat[0, -1, 0, :]
+    np.testing.assert_allclose(freq_map, np.linspace(0, 1, num=n_freq))
+    # test original input
+    other_channels = (
+        x_concat[:, :, :, :-1] if data_format == 'channels_last' else x_concat[:, :-1, :, :]
     )
-    # test stft mag
-    save_load_compare(
-        get_stft_magnitude_layer(input_shape=input_shape), batch_src, np.testing.assert_allclose
+    np.testing.assert_equal(x, other_channels)
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_get_frequency_aware_conv2d(data_format):
+    shape = (4, 10, 5, 3)
+    x = tf.random.normal(shape, dtype=tf.float32)
+
+    freq_aware_conv2d = get_frequency_aware_conv2d(
+        data_format, 'freq_aware_conv2d', 4, (3, 3), strides=(2, 2)
     )
+    if (
+        data_format != 'channels_first'
+    ):  # because on cpu, channel_first conv doesn't work in typical tensorflow.
+        _ = freq_aware_conv2d(x)
 
 
 @pytest.mark.xfail()
