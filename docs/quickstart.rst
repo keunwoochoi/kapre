@@ -1,46 +1,62 @@
-One-shot example
-^^^^^^^^^^^^^^^^
+Examples
+========
+
+How To Import
+-------------
 
 .. code-block:: python
 
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import Conv2D, BatchNormalization, ReLU, GlobalAveragePooling2D, Dense, Softmax
-    from kapre import STFT, Magnitude, MagnitudeToDecibel
-    from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer, get_stft_magnitude_layer
+    import kapre  # to import the whole library
+    from kapre import (  # `time_frequency` layers can be directly imported from `kapre`
+        STFT,
+        InverseSTFT,
+        Magnitude,
+        Phase,
+        MagnitudeToDecibel,
+        ApplyFilterbank,
+        Delta,
+        ConcatenateFrequencyMap,
+    )
+    from kapre import (  # `signal` layers can be also directly imported from kapre
+        Frame,
+        Energy,
+        MuLawEncoding,
+        MuLawDecoding,
+        LogmelToMFCC,
+    )
+    # from kapre import backend  # we can do this, but `backend` might be a too general name
+    import kapre.backend  # for namespace sanity, you might prefer this
+    from kapre import backend as kapre_backend  # or maybe this
+    from kapre.composed import (  # function names in `composed` are purposefully verbose.
+        get_stft_magnitude_layer,
+        get_melspectrogram_layer,
+        get_log_frequency_spectrogram_layer,
+        get_perfectly_reconstructing_stft_istft,
+        get_stft_mag_phase,
+        get_frequency_aware_conv2d,
+    )
 
-    # 6 channels (!), maybe 1-sec audio signal, for an example.
-    input_shape = (6, 44100)
-    sr = 44100
-    model = Sequential()
-    # A STFT layer
-    model.add(STFT(n_fft=2048, win_length=2018, hop_length=1024,
-                   window_fn=None, pad_end=False,
-                   input_data_format='channels_last', output_data_format='channels_last',
-                   input_shape=input_shape))
-    model.add(Magnitude())
-    model.add(MagnitudeToDecibel())  # these three layers can be replaced with get_stft_magnitude_layer()
-    # Alternatively, you may want to use a melspectrogram layer
-    # melgram_layer = get_melspectrogram_layer()
-    # or log-frequency layer
-    # log_stft_layer = get_log_frequency_spectrogram_layer() 
+Use STFT Magnitude
+------------------
 
-    # add more layers as you want
-    model.add(Conv2D(32, (3, 3), strides=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(ReLU())
-    model.add(GlobalAveragePooling2D())
-    model.add(Dense(10))
-    model.add(Softmax())
+.. code-block:: python
 
-    # Compile the model
-    model.compile('adam', 'categorical_crossentropy') # if single-label classification
+from tensorflow.keras.models import Sequential
+from kapre import STFT, Magnitude, MagnitudeToDecibel
+from kapre.composed import get_stft_magnitude_layer
 
-    # train it with raw audio sample inputs
-    # for example, you may have functions that load your data as below.
-    x = load_x() # e.g., x.shape = (10000, 6, 44100)
-    y = load_y() # e.g., y.shape = (10000, 10) if it's 10-class classification
-    # then..
-    model.fit(x, y)
-    # Done!
+sampling_rate = 16000  # sampling rate of your input audio
+duration = 20.0  # duration of the audio
+num_channel = 2  # number of channels of the audio
+input_shape = (num_channel, int(sampling_rate * duration))  # let's follow `channels_last` convention even for audio
+
+model = Sequential()
+model.add(STFT(n_fft=2048, win_length=2018, hop_length=1024,
+               window_name='hann_window', pad_end=False,
+               input_data_format='channels_last', output_data_format='channels_last',
+               input_shape=input_shape))
+model.add(Magnitude())
+model.add(MagnitudeToDecibel())  # these three layers can be replaced with get_stft_magnitude_layer()
+
 
 * See the Jupyter notebook at the `example folder <https://github.com/keunwoochoi/kapre/tree/master/examples>`_
