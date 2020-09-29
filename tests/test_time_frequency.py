@@ -106,6 +106,66 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
     allclose_phase(np.angle(S_complex), S)
 
 
+@pytest.mark.parametrize('data_format', ['channels_first', 'channels_last'])
+@pytest.mark.parametrize('window_name', [None, 'hann_window', 'hamming_window'])
+def test_spectrogram_correctness_more(data_format, window_name):
+    def _get_stft_model(following_layer=None):
+        # compute with kapre
+        stft_model = tensorflow.keras.models.Sequential()
+        stft_model.add(
+            STFT(
+                n_fft=n_fft,
+                win_length=win_length,
+                hop_length=hop_length,
+                window_name=window_name,
+                pad_end=False,
+                input_data_format=data_format,
+                output_data_format=data_format,
+                input_shape=input_shape,
+                name='stft',
+            )
+        )
+        if following_layer is not None:
+            stft_model.add(following_layer)
+        return stft_model
+
+    n_fft = 512
+    hop_length = 256
+    n_ch = 2
+
+    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
+    win_length = n_fft  # test with x2
+    # compute with librosa
+    S_ref = librosa.core.stft(
+        src_mono,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        win_length=win_length,
+        center=False,
+        window=window_name.replace('_window', '') if window_name else 'hann',
+    ).T  # (time, freq)
+
+    S_ref = np.expand_dims(S_ref, axis=2)  # time, freq, ch=1
+    S_ref = np.tile(S_ref, [1, 1, n_ch])  # time, freq, ch=n_ch
+    if data_format == 'channels_first':
+        S_ref = np.transpose(S_ref, (2, 0, 1))  # ch, time, freq
+
+    stft_model = _get_stft_model()
+
+    S_complex = stft_model.predict(batch_src)[0]  # 3d representation
+    allclose_complex_numbers(S_ref, S_complex)
+
+    # test Magnitude()
+    stft_mag_model = _get_stft_model(Magnitude())
+    S = stft_mag_model.predict(batch_src)[0]  # 3d representation
+    np.testing.assert_allclose(np.abs(S_ref), S, atol=2e-4)
+
+    # # test Phase()
+    stft_phase_model = _get_stft_model(Phase())
+    S = stft_phase_model.predict(batch_src)[0]  # 3d representation
+    allclose_phase(np.angle(S_complex), S)
+
+
 @pytest.mark.parametrize('n_fft', [512])
 @pytest.mark.parametrize('sr', [22050])
 @pytest.mark.parametrize('hop_length', [None, 256])
