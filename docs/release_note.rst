@@ -1,6 +1,11 @@
 Release Note
 ^^^^^^^^^^^^
 
+* 29 Sep 2020
+  - 0.3.4
+    - Fix a bug in `kapre.backend.get_window_fn()`. Previously, it only correctly worked with `None` input and
+        an erorr was raised when non-default value was set for `window_name` in any layer.
+
 * 15 Sep 2020
   - 0.3.3
     - `kapre.augmentation` is added

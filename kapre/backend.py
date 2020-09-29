@@ -53,7 +53,7 @@ def get_window_fn(window_name=None):
             )
         )
 
-    return window_name
+    return available_windows[window_name]
 
 
 def validate_data_format_str(data_format):
