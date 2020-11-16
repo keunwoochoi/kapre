@@ -49,7 +49,7 @@ from kapre import STFT, Magnitude, MagnitudeToDecibel
 from kapre.composed import get_melspectrogram_layer, get_log_frequency_spectrogram_layer
 
 # 6 channels (!), maybe 1-sec audio signal, for an example.
-input_shape = (6, 44100)
+input_shape = (44100, 6)
 sr = 44100
 model = Sequential()
 # A STFT layer
