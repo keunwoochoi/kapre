@@ -10,6 +10,10 @@ Attributes:
 """
 from tensorflow.keras import backend as K
 import tensorflow as tf
+from tensorflow.python.ops.signal import shape_ops, fft_ops, window_ops, spectral_ops
+from tensorflow.python.framework import ops
+from functools import partial
+import multiprocessing
 import numpy as np
 import librosa
 
@@ -248,3 +252,35 @@ def mu_law_decoding(signal_mu, quantization_channels):
         tf.math.sign(signal) * (tf.math.exp(tf.math.abs(signal) * tf.math.log1p(mu)) - 1.0) / mu
     )
     return signal
+
+
+def parallel_stft(signals, frame_length, frame_step, fft_length=None, window_fn=window_ops.hann_window,
+                  pad_end=False, name=None):
+
+    # If GPU available we return the default stft function
+    if len(tf.config.get_visible_devices('GPU')) > 0:
+        return tf.signal.stft(signals, frame_length, frame_step, fft_length, window_fn, pad_end, name)
+
+    # Else we return our implementation using map_fn
+    with ops.name_scope(name, 'stft', [signals, frame_length, frame_step]):
+        signals = ops.convert_to_tensor(signals, name='signals')
+        signals.shape.with_rank_at_least(1)
+        frame_length = ops.convert_to_tensor(frame_length, name='frame_length')
+        frame_length.shape.assert_has_rank(0)
+        frame_step = ops.convert_to_tensor(frame_step, name='frame_step')
+        frame_step.shape.assert_has_rank(0)
+        if fft_length is None:
+            fft_length = spectral_ops._enclosing_power_of_two(frame_length)
+        else:
+            fft_length = ops.convert_to_tensor(fft_length, name='fft_length')
+        framed_signals = shape_ops.frame(
+            signals, frame_length, frame_step, pad_end=pad_end)
+        if window_fn is not None:
+            window = window_fn(frame_length, dtype=framed_signals.dtype)
+            framed_signals *= window
+        return tf.map_fn(
+            partial(fft_ops.rfft, fft_length=[fft_length]),
+            framed_signals,
+            fn_output_signature=tf.complex64,
+            parallel_iterations=multiprocessing.cpu_count(),  # or how many parallel ops you see fit
+        )

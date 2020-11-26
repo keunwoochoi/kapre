@@ -22,7 +22,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
-from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
+from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR, parallel_stft
 
 
 __all__ = [
@@ -105,6 +105,7 @@ class STFT(Layer):
         pad_end=False,
         input_data_format='default',
         output_data_format='default',
+        use_parallel_stft=False,
         **kwargs,
     ):
         super(STFT, self).__init__(**kwargs)
@@ -128,6 +129,8 @@ class STFT(Layer):
         idt, odt = input_data_format, output_data_format
         self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
         self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
+
+        self.use_parallel_stft=use_parallel_stft
 
     def call(self, x):
         """
@@ -156,8 +159,12 @@ class STFT(Layer):
             waveforms = tf.pad(
                 waveforms, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
             )
+        
+        stft_function = tf.signal.stft
+        if self.use_parallel_stft:
+            stft_function = parallel_stft
 
-        stfts = tf.signal.stft(
+        stfts = stft_function(
             signals=waveforms,
             frame_length=self.win_length,
             frame_step=self.hop_length,

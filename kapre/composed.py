@@ -44,6 +44,7 @@ def get_stft_magnitude_layer(
     input_data_format='default',
     output_data_format='default',
     name='stft_magnitude',
+    use_parallel_stft=False,
 ):
     """A function that returns a stft magnitude layer.
     The layer is a `keras.Sequential` model consists of `STFT`, `Magnitude`, and optionally `MagnitudeToDecibel`.
@@ -121,6 +122,7 @@ def get_stft_magnitude_layer(
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
+        use_parallel_stft=use_parallel_stft,
     )
 
     stft_to_stftm = Magnitude()
@@ -156,6 +158,7 @@ def get_melspectrogram_layer(
     input_data_format='default',
     output_data_format='default',
     name='melspectrogram',
+    use_parallel_stft=False
 ):
     """A function that returns a melspectrogram layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_mel_filterbank)`, and optionally `MagnitudeToDecibel`.
@@ -234,6 +237,7 @@ def get_melspectrogram_layer(
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
+        use_parallel_stft=use_parallel_stft,
     )
 
     stft_to_stftm = Magnitude()
@@ -281,6 +285,7 @@ def get_log_frequency_spectrogram_layer(
     input_data_format='default',
     output_data_format='default',
     name='log_frequency_spectrogram',
+    use_parallel_stft=False,
 ):
     """A function that returns a log-frequency STFT layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_log_filterbank)`, and optionally `MagnitudeToDecibel`.
@@ -349,6 +354,7 @@ def get_log_frequency_spectrogram_layer(
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
+        use_parallel_stft=use_parallel_stft,
     )
 
     stft_to_stftm = Magnitude()
@@ -396,6 +402,7 @@ def get_perfectly_reconstructing_stft_istft(
     stft_data_format='default',
     stft_name='stft',
     istft_name='istft',
+    use_parallel_stft=False
 ):
     """A function that returns two layers, stft and inverse stft, which would be perfectly reconstructing pair.
 
@@ -483,6 +490,7 @@ def get_perfectly_reconstructing_stft_istft(
         input_data_format=waveform_data_format,
         output_data_format=stft_data_format,
         name=stft_name,
+        use_parallel_stft=use_parallel_stft,
     )
 
     stft_to_waveform = InverseSTFT(
@@ -514,6 +522,7 @@ def get_stft_mag_phase(
     input_data_format='default',
     output_data_format='default',
     name='stft_mag_phase',
+    use_parallel_stft=False
 ):
     """A function that returns magnitude and phase of input audio.
 
@@ -566,6 +575,7 @@ def get_stft_mag_phase(
         pad_end=pad_end,
         input_data_format=input_data_format,
         output_data_format=output_data_format,
+        use_parallel_stft=use_parallel_stft,
     )
 
     stft_to_stftm = Magnitude()
