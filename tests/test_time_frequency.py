@@ -73,7 +73,7 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format, use_paral
                 output_data_format=data_format,
                 input_shape=input_shape,
                 name='stft',
-                use_parallel_stft=use_parallel_stft
+                use_parallel_stft=use_parallel_stft,
             )
         )
         if following_layer is not None:
@@ -126,7 +126,7 @@ def test_spectrogram_correctness_more(data_format, window_name, use_parallel_stf
                 output_data_format=data_format,
                 input_shape=input_shape,
                 name='stft',
-                use_parallel_stft=use_parallel_stft
+                use_parallel_stft=use_parallel_stft,
             )
         )
         if following_layer is not None:
@@ -182,7 +182,17 @@ def test_spectrogram_correctness_more(data_format, window_name, use_parallel_stf
 @pytest.mark.parametrize('mel_f_max', [8000])
 @pytest.mark.parametrize('use_parallel_stft', [True, False])
 def test_melspectrogram_correctness(
-    n_fft, sr, hop_length, n_ch, data_format, amin, dynamic_range, n_mels, mel_f_min, mel_f_max, use_parallel_stft
+    n_fft,
+    sr,
+    hop_length,
+    n_ch,
+    data_format,
+    amin,
+    dynamic_range,
+    n_mels,
+    mel_f_min,
+    mel_f_max,
+    use_parallel_stft,
 ):
     """Test the correctness of melspectrogram.
 
@@ -296,7 +306,7 @@ def test_mag_phase(data_format, use_parallel_stft):
         hop_length=hop_length,
         input_data_format=data_format,
         output_data_format=data_format,
-        use_parallel_stft=use_parallel_stft
+        use_parallel_stft=use_parallel_stft,
     )
     model = tensorflow.keras.models.Sequential()
     model.add(mag_phase_layer)
@@ -325,7 +335,9 @@ def test_mag_phase(data_format, use_parallel_stft):
 @pytest.mark.parametrize('stft_data_format', ['default', 'channels_first', 'channels_last'])
 @pytest.mark.parametrize('hop_ratio', [0.5, 0.25, 0.125])
 @pytest.mark.parametrize('use_parallel_stft', [True, False])
-def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_format, hop_ratio, use_parallel_stft):
+def test_perfectly_reconstructing_stft_istft(
+    waveform_data_format, stft_data_format, hop_ratio, use_parallel_stft
+):
     n_ch = 1
     src_mono, batch_src, input_shape = get_audio(data_format=waveform_data_format, n_ch=n_ch)
     time_axis = 1 if waveform_data_format == 'channels_first' else 0  # non-batch!
@@ -341,7 +353,7 @@ def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_for
         hop_length=hop_length,
         waveform_data_format=waveform_data_format,
         stft_data_format=stft_data_format,
-        use_parallel_stft=use_parallel_stft
+        use_parallel_stft=use_parallel_stft,
     )
     # Test - [STFT -> ISTFT]
     model = tf.keras.models.Sequential([stft, istft])

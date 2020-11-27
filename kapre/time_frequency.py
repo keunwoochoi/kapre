@@ -81,6 +81,10 @@ class STFT(Layer):
             `'channels_last'` if you want `(batch, time, frequency, channels)` and
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
+        use_parallel_stft (bool): Whether to parallelize stft when running on CPU. If `True`, it uses
+            `kapre.backend.parallel_stft()` which uses multi-processing. If `False`, it uses Tensorflow
+            `tf.signal.stft`, which is significant slower than other STFT implementations such as librosa
+            or scipy on CPU. It does not affect the behavior when running on GPUs
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
@@ -130,7 +134,7 @@ class STFT(Layer):
         self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
         self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
 
-        self.use_parallel_stft=use_parallel_stft
+        self.use_parallel_stft = use_parallel_stft
 
     def call(self, x):
         """
@@ -159,10 +163,7 @@ class STFT(Layer):
             waveforms = tf.pad(
                 waveforms, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
             )
-        
-        stft_function = tf.signal.stft
-        if self.use_parallel_stft:
-            stft_function = parallel_stft
+        stft_function = parallel_stft if self.use_parallel_stft else tf.signal.stft
 
         stfts = stft_function(
             signals=waveforms,

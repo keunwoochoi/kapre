@@ -73,6 +73,10 @@ def get_stft_magnitude_layer(
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
         name (str): name of the returned layer
+        use_parallel_stft (bool): Whether to parallelize stft when running on CPU. If `True`, it uses
+            `kapre.backend.parallel_stft()` which uses multi-processing. If `False`, it uses Tensorflow
+            `tf.signal.stft`, which is significant slower than other STFT implementations such as librosa
+            or scipy on CPU. It does not affect the behavior when running on GPUs
 
     Note:
         STFT magnitude represents a linear-frequency spectrum of audio signal and probably the most popular choice
@@ -158,7 +162,7 @@ def get_melspectrogram_layer(
     input_data_format='default',
     output_data_format='default',
     name='melspectrogram',
-    use_parallel_stft=False
+    use_parallel_stft=False,
 ):
     """A function that returns a melspectrogram layer, which is a `keras.Sequential` model consists of
     `STFT`, `Magnitude`, `ApplyFilterbank(_mel_filterbank)`, and optionally `MagnitudeToDecibel`.
@@ -193,6 +197,10 @@ def get_melspectrogram_layer(
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
         name (str): name of the returned layer
+        use_parallel_stft (bool): Whether to parallelize stft when running on CPU. If `True`, it uses
+            `kapre.backend.parallel_stft()` which uses multi-processing. If `False`, it uses Tensorflow
+            `tf.signal.stft`, which is significant slower than other STFT implementations such as librosa
+            or scipy on CPU. It does not affect the behavior when running on GPUs
 
     Note:
         Melspectrogram is originally developed for speech applications and has been *very* widely used for audio signal
@@ -319,6 +327,10 @@ def get_log_frequency_spectrogram_layer(
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
         name (str): name of the returned layer
+        use_parallel_stft (bool): Whether to parallelize stft when running on CPU. If `True`, it uses
+            `kapre.backend.parallel_stft()` which uses multi-processing. If `False`, it uses Tensorflow
+            `tf.signal.stft`, which is significant slower than other STFT implementations such as librosa
+            or scipy on CPU. It does not affect the behavior when running on GPUs
 
     Note:
         Log-frequency spectrogram is similar to melspectrogram but its frequency axis is perfectly linear to octave scale.
@@ -402,7 +414,7 @@ def get_perfectly_reconstructing_stft_istft(
     stft_data_format='default',
     stft_name='stft',
     istft_name='istft',
-    use_parallel_stft=False
+    use_parallel_stft=False,
 ):
     """A function that returns two layers, stft and inverse stft, which would be perfectly reconstructing pair.
 
@@ -427,6 +439,10 @@ def get_perfectly_reconstructing_stft_istft(
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
         stft_name (str): name of the returned STFT layer
         istft_name (str): name of the returned ISTFT layer
+        use_parallel_stft (bool): Whether to parallelize stft when running on CPU. If `True`, it uses
+            `kapre.backend.parallel_stft()` which uses multi-processing. If `False`, it uses Tensorflow
+            `tf.signal.stft`, which is significant slower than other STFT implementations such as librosa
+            or scipy on CPU. It does not affect the behavior when running on GPUs
 
 
     Note:
@@ -522,7 +538,7 @@ def get_stft_mag_phase(
     input_data_format='default',
     output_data_format='default',
     name='stft_mag_phase',
-    use_parallel_stft=False
+    use_parallel_stft=False,
 ):
     """A function that returns magnitude and phase of input audio.
 
@@ -551,6 +567,10 @@ def get_stft_mag_phase(
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
         name (str): name of the returned layer
+        use_parallel_stft (bool): Whether to parallelize stft when running on CPU. If `True`, it uses
+            `kapre.backend.parallel_stft()` which uses multi-processing. If `False`, it uses Tensorflow
+            `tf.signal.stft`, which is significant slower than other STFT implementations such as librosa
+            or scipy on CPU. It does not affect the behavior when running on GPUs
 
     Example:
         ::

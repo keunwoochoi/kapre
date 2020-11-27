@@ -131,7 +131,7 @@ def test_validate_fail():
 @pytest.mark.parametrize('frame_length', [1024, 2048])
 @pytest.mark.parametrize('frame_step', [256, 512])
 @pytest.mark.parametrize('image_size', [256, 512, 1024])
-def test_parallel_stft_should_be_equal_to_tf_stft_on_cpu(frame_length, frame_step, image_size):
+def test_parallel_stft_correctness(frame_length, frame_step, image_size):
     prev_physical_devices_list = tf.config.get_visible_devices('GPU')
     tf.config.set_visible_devices([], 'GPU')
     test_array = tf.cast(tf.random.normal([image_size, image_size]), dtype=tf.float32)
