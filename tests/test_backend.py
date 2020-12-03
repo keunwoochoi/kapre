@@ -4,7 +4,7 @@ import librosa
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from kapre import backend as KPB
-from kapre.backend import magnitude_to_decibel, validate_data_format_str
+from kapre.backend import magnitude_to_decibel, validate_data_format_str, parallel_stft
 
 from utils import SRC
 
@@ -126,6 +126,22 @@ def test_unsupported_window():
 @pytest.mark.xfail()
 def test_validate_fail():
     _ = validate_data_format_str('weird_string')
+
+
+@pytest.mark.parametrize('frame_length', [1024, 2048])
+@pytest.mark.parametrize('frame_step', [256, 512])
+@pytest.mark.parametrize('image_size', [256, 512, 1024])
+def test_parallel_stft_correctness(frame_length, frame_step, image_size):
+    prev_physical_devices_list = tf.config.get_visible_devices('GPU')
+    tf.config.set_visible_devices([], 'GPU')
+    test_array = tf.cast(tf.random.normal([image_size, image_size]), dtype=tf.float32)
+    tf.test.TestCase().assertAllClose(
+        tf.signal.stft(test_array, frame_length, frame_step),
+        parallel_stft(test_array, frame_length, frame_step),
+        rtol=1e-4,
+        atol=1e-3,
+    )
+    tf.config.set_visible_devices(prev_physical_devices_list, 'GPU')
 
 
 if __name__ == '__main__':

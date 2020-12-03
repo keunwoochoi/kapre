@@ -22,7 +22,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
-from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
+from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR, parallel_stft
 
 
 __all__ = [
@@ -81,6 +81,10 @@ class STFT(Layer):
             `'channels_last'` if you want `(batch, time, frequency, channels)` and
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
+        use_parallel_stft (bool): Whether to parallelize stft when running on CPU. If `True`, it uses
+            `kapre.backend.parallel_stft()` which uses multi-processing. If `False`, it uses Tensorflow
+            `tf.signal.stft`, which is significant slower than other STFT implementations such as librosa
+            or scipy on CPU. It does not affect the behavior when running on GPUs
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
@@ -105,6 +109,7 @@ class STFT(Layer):
         pad_end=False,
         input_data_format='default',
         output_data_format='default',
+        use_parallel_stft=False,
         **kwargs,
     ):
         super(STFT, self).__init__(**kwargs)
@@ -128,6 +133,8 @@ class STFT(Layer):
         idt, odt = input_data_format, output_data_format
         self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
         self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
+
+        self.use_parallel_stft = use_parallel_stft
 
     def call(self, x):
         """
@@ -156,8 +163,9 @@ class STFT(Layer):
             waveforms = tf.pad(
                 waveforms, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
             )
+        stft_function = parallel_stft if self.use_parallel_stft else tf.signal.stft
 
-        stfts = tf.signal.stft(
+        stfts = stft_function(
             signals=waveforms,
             frame_length=self.win_length,
             frame_step=self.hop_length,
