@@ -33,7 +33,11 @@ Tested on Python 3.6 and 3.7
 ## Installation
  
 ```sh
-pip install kapre
+pip install kapre[tf]
+```
+or for a gpu enabled version of tensorflow
+```sh
+pip install kapre[tf_gpu]
 ```
 
 ## API Documentation
