@@ -337,19 +337,6 @@ class Magnitude(Layer):
 
     """
 
-    def __init__(
-        self,
-        tflite_compatible=False,
-        **kwargs,
-    ):
-        super(Magnitude, self).__init__(**kwargs)
-        self.tflite_compatible = tflite_compatible
-
-    def get_config(self):
-        config = super(Magnitude, self).get_config()
-        config.update({'tflite_compatible': self.tflite_compatible})
-        return config
-
     def call(self, x):
         """
         Args:
@@ -358,7 +345,7 @@ class Magnitude(Layer):
         Returns:
             (float `Tensor`): magnitude of `x`
         """
-        if self.tflite_compatible:
+        if len(tf.shape(x)) == 5:  # when we have a real/imag axis (tflite model)
             return tf.sqrt(x[:, :, :, :, 0] ** 2 + x[:, :, :, :, 1] ** 2)
         return tf.abs(x)
 
@@ -376,20 +363,6 @@ class Phase(Layer):
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
-
-    def __init__(
-        self,
-        tflite_compatible=False,
-        **kwargs,
-    ):
-        super(Phase, self).__init__(**kwargs)
-        assert tflite_compatible == False, "tlfite is currently missing require ops (atan2)"
-        self.tflite_compatible = tflite_compatible
-
-    def get_config(self):
-        config = super(Phase, self).get_config()
-        config.update({'tflite_compatible': self.tflite_compatible})
-        return config
 
     def call(self, x):
         """
