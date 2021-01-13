@@ -23,7 +23,7 @@ from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
-
+from .tflite_compatible_stft import stft_tflite
 
 __all__ = [
     'STFT',
@@ -105,6 +105,7 @@ class STFT(Layer):
         pad_end=False,
         input_data_format='default',
         output_data_format='default',
+        tflite_compatible=False,
         **kwargs,
     ):
         super(STFT, self).__init__(**kwargs)
@@ -124,6 +125,7 @@ class STFT(Layer):
         self.window_fn = backend.get_window_fn(window_name)
         self.pad_begin = pad_begin
         self.pad_end = pad_end
+        self.tflite_compatible = tflite_compatible
 
         idt, odt = input_data_format, output_data_format
         self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
@@ -156,19 +158,32 @@ class STFT(Layer):
             waveforms = tf.pad(
                 waveforms, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
             )
-
-        stfts = tf.signal.stft(
-            signals=waveforms,
-            frame_length=self.win_length,
-            frame_step=self.hop_length,
-            fft_length=self.n_fft,
-            window_fn=self.window_fn,
-            pad_end=self.pad_end,
-            name='%s_tf.signal.stft' % self.name,
-        )  # (batch, ch, time, freq)
+        if not self.tflite_compatible:
+            stfts = tf.signal.stft(
+                signals=waveforms,
+                frame_length=self.win_length,
+                frame_step=self.hop_length,
+                fft_length=self.n_fft,
+                window_fn=self.window_fn,
+                pad_end=self.pad_end,
+                name='%s_tf.signal.stft' % self.name,
+            )  # (batch, ch, time, freq)
+        else:
+            stfts = stft_tflite(
+                waveforms,
+                frame_length=self.win_length,
+                frame_step=self.hop_length,
+                fft_length=self.n_fft,
+                window_fn=self.window_fn,
+                pad_end=self.pad_end,
+            )  # (batch, ch, time, freq)
 
         if self.output_data_format == _CH_LAST_STR:
-            stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
+            if not self.tflite_compatible:
+                stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
+            else:
+                # tflite compatible stft produces real and imag in 1st dim
+                stfts = tf.transpose(stfts, perm=(0, 2, 3, 1, 4))  # (batch, t, f, ch, re/im)
 
         return stfts
 
@@ -184,6 +199,7 @@ class STFT(Layer):
                 'pad_end': self.pad_end,
                 'input_data_format': self.input_data_format,
                 'output_data_format': self.output_data_format,
+                'tflite_compatible': self.tflite_compatible,
             }
         )
         return config
@@ -321,14 +337,29 @@ class Magnitude(Layer):
 
     """
 
+    def __init__(
+        self,
+        tflite_compatible=False,
+        **kwargs,
+    ):
+        super(Magnitude, self).__init__(**kwargs)
+        self.tflite_compatible = tflite_compatible
+
+    def get_config(self):
+        config = super(Magnitude, self).get_config()
+        config.update({'tflite_compatible': self.tflite_compatible})
+        return config
+
     def call(self, x):
         """
         Args:
-            x (complex `Tensor`): input complex tensor
-
+            x (complex `Tensor`): when tflite_compatible==False input is a complex tensor
+                when tflite_compatible==True, input is a list of two tensors [real, imag]
         Returns:
             (float `Tensor`): magnitude of `x`
         """
+        if self.tflite_compatible:
+            return tf.sqrt(x[:, :, :, :, 0] ** 2 + x[:, :, :, :, 1] ** 2)
         return tf.abs(x)
 
 
@@ -346,10 +377,25 @@ class Phase(Layer):
 
     """
 
+    def __init__(
+        self,
+        tflite_compatible=False,
+        **kwargs,
+    ):
+        super(Phase, self).__init__(**kwargs)
+        assert tflite_compatible == False, "tlfite is currently missing require ops (atan2)"
+        self.tflite_compatible = tflite_compatible
+
+    def get_config(self):
+        config = super(Phase, self).get_config()
+        config.update({'tflite_compatible': self.tflite_compatible})
+        return config
+
     def call(self, x):
         """
         Args:
-            x (complex `Tensor`): input complex tensor
+            x (complex `Tensor`): when tflite_compatible==False input is a complex tensor
+                when tflite_compatible==True, input is a list of two tensors [real, imag]
 
         Returns:
             (float `Tensor`): phase of `x` (Radian)
@@ -401,7 +447,11 @@ class MagnitudeToDecibel(Layer):
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
         config.update(
-            {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
+            {
+                'amin': self.amin,
+                'dynamic_range': self.dynamic_range,
+                'ref_value': self.ref_value,
+            }
         )
         return config
 
@@ -439,7 +489,11 @@ class ApplyFilterbank(Layer):
     """
 
     def __init__(
-        self, type, filterbank_kwargs, data_format='default', **kwargs,
+        self,
+        type,
+        filterbank_kwargs,
+        data_format='default',
+        **kwargs,
     ):
 
         backend.validate_data_format_str(data_format)
@@ -659,6 +713,8 @@ class ConcatenateFrequencyMap(Layer):
     def get_config(self):
         config = super(ConcatenateFrequencyMap, self).get_config()
         config.update(
-            {'data_format': self.data_format,}
+            {
+                'data_format': self.data_format,
+            }
         )
         return config
