@@ -331,7 +331,7 @@ def test_spectrogram_tflite_conversion(n_fft, hop_length, n_ch, data_format, bat
     [np.testing.assert_allclose(np.abs(S_ref), stft, atol=2e-4) for stft in S]
 
     # # test Phase()
-    # todo : tflite phase compatibility todo
+    # (Kenders200) todo : tflite phase compatibility todo
     # stft_phase_model = _get_stft_model(Phase(tflite_compatible=True))
     # S = predict_using_tflite(stft_phase_model, batch_src)[0]  # 3d representation
     # allclose_phase(np.angle(S_complex[0]), S)
