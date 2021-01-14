@@ -183,9 +183,10 @@ def stft_tflite(signal, frame_length, frame_step, fft_length, window_fn, pad_end
 def continued_fraction_arctan(x, n=100, dtype=tf.float32):
     """Continued fraction Approximation to the arctan function
 
-        Approximate solution to arctan(x), tflite is missing atan as a supported
-        op, tf.math.atan can be used by tflite as a flex op, at the expense of a
-        larger graph.
+        Approximate solution to arctan(x), atan is not a natively supported tflite
+        op (or a flex op). n is the number of iterations, the high the more accurate.
+        Accuracy is poor when the argument is large.
+        https://functions.wolfram.com/ElementaryFunctions/ArcTan/10/
     Args:
         x (tensor) - argument tensor to caclulate arctan of
         n (int) - The number of iterations, large means arctan is more accurate
@@ -194,21 +195,38 @@ def continued_fraction_arctan(x, n=100, dtype=tf.float32):
         arctan(x) (tensor) - approx value of arctan(x)
     """
     x = tf.cast(x, dtype)
-    x2 = x*x
+    x2 = x * x
     d = tf.zeros(tf.shape(x), dtype) + tf.cast(n * 2 + 1, dtype)
     for k in tf.range(n, 0.0, -1.0, dtype):
         f = k * 2.0 - 1.0
-        d = f + k*k*x2/d
+        d = f + k * k * x2 / d
     return x / d
 
 
 @tf.function
 def atan2_tflite(y, x, n=100, dtype=tf.float32):
+    """Approximation to the atan2 function
+
+        atan is not a tflite support op or flex op, thus this uses an Approximation
+        Poor accuracy when either x is very small or y is very large.
+        https://en.wikipedia.org/wiki/Atan2
+    Args:
+        y (tensor) - vertical component of tangent (or imaginary part of number for phase)
+        x (tensor) - horizontal component of tanget (or real part of number for phase)
+        n (int) - The number of iterations to use for atan approximations,
+            larger means arctan is more accurate
+        dtype (tf.dtype) - tf.float32, or tf.float64
+    Returns
+        atan2(x) (tensor) - approx value of atan2(x)
+    """
+    pi = tf.zeros(tf.shape(x), dtype) + tf.cast(np.pi, dtype)
+    zeros = tf.zeros(tf.shape(x), dtype)
     atan2 = continued_fraction_arctan(y / x, n, dtype)
-    atan2 = tf.where(x > 0, atan2, atan2)
-    atan2 = tf.where(tf.logical_and(x < 0, y >= 0), atan2+np.pi, atan2)
-    atan2 = tf.where(tf.logical_and(x < 0 , y < 0), atan2-np.pi, atan2)
-    atan2 = tf.where(tf.logical_and(x == 0 , y > 0), np.pi, atan2)
-    atan2 = tf.where(tf.logical_and(x == 0 , y < 0), -np.pi, atan2)
-    atan2 = tf.where(tf.logical_and(x == 0 , y == 0), 0.0, atan2)
+    # atan2 = tf.where(x > 0, atan2, atan2)  # implicit
+    atan2 = tf.where(tf.logical_and(x < 0.0, y >= 0.0), atan2 + pi, atan2)
+    atan2 = tf.where(tf.logical_and(x < 0.0, y < 0.0), atan2 - pi, atan2)
+    atan2 = tf.where(tf.logical_and(tf.equal(x, 0.0), y > 0.0), pi, atan2)
+    atan2 = tf.where(tf.logical_and(tf.equal(x, 0.0), y < 0.0), -pi, atan2)
+    # undefined (return 0)
+    atan2 = tf.where(tf.logical_and(tf.equal(x, 0.0), tf.equal(y, 0.0)), zeros, atan2)
     return atan2

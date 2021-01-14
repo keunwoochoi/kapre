@@ -46,6 +46,15 @@ def allclose_phase(a, b, atol=1e-3):
     np.testing.assert_allclose(np.cos(a), np.cos(b), atol=atol)
 
 
+def assert_approx_phase(a, b, atol=1e-3, ratio_failed=0.001):
+    """Testing approximate phase.
+    Tflite phase is approximate so some values will allways have a large error
+    So makes more sense to count the number that are within tolerance
+    """
+    count_failed = np.sum(np.abs(a - b) > atol)
+    assert count_failed / a.size < ratio_failed, "too many inaccuracte phase bins: {} bins out of {} incorrect".format(count_failed, a.size)
+
+
 def allclose_complex_numbers(a, b, atol=1e-3):
     np.testing.assert_equal(np.shape(a), np.shape(b))
     np.testing.assert_allclose(np.abs(a), np.abs(b), rtol=1e-5, atol=atol)
@@ -57,10 +66,9 @@ def allclose_complex_numbers(a, b, atol=1e-3):
 @pytest.mark.parametrize('hop_length', [None, 256])
 @pytest.mark.parametrize('n_ch', [1, 2, 6])
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-@pytest.mark.parametrize('tflite_compatible', [True, False])
 @pytest.mark.parametrize('batch_size', [1, 10])
 def test_spectrogram_correctness(
-    n_fft, hop_length, n_ch, data_format, tflite_compatible, batch_size
+    n_fft, hop_length, n_ch, data_format, batch_size
 ):
     def _get_stft_model(following_layer=None):
         # compute with kapre
@@ -75,7 +83,7 @@ def test_spectrogram_correctness(
                 input_data_format=data_format,
                 output_data_format=data_format,
                 input_shape=input_shape,
-                tflite_compatible=tflite_compatible,
+                tflite_compatible=False,
                 name='stft',
             )
         )
@@ -86,11 +94,6 @@ def test_spectrogram_correctness(
     src_mono, batch_src, input_shape = get_audio(
         data_format=data_format, n_ch=n_ch, batch_size=batch_size
     )
-    # tflite requires a known batch size
-    if tflite_compatible:
-        batch_size = batch_src.shape[0]
-    else:
-        batch_size = None
     win_length = n_fft  # test with x2
     # compute with librosa
     S_ref = librosa.core.stft(
@@ -104,28 +107,23 @@ def test_spectrogram_correctness(
 
     stft_model = _get_stft_model()
 
-    S_complex = stft_model.predict(batch_src, batch_size=batch_size)  # 3d representation
-    if tflite_compatible:
-        # (batch,time,freq,chan,re/imag) - convert to complex number:
-        S_complex = tf.complex(S_complex[..., 0], S_complex[..., 1])  # (batch,time,freq,chan)
+    S_complex = stft_model.predict(batch_src)  # 3d representation
     allclose_complex_numbers(S_ref, S_complex[0])
 
     # test Magnitude()
     stft_mag_model = _get_stft_model(Magnitude())
-    S = stft_mag_model.predict(batch_src, batch_size=batch_size)[0]  # 3d representation
+    S = stft_mag_model.predict(batch_src)[0]  # 3d representation
     np.testing.assert_allclose(np.abs(S_ref), S, atol=2e-4)
 
     # # test Phase()
-    # phase currently not tflite compatible
     stft_phase_model = _get_stft_model(Phase())
-    S = stft_phase_model.predict(batch_src, batch_size=batch_size)[0]  # 3d representation
+    S = stft_phase_model.predict(batch_src)[0]  # 3d representation
     allclose_phase(np.angle(S_complex[0]), S)
 
 
 @pytest.mark.parametrize('data_format', ['channels_first', 'channels_last'])
 @pytest.mark.parametrize('window_name', [None, 'hann_window', 'hamming_window'])
-@pytest.mark.parametrize('tflite_compatible', [True, False])
-def test_spectrogram_correctness_more(data_format, window_name, tflite_compatible):
+def test_spectrogram_correctness_more(data_format, window_name):
     def _get_stft_model(following_layer=None):
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
@@ -139,7 +137,7 @@ def test_spectrogram_correctness_more(data_format, window_name, tflite_compatibl
                 input_data_format=data_format,
                 output_data_format=data_format,
                 input_shape=input_shape,
-                tflite_compatible=tflite_compatible,
+                tflite_compatible=False,
                 name='stft',
             )
         )
@@ -152,11 +150,6 @@ def test_spectrogram_correctness_more(data_format, window_name, tflite_compatibl
     n_ch = 2
 
     src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
-    # tflite requires a known batch size
-    if tflite_compatible:
-        batch_size = batch_src.shape[0]
-    else:
-        batch_size = None
     win_length = n_fft  # test with x2
     # compute with librosa
     S_ref = librosa.core.stft(
@@ -175,21 +168,17 @@ def test_spectrogram_correctness_more(data_format, window_name, tflite_compatibl
 
     stft_model = _get_stft_model()
 
-    S_complex = stft_model.predict(batch_src, batch_size=batch_size)  # 3d representation
-    if tflite_compatible:
-        # (batch,time,freq,chan,re/imag) - convert to complex number:
-        S_complex = tf.complex(S_complex[..., 0], S_complex[..., 1])  # (batch,time,freq,chan)
+    S_complex = stft_model.predict(batch_src)  # 3d representation
     allclose_complex_numbers(S_ref, S_complex[0])
 
     # test Magnitude()
     stft_mag_model = _get_stft_model(Magnitude())
-    S = stft_mag_model.predict(batch_src, batch_size=batch_size)[0]  # 3d representation
+    S = stft_mag_model.predict(batch_src)[0]  # 3d representation
     np.testing.assert_allclose(np.abs(S_ref), S, atol=2e-4)
 
     # # test Phase()
-    # tflite phase currently approximate
-    stft_phase_model = _get_stft_model(Phase(tflite_phase_accuracy=30000))
-    S = stft_phase_model.predict(batch_src, batch_size=batch_size)[0]  # 3d representation
+    stft_phase_model = _get_stft_model(Phase())
+    S = stft_phase_model.predict(batch_src)[0]  # 3d representation
     allclose_phase(np.angle(S_complex[0]), S)
 
 
@@ -277,7 +266,7 @@ def test_melspectrogram_correctness(
 @pytest.mark.parametrize('hop_length', [None, 256])
 @pytest.mark.parametrize('n_ch', [1, 2, 6])
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-@pytest.mark.parametrize('batch_size', [1, 10])
+@pytest.mark.parametrize('batch_size', [1, 2])
 def test_spectrogram_tflite_conversion(n_fft, hop_length, n_ch, data_format, batch_size):
     def _get_stft_model(following_layer=None):
         # compute with kapre
@@ -318,7 +307,7 @@ def test_spectrogram_tflite_conversion(n_fft, hop_length, n_ch, data_format, bat
 
     stft_model = _get_stft_model()
 
-    S_complex = predict_using_tflite(stft_model, batch_src)  # 3d representation
+    S_complex = predict_using_tflite(stft_model, batch_src)  # 4d representation
     # (batch, time, freq, chan, re/imag) - convert to complex number:
     S_complex = tf.complex(S_complex[..., 0], S_complex[..., 1])  # (batch,time,freq,chan)
     [allclose_complex_numbers(S_ref, stft) for stft in S_complex]
@@ -329,11 +318,10 @@ def test_spectrogram_tflite_conversion(n_fft, hop_length, n_ch, data_format, bat
     [np.testing.assert_allclose(np.abs(S_ref), stft, atol=2e-4) for stft in S]
 
     # # test Phase()
-    # requires tf2.3 (linux) and tf2.4 (other os) as uses flex ops
-    stft_phase_model = _get_stft_model(Phase())
-    S = predict_using_tflite(stft_phase_model, batch_src)[0]  # 3d representation
-    allclose_phase(np.angle(S_complex[0]), S)
-    [allclose_complex_numbers(S_ref, stft) for stft in S_complex]
+    # we need a large number iterations to get the same angle as np.angle ...
+    stft_phase_model = _get_stft_model(Phase(approx_atan_accuracy=10000))
+    S = stft_phase_model.predict(batch_src, batch_size=batch_size)[0]  # 3d representation
+    assert_approx_phase(np.angle(S_complex[0]), S)
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])

@@ -74,12 +74,21 @@ def save_load_compare(
     return model
 
 
-def predict_using_tflite(model, batch_src, output_batch_dim=0):
+def predict_using_tflite(model, batch_src):
+    """Convert a keras model to tflite and infer on batch_src
 
+    Attempts to convert a keras model to a tflite model, load the tflite model,
+    then infer on the data in batch_src
+    Args:
+        model (keras model)
+        batch_src (numpy array) - audio to test model
+    Returns:
+        pred_tflite (numpy array) - array of predictions.
+    """
     ############################################################################
     # TF lite conversion
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+    converter.target_spec.supported_ops = [tf.lite.OpsSet.SELECT_TF_OPS, tf.lite.OpsSet.TFLITE_BUILTINS]
     tflite_model = converter.convert()
     model_name = 'test_tflite'
     path = Path("/tmp/tflite_tests/")
@@ -115,4 +124,4 @@ def predict_using_tflite(model, batch_src, output_batch_dim=0):
 
         pred_tflite.append(tflite_results)
 
-    return np.concatenate(pred_tflite, axis=output_batch_dim)
+    return np.concatenate(pred_tflite, axis=0)

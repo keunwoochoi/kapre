@@ -353,6 +353,15 @@ class Magnitude(Layer):
 class Phase(Layer):
     """Compute the phase of the complex input in radian, resulting in a float tensor
 
+    Note TF list does not natively support atan, used in tf.math.angle, so an
+    approximation is provided. THe approximation is required when data is passed
+    from a tflite compatible STFT layer, but is optional when passed from a vanilla
+    STFT layer so that it is possible to generate the approximate phase during training.
+
+    Args:
+        approx_atan_accuracy (`int`): number of iterations to calculate approximate atan()
+            the higher the number the more accurate e.g. approx_atan_accuracy=29000
+
     Example:
         ::
 
@@ -363,9 +372,10 @@ class Phase(Layer):
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
-    def __init__(self, tflite_phase_accuracy=100, **kwargs):
+
+    def __init__(self, approx_atan_accuracy=None, **kwargs):
         super(Phase, self).__init__(**kwargs)
-        self.tflite_phase_accuracy = tflite_phase_accuracy
+        self.approx_atan_accuracy = approx_atan_accuracy
 
     def call(self, x):
         """
@@ -377,15 +387,22 @@ class Phase(Layer):
             (float `Tensor`): phase of `x` (Radian)
         """
         if len(x.get_shape().as_list()) == 5:  # when we have a real/imag axis (tflite model)
-            # return atan2_tflite(x[:, :, :, :, 1],  x[:, :, :, :, 0], n=self.tflite_phase_accuracy)
-            return tf.math.atan2(x[:, :, :, :, 1],  x[:, :, :, :, 0])
+            tf.debugging.assert_integer(
+                self.approx_atan_accuracy,
+                "You are passing data from a tflite compatible layer, please provde `approx_atan_accuracy`",
+            )
+            return atan2_tflite(x[:, :, :, :, 1], x[:, :, :, :, 0], n=self.approx_atan_accuracy)
+
+        if self.approx_atan_accuracy:
+            return atan2_tflite(x[:, :, :, 1], x[:, :, :, 0], n=self.approx_atan_accuracy)
+
         return tf.math.angle(x)
 
     def get_config(self):
         config = super(Phase, self).get_config()
         config.update(
             {
-                'tflite_phase_accuracy': self.tflite_phase_accuracy,
+                'tflite_phase_accuracy': self.approx_atan_accuracy,
             }
         )
         return config
