@@ -177,3 +177,38 @@ def stft_tflite(signal, frame_length, frame_step, fft_length, window_fn, pad_end
     spectrogram = _rdft(framed_signal, fft_length)
 
     return spectrogram
+
+
+@tf.function
+def continued_fraction_arctan(x, n=100, dtype=tf.float32):
+    """Continued fraction Approximation to the arctan function
+
+        Approximate solution to arctan(x), tflite is missing atan as a supported
+        op, tf.math.atan can be used by tflite as a flex op, at the expense of a
+        larger graph.
+    Args:
+        x (tensor) - argument tensor to caclulate arctan of
+        n (int) - The number of iterations, large means arctan is more accurate
+        dtype (tf.dtype) - tf.float32, or tf.float64
+    Returns
+        arctan(x) (tensor) - approx value of arctan(x)
+    """
+    x = tf.cast(x, dtype)
+    x2 = x*x
+    d = tf.zeros(tf.shape(x), dtype) + tf.cast(n * 2 + 1, dtype)
+    for k in tf.range(n, 0.0, -1.0, dtype):
+        f = k * 2.0 - 1.0
+        d = f + k*k*x2/d
+    return x / d
+
+
+@tf.function
+def atan2_tflite(y, x, n=100, dtype=tf.float32):
+    atan2 = continued_fraction_arctan(y / x, n, dtype)
+    atan2 = tf.where(x > 0, atan2, atan2)
+    atan2 = tf.where(tf.logical_and(x < 0, y >= 0), atan2+np.pi, atan2)
+    atan2 = tf.where(tf.logical_and(x < 0 , y < 0), atan2-np.pi, atan2)
+    atan2 = tf.where(tf.logical_and(x == 0 , y > 0), np.pi, atan2)
+    atan2 = tf.where(tf.logical_and(x == 0 , y < 0), -np.pi, atan2)
+    atan2 = tf.where(tf.logical_and(x == 0 , y == 0), 0.0, atan2)
+    return atan2

@@ -23,7 +23,7 @@ from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
-from .tflite_compatible_stft import stft_tflite
+from .tflite_compatible_stft import stft_tflite, atan2_tflite
 
 __all__ = [
     'STFT',
@@ -345,7 +345,7 @@ class Magnitude(Layer):
         Returns:
             (float `Tensor`): magnitude of `x`
         """
-        if len(tf.shape(x)) == 5:  # when we have a real/imag axis (tflite model)
+        if len(x.get_shape().as_list()) == 5:  # when we have a real/imag axis (tflite model)
             return tf.sqrt(x[:, :, :, :, 0] ** 2 + x[:, :, :, :, 1] ** 2)
         return tf.abs(x)
 
@@ -363,6 +363,9 @@ class Phase(Layer):
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
+    def __init__(self, tflite_phase_accuracy=100, **kwargs):
+        super(Phase, self).__init__(**kwargs)
+        self.tflite_phase_accuracy = tflite_phase_accuracy
 
     def call(self, x):
         """
@@ -373,7 +376,19 @@ class Phase(Layer):
         Returns:
             (float `Tensor`): phase of `x` (Radian)
         """
+        if len(x.get_shape().as_list()) == 5:  # when we have a real/imag axis (tflite model)
+            # return atan2_tflite(x[:, :, :, :, 1],  x[:, :, :, :, 0], n=self.tflite_phase_accuracy)
+            return tf.math.atan2(x[:, :, :, :, 1],  x[:, :, :, :, 0])
         return tf.math.angle(x)
+
+    def get_config(self):
+        config = super(Phase, self).get_config()
+        config.update(
+            {
+                'tflite_phase_accuracy': self.tflite_phase_accuracy,
+            }
+        )
+        return config
 
 
 class MagnitudeToDecibel(Layer):

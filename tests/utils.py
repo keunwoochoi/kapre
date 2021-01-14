@@ -79,7 +79,7 @@ def predict_using_tflite(model, batch_src, output_batch_dim=0):
     ############################################################################
     # TF lite conversion
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS]
+    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
     tflite_model = converter.convert()
     model_name = 'test_tflite'
     path = Path("/tmp/tflite_tests/")
@@ -106,7 +106,9 @@ def predict_using_tflite(model, batch_src, output_batch_dim=0):
         output_details = interpreter.get_output_details()
         # import ipdb; ipdb.set_trace()
         # apply input tensors, expand last dimension to create channel dimension
-        interpreter.set_tensor(input_details[0]["index"], np.expand_dims(x, 0))
+        interpreter.set_tensor(
+            input_details[0]["index"], np.expand_dims(x, 0)
+        )
         # infer
         interpreter.invoke()
         tflite_results = interpreter.get_tensor(output_details[0]["index"])
