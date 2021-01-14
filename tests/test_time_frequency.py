@@ -108,7 +108,7 @@ def test_spectrogram_correctness(
     stft_model = _get_stft_model()
 
     S_complex = stft_model.predict(batch_src)[0]  # 3d representation
-    allclose_complex_numbers(S_ref, S_complex[)
+    allclose_complex_numbers(S_ref, S_complex)
 
     # test Magnitude()
     stft_mag_model = _get_stft_model(Magnitude())
