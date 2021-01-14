@@ -320,8 +320,8 @@ def test_spectrogram_tflite_conversion(n_fft, hop_length, n_ch, data_format, bat
     # # test Phase()
     # we need a large number iterations to get the same angle as np.angle ...
     stft_phase_model = _get_stft_model(Phase(approx_atan_accuracy=10000))
-    S = stft_phase_model.predict(batch_src, batch_size=batch_size)[0]  # 3d representation
-    [assert_approx_phase(np.angle(S_complex[0]), stft) for stft in S]
+    S = stft_phase_model.predict(batch_src, batch_size=batch_size)  # 3d representation
+    [assert_approx_phase(np.angle(S_complex[0]), stft, ) for stft in S]
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
