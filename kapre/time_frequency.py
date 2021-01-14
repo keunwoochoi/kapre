@@ -340,8 +340,9 @@ class Magnitude(Layer):
     def call(self, x):
         """
         Args:
-            x (complex `Tensor`): when tflite_compatible==False input is a complex tensor
-                when tflite_compatible==True, input is a list of two tensors [real, imag]
+            x (real or complex `Tensor`): when tflite_compatible==False input is a
+                complex tensor with 4 dimensions, when tflite_compatible==True,
+                input is real tensor with five dimensions (last dim is re/imag)
         Returns:
             (float `Tensor`): magnitude of `x`
         """
@@ -353,14 +354,18 @@ class Magnitude(Layer):
 class Phase(Layer):
     """Compute the phase of the complex input in radian, resulting in a float tensor
 
-    Note TF list does not natively support atan, used in tf.math.angle, so an
-    approximation is provided. THe approximation is required when data is passed
-    from a tflite compatible STFT layer, but is optional when passed from a vanilla
-    STFT layer so that it is possible to generate the approximate phase during training.
+    Note TF lite does not natively support atan, used in tf.math.angle, so an
+    approximation is provided. The use of the approximation is enforced when
+    data is passed from a tflite compatible STFT layer (to ensure TFLITE
+    compatibility), but is optional when passed from a vanilla. You may want to
+    use this approximation if you generate data using a non-tf-lite compatible
+    STFT (faster) but want the same approximations in the training data.
 
     Args:
-        approx_atan_accuracy (`int`): number of iterations to calculate approximate atan()
-            the higher the number the more accurate e.g. approx_atan_accuracy=29000
+        approx_atan_accuracy (`int`): number of iterations to calculate
+            approximate atan() the higher the number the more accurate e.g.
+            approx_atan_accuracy=29000. You may want to experiment with adjusting
+            this number: trading off accuracy with inference speed.
 
     Example:
         ::
@@ -380,13 +385,14 @@ class Phase(Layer):
     def call(self, x):
         """
         Args:
-            x (complex `Tensor`): when tflite_compatible==False input is a complex tensor
-                when tflite_compatible==True, input is a list of two tensors [real, imag]
+            x (real or complex `Tensor`): when tflite_compatible==False input is a
+                complex tensor with 4 dimensions, when tflite_compatible==True,
+                input is real tensor with five dimensions (last dim is re/imag)
 
         Returns:
             (float `Tensor`): phase of `x` (Radian)
         """
-        if len(x.get_shape().as_list()) == 5:  # when we have a real/imag axis (tflite model)
+        if len(x.get_shape().as_list()) == 5:  # when we have a real/imag axis (for tflite compatibilty)
             tf.debugging.assert_integer(
                 self.approx_atan_accuracy,
                 "You are passing data from a tflite compatible layer, please provde `approx_atan_accuracy`",
@@ -451,13 +457,7 @@ class MagnitudeToDecibel(Layer):
 
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
-        config.update(
-            {
-                'amin': self.amin,
-                'dynamic_range': self.dynamic_range,
-                'ref_value': self.ref_value,
-            }
-        )
+            {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
         return config
 
 
@@ -494,11 +494,7 @@ class ApplyFilterbank(Layer):
     """
 
     def __init__(
-        self,
-        type,
-        filterbank_kwargs,
-        data_format='default',
-        **kwargs,
+        self, type, filterbank_kwargs, data_format='default', **kwargs,
     ):
 
         backend.validate_data_format_str(data_format)
@@ -718,8 +714,6 @@ class ConcatenateFrequencyMap(Layer):
     def get_config(self):
         config = super(ConcatenateFrequencyMap, self).get_config()
         config.update(
-            {
-                'data_format': self.data_format,
-            }
+            {'data_format': self.data_format,}
         )
         return config

@@ -113,7 +113,6 @@ def predict_using_tflite(model, batch_src):
         # Get input and output tensors.
         input_details = interpreter.get_input_details()
         output_details = interpreter.get_output_details()
-        # import ipdb; ipdb.set_trace()
         # apply input tensors, expand last dimension to create channel dimension
         interpreter.set_tensor(
             input_details[0]["index"], np.expand_dims(x, 0)

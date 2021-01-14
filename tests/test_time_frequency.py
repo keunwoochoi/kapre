@@ -107,8 +107,8 @@ def test_spectrogram_correctness(
 
     stft_model = _get_stft_model()
 
-    S_complex = stft_model.predict(batch_src)  # 3d representation
-    allclose_complex_numbers(S_ref, S_complex[0])
+    S_complex = stft_model.predict(batch_src)0]  # 3d representation
+    allclose_complex_numbers(S_ref, S_complex[)
 
     # test Magnitude()
     stft_mag_model = _get_stft_model(Magnitude())
@@ -118,7 +118,7 @@ def test_spectrogram_correctness(
     # # test Phase()
     stft_phase_model = _get_stft_model(Phase())
     S = stft_phase_model.predict(batch_src)[0]  # 3d representation
-    allclose_phase(np.angle(S_complex[0]), S)
+    allclose_phase(np.angle(S_complex), S)
 
 
 @pytest.mark.parametrize('data_format', ['channels_first', 'channels_last'])
@@ -168,8 +168,8 @@ def test_spectrogram_correctness_more(data_format, window_name):
 
     stft_model = _get_stft_model()
 
-    S_complex = stft_model.predict(batch_src)  # 3d representation
-    allclose_complex_numbers(S_ref, S_complex[0])
+    S_complex = stft_model.predict(batch_src)[0]  # 3d representation
+    allclose_complex_numbers(S_ref, S_complex)
 
     # test Magnitude()
     stft_mag_model = _get_stft_model(Magnitude())
@@ -179,7 +179,7 @@ def test_spectrogram_correctness_more(data_format, window_name):
     # # test Phase()
     stft_phase_model = _get_stft_model(Phase())
     S = stft_phase_model.predict(batch_src)[0]  # 3d representation
-    allclose_phase(np.angle(S_complex[0]), S)
+    allclose_phase(np.angle(S_complex), S)
 
 
 @pytest.mark.parametrize('n_fft', [512])
@@ -321,7 +321,7 @@ def test_spectrogram_tflite_conversion(n_fft, hop_length, n_ch, data_format, bat
     # we need a large number iterations to get the same angle as np.angle ...
     stft_phase_model = _get_stft_model(Phase(approx_atan_accuracy=10000))
     S = stft_phase_model.predict(batch_src, batch_size=batch_size)[0]  # 3d representation
-    assert_approx_phase(np.angle(S_complex[0]), S)
+    [assert_approx_phase(np.angle(S_complex[0]), stft) for stft in S]
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
@@ -376,11 +376,7 @@ def test_mag_phase(data_format):
     mag_phase_ref = np.stack(
         librosa.magphase(
             librosa.stft(
-                src_mono,
-                n_fft=n_fft,
-                hop_length=hop_length,
-                win_length=win_length,
-                center=False,
+                src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False,
             ).T
         ),
         axis=ch_axis,
@@ -388,20 +384,8 @@ def test_mag_phase(data_format):
     np.testing.assert_equal(mag_phase_kapre.shape, mag_phase_ref.shape)
     # magnitude test
     np.testing.assert_allclose(
-        np.take(
-            mag_phase_kapre,
-            [
-                0,
-            ],
-            axis=ch_axis,
-        ),
-        np.take(
-            mag_phase_ref,
-            [
-                0,
-            ],
-            axis=ch_axis,
-        ),
+        np.take(mag_phase_kapre, [0,], axis=ch_axis,),
+        np.take(mag_phase_ref, [0,], axis=ch_axis,),
         atol=2e-4,
     )
     # phase test - todo - yeah..
