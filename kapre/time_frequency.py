@@ -457,7 +457,9 @@ class MagnitudeToDecibel(Layer):
 
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
+        config.update(
             {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
+        )
         return config
 
 
