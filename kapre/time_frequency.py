@@ -243,6 +243,8 @@ class InverseSTFT(Layer):
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
 
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
     Example:
         ::
 
@@ -367,9 +369,9 @@ class Phase(Layer):
     Note TF lite does not natively support atan, used in tf.math.angle, so an
     approximation is provided. The use of the approximation is enforced when
     data is passed from a tflite compatible STFT layer (to ensure TFLITE
-    compatibility), but is optional when passed from a vanilla. You may want to
-    use this approximation if you generate data using a non-tf-lite compatible
-    STFT (faster) but want the same approximations in the training data.
+    compatibility), but is optional when passed from a vanilla STFT layer. You
+    may want to use this approximation if you generate data using a non-tf-lite
+    compatible STFT (faster) but want the same approximations in the training data.
 
     Args:
         approx_atan_accuracy (`int`): number of iterations to calculate
@@ -407,7 +409,7 @@ class Phase(Layer):
         ):  # when we have a real/imag axis (for tflite compatibilty)
             tf.debugging.assert_integer(
                 self.approx_atan_accuracy,
-                "You are passing data from a tflite compatible layer, please provde `approx_atan_accuracy`",
+                "You are passing data from a tflite compatible layer, please provide `approx_atan_accuracy`",
             )
             return atan2_tflite(x[:, :, :, :, 1], x[:, :, :, :, 0], n=self.approx_atan_accuracy)
 
