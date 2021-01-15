@@ -103,7 +103,7 @@ class STFT(Layer):
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape, tflite_compatible=True))
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1, re/im=2)
-            # and the dtype is complex
+            # and the dtype is real
 
     """
 
