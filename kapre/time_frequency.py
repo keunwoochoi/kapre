@@ -81,6 +81,11 @@ class STFT(Layer):
             `'channels_last'` if you want `(batch, time, frequency, channels)` and
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
+        tflite_compatible (`bool`): if False uses tf.signal.stft and tf.signal.frame (not tflite compatible)
+            if True uses `stft_tflite` from tflite_compatible_stft.py, this contains a tflite
+            compatible stft (using a rdft), and `fixed_frame()` to window the audio.
+            Tflite does not cope with comple types so real and imaginary parts are stored in extra dim.
+            Ouput shape is now: (batch, channel, time, re/im) or (batch, time, channel, re/im)
 
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
@@ -91,6 +96,13 @@ class STFT(Layer):
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1)
+            # and the dtype is complex
+
+            # tflite compatiobel model
+            input_shape = (2048, 1)  # mono signal
+            model = Sequential()
+            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape, tflite_compatible=True))
+            # now the shape is (batch, n_frame=3, n_freq=513, ch=1, re/im=2)
             # and the dtype is complex
 
     """
@@ -230,8 +242,6 @@ class InverseSTFT(Layer):
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-
-        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
 
     Example:
         ::
@@ -392,7 +402,9 @@ class Phase(Layer):
         Returns:
             (float `Tensor`): phase of `x` (Radian)
         """
-        if len(x.get_shape().as_list()) == 5:  # when we have a real/imag axis (for tflite compatibilty)
+        if (
+            len(x.get_shape().as_list()) == 5
+        ):  # when we have a real/imag axis (for tflite compatibilty)
             tf.debugging.assert_integer(
                 self.approx_atan_accuracy,
                 "You are passing data from a tflite compatible layer, please provde `approx_atan_accuracy`",
@@ -400,7 +412,7 @@ class Phase(Layer):
             return atan2_tflite(x[:, :, :, :, 1], x[:, :, :, :, 0], n=self.approx_atan_accuracy)
 
         if self.approx_atan_accuracy:
-            return atan2_tflite(x[:, :, :, 1], x[:, :, :, 0], n=self.approx_atan_accuracy)
+            return atan2_tflite(tf.math.imag(x), tf.math.real(x), n=self.approx_atan_accuracy)
 
         return tf.math.angle(x)
 
@@ -458,7 +470,11 @@ class MagnitudeToDecibel(Layer):
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
         config.update(
-            {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
+            {
+                'amin': self.amin,
+                'dynamic_range': self.dynamic_range,
+                'ref_value': self.ref_value,
+            }
         )
         return config
 
@@ -496,7 +512,11 @@ class ApplyFilterbank(Layer):
     """
 
     def __init__(
-        self, type, filterbank_kwargs, data_format='default', **kwargs,
+        self,
+        type,
+        filterbank_kwargs,
+        data_format='default',
+        **kwargs,
     ):
 
         backend.validate_data_format_str(data_format)
@@ -716,6 +736,8 @@ class ConcatenateFrequencyMap(Layer):
     def get_config(self):
         config = super(ConcatenateFrequencyMap, self).get_config()
         config.update(
-            {'data_format': self.data_format,}
+            {
+                'data_format': self.data_format,
+            }
         )
         return config

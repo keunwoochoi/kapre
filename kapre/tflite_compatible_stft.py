@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # workarounds for missing TFLite support for rfft and stft and tf.signal.frame
-# improved on and take from:
+# improved on and taken from:
 # https://github.com/tensorflow/magenta/tree/master/magenta/music
 # as posted in https://github.com/tensorflow/tensorflow/issues/27303
 # and https://gist.github.com/padoremu/8288b47ce76e9530eb288d4eec2e0b4d
@@ -54,13 +54,13 @@ def _rdft(signal, dft_length):
     rdft_mat_real = tf.constant(np.real(rdft_mat))
     rdft_mat_imag = tf.constant(np.imag(rdft_mat))
 
-    # Center-padding, in case the frame length and DFT lenght are different,
-    # pad the signal to the center of the frame
     frame_length = tf.shape(signal)[-1]
-    half_pad = (dft_length - frame_length) // 2
+    # Right-padding, in case the frame length and DFT lenght are different,
+    # pad the signal on the right hand side of the frame
     pad_values = tf.concat(
-        [tf.zeros([tf.rank(signal) - 1, 2], tf.int32), [[half_pad, half_pad]]], axis=0
+        [tf.zeros([tf.rank(signal) - 1, 2], tf.int32), [[0, dft_length - frame_length]]], axis=0
     )
+
     signal_padded = tf.pad(signal, pad_values)
 
     # matrix multiplying real and imag seperately is faster than using complex types.
@@ -203,11 +203,10 @@ def continued_fraction_arctan(x, n=100, dtype=tf.float32):
     return x / d
 
 
-@tf.function
 def atan2_tflite(y, x, n=100, dtype=tf.float32):
     """Approximation to the atan2 function
 
-        atan is not a tflite support op or flex op, thus this uses an Approximation
+        atan is not a tflite supported op or flex op, thus this uses an Approximation
         Poor accuracy when either x is very small or y is very large.
         https://en.wikipedia.org/wiki/Atan2
     Args:
@@ -222,7 +221,7 @@ def atan2_tflite(y, x, n=100, dtype=tf.float32):
     pi = tf.zeros(tf.shape(x), dtype) + tf.cast(np.pi, dtype)
     zeros = tf.zeros(tf.shape(x), dtype)
     atan2 = continued_fraction_arctan(y / x, n, dtype)
-    # atan2 = tf.where(x > 0, atan2, atan2)  # implicit
+    atan2 = tf.where(x > 0, atan2, atan2)  # implicit
     atan2 = tf.where(tf.logical_and(x < 0.0, y >= 0.0), atan2 + pi, atan2)
     atan2 = tf.where(tf.logical_and(x < 0.0, y < 0.0), atan2 - pi, atan2)
     atan2 = tf.where(tf.logical_and(tf.equal(x, 0.0), y > 0.0), pi, atan2)
