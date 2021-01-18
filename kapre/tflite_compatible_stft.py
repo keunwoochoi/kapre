@@ -156,9 +156,12 @@ def stft_tflite(signal, frame_length, frame_step, fft_length, window_fn, pad_end
         frame_length: int, the number of points in each Fourier frame.
         frame_step: int, the number of samples to advance between successive frames.
         fft_length: int, the size of the Fourier transform to apply.
+        window_fn: tf.signal.window, the return of backend.get_window_fn(window_name)
+        pad_end: bool, if true pads the end with zeros so that signal contains
+            an integer number of frames
     Returns:
-        Two (num_frames, fft_length) tensors containing the real and imaginary parts
-        of the short-time Fourier transform of the input signal.
+        spectrogram: Two (num_frames, fft_length) tensors containing the real and
+            imaginary parts of the short-time Fourier transform of the input signal.
     """
     signal = tf.cast(signal, tf.float32)
     if pad_end:

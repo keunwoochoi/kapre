@@ -98,7 +98,7 @@ class STFT(Layer):
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1)
             # and the dtype is complex
 
-            # tflite compatiobel model
+            # tflite compatible model
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape, tflite_compatible=True))
@@ -188,7 +188,7 @@ class STFT(Layer):
                 fft_length=self.n_fft,
                 window_fn=self.window_fn,
                 pad_end=self.pad_end,
-            )  # (batch, ch, time, freq)
+            )  # (batch, ch, time, freq, re/imag)
 
         if self.output_data_format == _CH_LAST_STR:
             if not self.tflite_compatible:
