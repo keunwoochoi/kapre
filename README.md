@@ -1,6 +1,6 @@
 # Kapre
 Keras Audio Preprocessors - compute STFT, ISTFT, Melspectrogram, and others on GPU real-time.
- 
+
 Tested on Python 3.6 and 3.7
 
 ## Why Kapre?
