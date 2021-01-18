@@ -31,7 +31,7 @@ Tested on Python 3.6 and 3.7
 5. When deploying the final model, all you need to remember is the sampling rate of the signal. No dependency or preprocessing!
 
 ## Installation
-
+ 
 ```sh
 pip install kapre
 ```
