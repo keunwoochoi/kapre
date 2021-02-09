@@ -336,7 +336,7 @@ class Phase(Layer):
     """Compute the phase of the complex input in radian, resulting in a float tensor
 
     Includes option to use approximate phase algorithm this will return the same
-    results as the kapre.tflite.Phase layer.
+    results as the PhaseTflite layer (the tflite compatible layer).
 
     Args:
         approx_atan_accuracy (`int`): if `None` will use tf.math.angle() to
@@ -362,7 +362,7 @@ class Phase(Layer):
     def call(self, x):
         """
         Args:
-            x (complex `Tensor`): input is a complex tensor with 4 dimensions
+            x (complex `Tensor`): input complex tensor
 
         Returns:
             (float `Tensor`): phase of `x` (Radian)
