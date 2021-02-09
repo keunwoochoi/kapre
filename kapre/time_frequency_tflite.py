@@ -1,8 +1,8 @@
 """Tflite compatible versions of Kapre layers.
 
 STFTTflite is a tflite compatible version of STFT. Tflite does not support complex
-types, thus real and imaginary parts are returned as an extra dimension. Ouput
-shape is now: (batch, channel, time, re/im) or (batch, time, channel, re/im).
+types, thus real and imaginary parts are returned as an extra (last) dimension.
+Ouput shape is now: (batch, channel, time, re/im) or (batch, time, channel, re/im).
 
 Because of the change of dimension, Tflite compatible layers are provided to
 process the resulting STFT; MagnitudeTflite and PhaseTflite are layers that
@@ -19,7 +19,7 @@ from .time_frequency import STFT, InverseSTFT, Magnitude, Phase
 
 __all__ = [
     'STFTTflite',
-    # 'InverseSTFT',  # NOTE (PK): todo
+    # 'InverseSTFTTflite',  # NOTE (PK): todo
     'MagnitudeTflite',
     'PhaseTflite',
 ]
