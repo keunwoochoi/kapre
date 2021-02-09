@@ -145,8 +145,10 @@ class PhaseTflite(Phase):
     approximations in the training data.
 
     Args:
-        approx_atan_accuracy (`int`): number of iterations to calculate
-            approximate atan() the higher the number the more accurate e.g.
+        approx_atan_accuracy (`int`): if `None` will use tf.math.angle() to
+            calculate the phase accurately. If an `int` this is the number of
+            iterations to calculate the approximate atan() using a tflite compatible
+            method. the higher the number the more accurate e.g.
             approx_atan_accuracy=29000. You may want to experiment with adjusting
             this number: trading off accuracy with inference speed.
 
@@ -160,10 +162,6 @@ class PhaseTflite(Phase):
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
 
     """
-
-    def __init__(self, approx_atan_accuracy=5000, **kwargs):
-        super(Phase, self).__init__(**kwargs)
-        self.approx_atan_accuracy = approx_atan_accuracy
 
     def call(self, x):
         """
