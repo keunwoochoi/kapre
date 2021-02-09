@@ -6,4 +6,4 @@ from . import backend
 
 from .signal import *
 from .time_frequency import *
-from . import tflite
+from .time_frequency_tflite import *

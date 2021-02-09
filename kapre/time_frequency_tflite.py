@@ -1,27 +1,23 @@
 """Tflite compatible versions of Kapre layers."""
 import tensorflow as tf
-from .. import backend
+from . import backend
 from tensorflow.keras import backend as K
-from ..backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
+from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 from .tflite_compatible_stft import stft_tflite, atan2_tflite
-from ..time_frequency import(
-    STFT,
-    InverseSTFT,
-    Magnitude,
-    Phase
-)
+# import non-tflite compatible layers to inheret from.
+from .time_frequency import STFT, InverseSTFT, Magnitude, Phase
 
 
 __all__ = [
-    'STFT',
-    # 'InverseSTFT',
-    'Magnitude',
-    'Phase',
+    'STFTTflite',
+    # 'InverseSTFT',  # NOTE (PK): todo
+    'MagnitudeTflite',
+    'PhaseTflite',
 ]
 
-class STFT(STFT):
+class STFTTflite(STFT):
     """
-    A Short-time Fourier transform layer.
+    A Short-time Fourier transform layer (tflite compatible).
 
     Ues `stft_tflite` from tflite_compatible_stft.py, this contains a tflite
     compatible stft (using a rdft), and `fixed_frame()` to window the audio.
@@ -111,8 +107,8 @@ class STFT(STFT):
         return stfts
 
 
-class Magnitude(Magnitude):
-    """Compute the magnitude of the input.
+class MagnitudeTflite(Magnitude):
+    """Compute the magnitude of the input (tflite compatible).
 
     The input is a real tensor, the last dimension has a size of `2`
     representing real and imaginary parts respectively.
@@ -140,15 +136,13 @@ class Magnitude(Magnitude):
         return tf.norm(x, ord='euclidean', axis=-1)
 
 
-class Phase(Phase):
-    """Compute the phase of the complex input in radian, resulting in a float tensor
+class PhaseTflite(Phase):
+    """Compute the phase of the complex input in radian, resulting in a float tensor (tflite compatible).
 
     Note TF lite does not natively support atan, used in tf.math.angle, so an
-    approximation is provided. The use of the approximation is enforced when
-    data is passed from a tflite compatible STFT layer (to ensure TFLITE
-    compatibility), but is optional when passed from a vanilla STFT layer. You
-    may want to use this approximation if you generate data using a non-tf-lite
-    compatible STFT (faster) but want the same approximations in the training data.
+    approximation is provided. You may want to use this approximation if you
+    generate data using a non-tf-lite compatible STFT (faster) but want the same
+    approximations in the training data.
 
     Args:
         approx_atan_accuracy (`int`): number of iterations to calculate

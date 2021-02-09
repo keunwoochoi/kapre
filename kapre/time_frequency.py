@@ -17,7 +17,7 @@ from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
-from .tflite.tflite_compatible_stft import atan2_tflite
+from .tflite_compatible_stft import atan2_tflite
 
 __all__ = [
     'STFT',

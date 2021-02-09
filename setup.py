@@ -8,11 +8,7 @@ setup(
     url='http://github.com/keunwoochoi/kapre/',
     author_email='gnuchoi@gmail.com',
     license='MIT',
-    package_dir = {
-            'kapre': 'kapre',
-            'kapre.tflite': 'kapre/tflite',
-            },
-    packages=['kapre','kapre.tflite'],
+    packages=['kapre'],
     package_data={
         'kapre': [
             'tests/speech_test_file.npz',

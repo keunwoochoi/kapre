@@ -11,11 +11,10 @@ from kapre import (
     InverseSTFT,
     ApplyFilterbank,
     ConcatenateFrequencyMap,
+    STFTTflite,
+    MagnitudeTflite,
+    PhaseTflite,
 )
-
-from kapre.tflite import STFT as STFTTflite
-from kapre.tflite import Magnitude as MagnitudeTflite
-from kapre.tflite import Phase as PhaseTflite
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
