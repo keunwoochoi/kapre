@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
-# workarounds for missing TFLite support for rfft and stft and tf.signal.frame
-# based on:
-# https://github.com/tensorflow/magenta/tree/master/magenta/music
-# as posted in https://github.com/tensorflow/tensorflow/issues/27303
-# and https://gist.github.com/padoremu/8288b47ce76e9530eb288d4eec2e0b4d
+"""Workarounds for missing TFLite support for rfft and stft and tf.signal.frame.
 
+based on:
+https://github.com/tensorflow/magenta/tree/master/magenta/music
+as posted in https://github.com/tensorflow/tensorflow/issues/27303
+and https://gist.github.com/padoremu/8288b47ce76e9530eb288d4eec2e0b4d
+"""
 import math
 
 import tensorflow as tf
