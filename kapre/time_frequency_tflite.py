@@ -1,4 +1,13 @@
-"""Tflite compatible versions of Kapre layers."""
+"""Tflite compatible versions of Kapre layers.
+
+STFTTflite is a tflite compatible version of STFT. Tflite does not support complex
+types, thus real and imaginary parts are returned as an extra dimension. Ouput
+shape is now: (batch, channel, time, re/im) or (batch, time, channel, re/im).
+
+Because of the change of dimension, Tflite compatible layers are provided to
+process the resulting STFT; MagnitudeTflite and PhaseTflite are layers that
+calculate the magnitude and phase respectively from the output of STFTTflite.
+"""
 import tensorflow as tf
 from . import backend
 from tensorflow.keras import backend as K
@@ -26,8 +35,8 @@ class STFTTflite(STFT):
 
     Additionally, it reshapes the output to be a proper 2D batch.
 
-    If `output_data_format == 'channels_last'`, the output shape is (batch, time, freq, channel)
-    If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time, freq)
+    If `output_data_format == 'channels_last'`, the output shape is (batch, time, freq, channel, re/imag)
+    If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time, freq, re/imag)
 
     Args:
         n_fft (int): Number of FFTs. Defaults to `2048`
