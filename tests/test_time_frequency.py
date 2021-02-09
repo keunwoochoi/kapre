@@ -12,6 +12,10 @@ from kapre import (
     ApplyFilterbank,
     ConcatenateFrequencyMap,
 )
+
+from kapre.tflite import STFT as STFTTflite
+from kapre.tflite import Magnitude as MagnitudeTflite
+from kapre.tflite import Phase as PhaseTflite
 from kapre.composed import (
     get_melspectrogram_layer,
     get_log_frequency_spectrogram_layer,
@@ -83,7 +87,6 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format, batch_siz
                 input_data_format=data_format,
                 output_data_format=data_format,
                 input_shape=input_shape,
-                tflite_compatible=False,
                 name='stft',
             )
         )
@@ -137,7 +140,6 @@ def test_spectrogram_correctness_more(data_format, window_name):
                 input_data_format=data_format,
                 output_data_format=data_format,
                 input_shape=input_shape,
-                tflite_compatible=False,
                 name='stft',
             )
         )
@@ -268,26 +270,40 @@ def test_melspectrogram_correctness(
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
 @pytest.mark.parametrize('batch_size', [1, 2])
 @pytest.mark.parametrize('win_length', [1000, 512])
-def test_spectrogram_tflite_correctnes(
+def test_spectrogram_tflite_correctness(
     n_fft, hop_length, n_ch, data_format, batch_size, win_length
 ):
     def _get_stft_model(following_layer=None, tflite_compatible=False):
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
-        stft_model.add(
-            STFT(
-                n_fft=n_fft,
-                win_length=win_length,
-                hop_length=hop_length,
-                window_name=None,
-                pad_end=False,
-                input_data_format=data_format,
-                output_data_format=data_format,
-                input_shape=input_shape,
-                tflite_compatible=tflite_compatible,
-                name='stft',
+        if tflite_compatible:
+            stft_model.add(
+                STFTTflite(
+                    n_fft=n_fft,
+                    win_length=win_length,
+                    hop_length=hop_length,
+                    window_name=None,
+                    pad_end=False,
+                    input_data_format=data_format,
+                    output_data_format=data_format,
+                    input_shape=input_shape,
+                    name='stft',
+                )
             )
-        )
+        else:
+            stft_model.add(
+                STFT(
+                    n_fft=n_fft,
+                    win_length=win_length,
+                    hop_length=hop_length,
+                    window_name=None,
+                    pad_end=False,
+                    input_data_format=data_format,
+                    output_data_format=data_format,
+                    input_shape=input_shape,
+                    name='stft',
+                )
+            )
         if following_layer is not None:
             stft_model.add(following_layer)
         return stft_model
@@ -311,7 +327,7 @@ def test_spectrogram_tflite_correctnes(
     allclose_complex_numbers(S_complex, S_complex_tflite)
 
     # test Magnitude()
-    stft_mag_model_tflite = _get_stft_model(Magnitude(), tflite_compatible=True)
+    stft_mag_model_tflite = _get_stft_model(MagnitudeTflite(), tflite_compatible=True)
     stft_mag_model = _get_stft_model(Magnitude(), tflite_compatible=False)
     S_lite = predict_using_tflite(stft_mag_model_tflite, batch_src)  # predict using tflite
     S = stft_mag_model.predict(batch_src)  # predict using tf model
@@ -319,7 +335,7 @@ def test_spectrogram_tflite_correctnes(
 
     # # test approx Phase() same for tflite and non-tflite
     stft_approx_phase_model_lite = _get_stft_model(
-        Phase(approx_atan_accuracy=500), tflite_compatible=True
+        PhaseTflite(approx_atan_accuracy=500), tflite_compatible=True
     )
     stft_approx_phase_model = _get_stft_model(
         Phase(approx_atan_accuracy=500), tflite_compatible=False

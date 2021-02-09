@@ -2,13 +2,17 @@ from setuptools import setup
 
 setup(
     name='kapre',
-    version='0.3.4',
+    version='0.3.5',
     description='Kapre: Keras Audio Preprocessors. Tensorflow.Keras layers for audio pre-processing in deep learning',
     author='Keunwoo Choi',
     url='http://github.com/keunwoochoi/kapre/',
     author_email='gnuchoi@gmail.com',
     license='MIT',
-    packages=['kapre'],
+    package_dir = {
+            'kapre': 'kapre',
+            'kapre.tflite': 'kapre/tflite',
+            },
+    packages=['kapre','kapre.tflite'],
     package_data={
         'kapre': [
             'tests/speech_test_file.npz',

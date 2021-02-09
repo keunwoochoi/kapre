@@ -1,29 +1,23 @@
 """Time-frequency Keras layers.
-
 This module has low-level implementations of some popular time-frequency operations such as STFT and inverse STFT.
 We're using these layers to compose layers in `kapre.composed` where more high-level and popular layers
 such as melspectrogram layer are provided. You should go check it out!
-
 Note:
     **Why time-frequency representation?**
-
     Every representation (STFT, melspectrogram, etc) has something in common - they're all 2D representations
     (time, frequency-ish) of audio signals. They're helpful because they decompose an audio signal, which is a simultaneous
     mixture of a lot of frequency components into different frequency bins. They have spatial property; the frequency
     bins are *sorted*, so frequency bins nearby has represent only slightly different frequency components. The
     frequency decomposition is also what's happening during human auditory perception through cochlea.
-
     **Which representation to use as input?**
-
     For a quick summary, check out my tutorial paper, `A Tutorial on Deep Learning for Music Information Retrieval <https://arxiv.org/abs/1709.04396>`_.
-
 """
 import tensorflow as tf
 from tensorflow.keras.layers import Layer, Conv2D
 from . import backend
 from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
-from .tflite_compatible_stft import stft_tflite, atan2_tflite
+from .tflite.tflite_compatible_stft import atan2_tflite
 
 __all__ = [
     'STFT',
@@ -39,14 +33,11 @@ __all__ = [
 
 def _shape_spectrum_output(spectrums, data_format):
     """Shape batch spectrograms into the right format.
-
     Args:
         spectrums (`Tensor`): result of tf.signal.stft or similar, i.e., (..., time, freq).
         data_format (`str`): 'channels_first' or 'channels_last'
-
     Returns:
         spectrums (`Tensor`): a transposed version of input `spectrums`
-
     """
     if data_format == _CH_FIRST_STR:
         pass  # probably it's already (batch, channel, time, freq)
@@ -58,12 +49,9 @@ def _shape_spectrum_output(spectrums, data_format):
 class STFT(Layer):
     """
     A Short-time Fourier transform layer.
-
     It uses `tf.signal.stft` to compute complex STFT. Additionally, it reshapes the output to be a proper 2D batch.
-
     If `output_data_format == 'channels_last'`, the output shape is (batch, time, freq, channel)
     If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time, freq)
-
     Args:
         n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (int or None): Window length in sample. Defaults to `n_fft`.
@@ -81,30 +69,14 @@ class STFT(Layer):
             `'channels_last'` if you want `(batch, time, frequency, channels)` and
             `'channels_first'` if you want `(batch, channels, time, frequency)`
             Defaults to the setting of your Keras configuration. (`tf.keras.backend.image_data_format()`)
-        tflite_compatible (`bool`): if False uses tf.signal.stft and tf.signal.frame (not tflite compatible)
-            if True uses `stft_tflite` from tflite_compatible_stft.py, this contains a tflite
-            compatible stft (using a rdft), and `fixed_frame()` to window the audio.
-            Tflite does not cope with comple types so real and imaginary parts are stored in extra dim.
-            Ouput shape is now: (batch, channel, time, re/im) or (batch, time, channel, re/im)
-
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
-
     Example:
         ::
-
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1)
             # and the dtype is complex
-
-            # tflite compatible model
-            input_shape = (2048, 1)  # mono signal
-            model = Sequential()
-            model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape, tflite_compatible=True))
-            # now the shape is (batch, n_frame=3, n_freq=513, ch=1, re/im=2)
-            # and the dtype is real
-
     """
 
     def __init__(
@@ -117,7 +89,6 @@ class STFT(Layer):
         pad_end=False,
         input_data_format='default',
         output_data_format='default',
-        tflite_compatible=False,
         **kwargs,
     ):
         super(STFT, self).__init__(**kwargs)
@@ -137,7 +108,6 @@ class STFT(Layer):
         self.window_fn = backend.get_window_fn(window_name)
         self.pad_begin = pad_begin
         self.pad_end = pad_end
-        self.tflite_compatible = tflite_compatible
 
         idt, odt = input_data_format, output_data_format
         self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
@@ -146,10 +116,8 @@ class STFT(Layer):
     def call(self, x):
         """
         Compute STFT of the input signal. If the `time` axis is not the last axis of `x`, it should be transposed first.
-
         Args:
             x (float `Tensor`): batch of audio signals, (batch, ch, time) or (batch, time, ch) based on input_data_format
-
         Return:
             (complex `Tensor`): A STFT representation of x in a 2D batch shape.
             `complex64` if `x` is `float32`. `complex128` if `x` is `float64`.
@@ -170,32 +138,19 @@ class STFT(Layer):
             waveforms = tf.pad(
                 waveforms, tf.constant([[0, 0], [0, 0], [int(self.n_fft - self.hop_length), 0]])
             )
-        if not self.tflite_compatible:
-            stfts = tf.signal.stft(
-                signals=waveforms,
-                frame_length=self.win_length,
-                frame_step=self.hop_length,
-                fft_length=self.n_fft,
-                window_fn=self.window_fn,
-                pad_end=self.pad_end,
-                name='%s_tf.signal.stft' % self.name,
-            )  # (batch, ch, time, freq)
-        else:
-            stfts = stft_tflite(
-                waveforms,
-                frame_length=self.win_length,
-                frame_step=self.hop_length,
-                fft_length=self.n_fft,
-                window_fn=self.window_fn,
-                pad_end=self.pad_end,
-            )  # (batch, ch, time, freq, re/imag)
+
+        stfts = tf.signal.stft(
+            signals=waveforms,
+            frame_length=self.win_length,
+            frame_step=self.hop_length,
+            fft_length=self.n_fft,
+            window_fn=self.window_fn,
+            pad_end=self.pad_end,
+            name='%s_tf.signal.stft' % self.name,
+        )  # (batch, ch, time, freq)
 
         if self.output_data_format == _CH_LAST_STR:
-            if not self.tflite_compatible:
-                stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
-            else:
-                # tflite compatible stft produces real and imag in 1st dim
-                stfts = tf.transpose(stfts, perm=(0, 2, 3, 1, 4))  # (batch, t, f, ch, re/im)
+            stfts = tf.transpose(stfts, perm=(0, 2, 3, 1))  # (batch, t, f, ch)
 
         return stfts
 
@@ -211,7 +166,6 @@ class STFT(Layer):
                 'pad_end': self.pad_end,
                 'input_data_format': self.input_data_format,
                 'output_data_format': self.output_data_format,
-                'tflite_compatible': self.tflite_compatible,
             }
         )
         return config
@@ -219,13 +173,10 @@ class STFT(Layer):
 
 class InverseSTFT(Layer):
     """An inverse-STFT layer.
-
     If `output_data_format == 'channels_last'`, the output shape is (batch, time, channel)
     If `output_data_format == 'channels_first'`, the output shape is (batch, channel, time)
-
     Note that the result of inverse STFT could be longer than the original signal due to the padding. Do check the
     size of the result by yourself and trim it if needed.
-
     Args:
         n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (`int` or `None`): Window length in sample. Defaults to `n_fft`.
@@ -233,7 +184,6 @@ class InverseSTFT(Layer):
         forward_window_name (str or None): *Name* of `tf.signal` function that *was* used in the forward STFT.
             Defaults to `hann_window`, assuming `tf.signal.hann_window` was used.
             Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
-
         input_data_format (`str`): the data format of input STFT batch
             `'channels_last'` if you want `(batch, time, frequency, channels)`
             `'channels_first'` if you want `(batch, channels, time, frequency)`
@@ -242,18 +192,14 @@ class InverseSTFT(Layer):
             `'channels_last'` if it's `(batch, time, channels)`
             `'channels_first'` if it's `(batch, channels, time)`
             Defaults to the setting of your Keras configuration. (tf.keras.backend.image_data_format())
-
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
-
     Example:
         ::
-
             input_shape = (3, 513, 1)  # 3 frames, 513 frequency bins, 1 channel
             # and input dtype is complex
             model = Sequential()
             model.add(kapre.InverseSTFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             # now the shape is (batch, time=2048, ch=1)
-
     """
 
     def __init__(
@@ -291,13 +237,10 @@ class InverseSTFT(Layer):
     def call(self, x):
         """
         Compute inverse STFT of the input STFT.
-
         Args:
             x (complex `Tensor`): batch of STFTs, (batch, ch, time, freq) or (batch, time, freq, ch) depending on `input_data_format`
-
         Return:
             (`float`): audio signals of x. Shape: 1D batch shape. I.e., (batch, time, ch) or (batch, ch, time) depending on `output_data_format`
-
         """
         stfts = x  # (batch, ch, time, freq) if input_data_format == 'channels_first'.
         # (batch, time, freq, ch) if input_data_format == 'channels_last'.
@@ -337,57 +280,46 @@ class InverseSTFT(Layer):
 
 class Magnitude(Layer):
     """Compute the magnitude of the complex input, resulting in a float tensor
-
     Example:
         ::
-
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             mode.add(Magnitude())
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
-
     """
 
     def call(self, x):
         """
         Args:
-            x (real or complex `Tensor`): when tflite_compatible==False input is a
-                complex tensor with 4 dimensions, when tflite_compatible==True,
-                input is real tensor with five dimensions (last dim is re/imag)
+            x (complex `Tensor`): input complex tensor
         Returns:
             (float `Tensor`): magnitude of `x`
         """
-        if len(x.get_shape().as_list()) == 5:  # when we have a real/imag axis (tflite model)
-            return tf.sqrt(x[:, :, :, :, 0] ** 2 + x[:, :, :, :, 1] ** 2)
         return tf.abs(x)
 
 
 class Phase(Layer):
     """Compute the phase of the complex input in radian, resulting in a float tensor
 
-    Note TF lite does not natively support atan, used in tf.math.angle, so an
-    approximation is provided. The use of the approximation is enforced when
-    data is passed from a tflite compatible STFT layer (to ensure TFLITE
-    compatibility), but is optional when passed from a vanilla STFT layer. You
-    may want to use this approximation if you generate data using a non-tf-lite
-    compatible STFT (faster) but want the same approximations in the training data.
+    Includes option to use approximate phase algorithm this will return the same
+    results as the kapre.tflite.Phase layer.
 
     Args:
-        approx_atan_accuracy (`int`): number of iterations to calculate
-            approximate atan() the higher the number the more accurate e.g.
+        approx_atan_accuracy (`int`): if `None` will use tf.math.angle() to
+            calculate the phase accurately. If an `int` this is the number of
+            iterations to calculate the approximate atan() using a tflite compatible
+            method. the higher the number the more accurate e.g.
             approx_atan_accuracy=29000. You may want to experiment with adjusting
             this number: trading off accuracy with inference speed.
 
     Example:
         ::
-
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             model.add(Phase())
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
-
     """
 
     def __init__(self, approx_atan_accuracy=None, **kwargs):
@@ -397,22 +329,11 @@ class Phase(Layer):
     def call(self, x):
         """
         Args:
-            x (real or complex `Tensor`): when tflite_compatible==False input is a
-                complex tensor with 4 dimensions, when tflite_compatible==True,
-                input is real tensor with five dimensions (last dim is re/imag)
+            x (complex `Tensor`): input is a complex tensor with 4 dimensions
 
         Returns:
             (float `Tensor`): phase of `x` (Radian)
         """
-        if (
-            len(x.get_shape().as_list()) == 5
-        ):  # when we have a real/imag axis (for tflite compatibilty)
-            tf.debugging.assert_integer(
-                self.approx_atan_accuracy,
-                "You are passing data from a tflite compatible layer, please provide `approx_atan_accuracy`",
-            )
-            return atan2_tflite(x[:, :, :, :, 1], x[:, :, :, :, 0], n=self.approx_atan_accuracy)
-
         if self.approx_atan_accuracy:
             return atan2_tflite(tf.math.imag(x), tf.math.real(x), n=self.approx_atan_accuracy)
 
@@ -430,7 +351,6 @@ class Phase(Layer):
 
 class MagnitudeToDecibel(Layer):
     """A class that wraps `backend.magnitude_to_decibel` to compute decibel of the input magnitude.
-
     Args:
         ref_value (`float`): an input value that would become 0 dB in the result.
             For spectrogram magnitudes, ref_value=1.0 usually make the decibel-scaled output to be around zero
@@ -438,17 +358,14 @@ class MagnitudeToDecibel(Layer):
         amin (`float`): the noise floor of the input. An input that is smaller than `amin`, it's converted to `amin.
         dynamic_range (`float`): range of the resulting value. E.g., if the maximum magnitude is 30 dB,
             the noise floor of the output would become (30 - dynamic_range) dB
-
     Example:
         ::
-
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             model.add(Magnitude())
             model.add(MagnitudeToDecibel())
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
-
     """
 
     def __init__(self, ref_value=1.0, amin=1e-5, dynamic_range=80.0, **kwargs):
@@ -461,7 +378,6 @@ class MagnitudeToDecibel(Layer):
         """
         Args:
             x (`Tensor`): float tensor. Can be batch or not. Something like magnitude of STFT.
-
         Returns:
             (`Tensor`): decibel-scaled float tensor of `x`.
         """
@@ -472,11 +388,7 @@ class MagnitudeToDecibel(Layer):
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
         config.update(
-            {
-                'amin': self.amin,
-                'dynamic_range': self.dynamic_range,
-                'ref_value': self.ref_value,
-            }
+            {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
         )
         return config
 
@@ -484,15 +396,12 @@ class MagnitudeToDecibel(Layer):
 class ApplyFilterbank(Layer):
     """
     Apply a filterbank to the input spectrograms.
-
     Args:
         filterbank (`Tensor`): filterbank tensor in a shape of (n_freq, n_filterbanks)
         data_format (`str`): specifies the data format of batch input/output
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
-
     Example:
         ::
-
             input_shape = (2048, 1)  # mono signal
             n_fft = 1024
             n_hop = n_fft // 2
@@ -509,16 +418,10 @@ class ApplyFilterbank(Layer):
             # (batch, n_frame=3, n_freq=n_fft // 2 + 1, ch=1) and dtype is float
             model.add(ApplyFilterbank(type='mel', filterbank_kwargs=kwargs))
             # (batch, n_frame=3, n_mels=128, ch=1)
-
-
     """
 
     def __init__(
-        self,
-        type,
-        filterbank_kwargs,
-        data_format='default',
-        **kwargs,
+        self, type, filterbank_kwargs, data_format='default', **kwargs,
     ):
 
         backend.validate_data_format_str(data_format)
@@ -545,7 +448,6 @@ class ApplyFilterbank(Layer):
     def call(self, x):
         """
         Apply filterbank to `x`.
-
         Args:
             x (`Tensor`): float tensor in 2D batch shape.
         """
@@ -572,22 +474,18 @@ class ApplyFilterbank(Layer):
 class Delta(Layer):
     """Calculates delta, a local estimate of the derivative along time axis.
     See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
-
     Args:
         win_length (int): Window length of the derivative estimation. Defaults to 5
         mode (`str`): Specifies pad mode of `tf.pad`. Case-insensitive. Defaults to 'symmetric'.
             Can be 'symmetric', 'reflect', 'constant', or whatever `tf.pad` supports.
-
     Example:
         ::
-
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             model.add(kapre.Magnitude())
             model.add(Delta())
             # (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
-
     """
 
     def __init__(self, win_length=5, mode='symmetric', data_format='default', **kwargs):
@@ -620,7 +518,6 @@ class Delta(Layer):
         """
         Args:
             x (`Tensor`): a 2d batch (b, t, f, ch) or (b, ch, t, f)
-
         Returns:
             (`Tensor`): A tensor with the same shape as input data.
         """
@@ -650,22 +547,17 @@ class Delta(Layer):
 
 class ConcatenateFrequencyMap(Layer):
     """Addes a frequency information channel to spectrograms.
-
     The added frequency channel (=frequency map) has a linearly increasing values from 0.0 to 1.0,
     indicating the normalize frequency of a time-frequency bin. This layer can be applied to input audio spectrograms
     or any feature maps so that the following layers can be conditioned on the frequency. (Imagine something like
     positional encoding in NLP but the position is on frequency axis).
-
     A combination of `ConcatenateFrequencyMap` and `Conv2D` is known as frequency-aware convolution (see References).
     For your convenience, such a layer is supported by `karep.composed.get_frequency_aware_conv2d()`.
-
     Args:
         data_format (str): specifies the data format of batch input/output.
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
-
     Example:
         ::
-
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
@@ -680,12 +572,10 @@ class ConcatenateFrequencyMap(Layer):
             model.add(kapre.ConcatenateFrequencyMap())
             model.add(keras.layers.Conv2D(32, (3, 3), strides=(1, 1), activation='relu')
             model.add(keras.layers.MaxPooling2D((2, 2)))  # length of frequency axis doesn't matter
-
     References:
         Koutini, K., Eghbal-zadeh, H., & Widmer, G. (2019).
         `Receptive-Field-Regularized CNN Variants for Acoustic Scene Classification <https://arxiv.org/abs/1909.02859>`_.
         In Proceedings of the Detection and Classification of Acoustic Scenes and Events 2019 Workshop (DCASE2019).
-
     """
 
     def __init__(self, data_format='default', **kwargs):
@@ -704,7 +594,6 @@ class ConcatenateFrequencyMap(Layer):
         """
         Args:
             x (`Tensor`): a 2d batch (b, t, f, ch) or (b, ch, t, f)
-
         Returns:
             x (`Tensor`): a 2d batch (b, t, f, ch + 1) or (b, ch + 1, t, f)
         """
@@ -738,8 +627,6 @@ class ConcatenateFrequencyMap(Layer):
     def get_config(self):
         config = super(ConcatenateFrequencyMap, self).get_config()
         config.update(
-            {
-                'data_format': self.data_format,
-            }
+            {'data_format': self.data_format,}
         )
         return config
