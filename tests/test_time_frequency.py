@@ -11,6 +11,9 @@ from kapre import (
     InverseSTFT,
     ApplyFilterbank,
     ConcatenateFrequencyMap,
+    STFTTflite,
+    MagnitudeTflite,
+    PhaseTflite,
 )
 from kapre.composed import (
     get_melspectrogram_layer,
@@ -21,7 +24,7 @@ from kapre.composed import (
     get_frequency_aware_conv2d,
 )
 
-from utils import get_audio, save_load_compare
+from utils import get_audio, save_load_compare, predict_using_tflite
 
 
 def _num_frame_valid(nsp_src, nsp_win, len_hop):
@@ -46,6 +49,17 @@ def allclose_phase(a, b, atol=1e-3):
     np.testing.assert_allclose(np.cos(a), np.cos(b), atol=atol)
 
 
+def assert_approx_phase(a, b, atol=1e-2, acceptable_fail_ratio=0.01):
+    """Testing approximate phase.
+    Tflite phase is approximate, some values will allways have a large error
+    So makes more sense to count the number that are within tolerance
+    """
+    count_failed = np.sum(np.abs(a - b) > atol)
+    assert (
+        count_failed / a.size < acceptable_fail_ratio
+    ), "too many inaccuracte phase bins: {} bins out of {} incorrect".format(count_failed, a.size)
+
+
 def allclose_complex_numbers(a, b, atol=1e-3):
     np.testing.assert_equal(np.shape(a), np.shape(b))
     np.testing.assert_allclose(np.abs(a), np.abs(b), rtol=1e-5, atol=atol)
@@ -57,7 +71,8 @@ def allclose_complex_numbers(a, b, atol=1e-3):
 @pytest.mark.parametrize('hop_length', [None, 256])
 @pytest.mark.parametrize('n_ch', [1, 2, 6])
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
+@pytest.mark.parametrize('batch_size', [1, 10])
+def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format, batch_size):
     def _get_stft_model(following_layer=None):
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
@@ -78,7 +93,9 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format):
             stft_model.add(following_layer)
         return stft_model
 
-    src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
+    src_mono, batch_src, input_shape = get_audio(
+        data_format=data_format, n_ch=n_ch, batch_size=batch_size
+    )
     win_length = n_fft  # test with x2
     # compute with librosa
     S_ref = librosa.core.stft(
@@ -244,6 +261,96 @@ def test_melspectrogram_correctness(
     np.testing.assert_allclose(
         S_ref_db, S, rtol=3e-3
     )  # decibel is evaluated with relative tolerance
+
+
+@pytest.mark.parametrize('n_fft', [1000])
+@pytest.mark.parametrize('hop_length', [None, 256])
+@pytest.mark.parametrize('n_ch', [1, 2])
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('batch_size', [1, 2])
+@pytest.mark.parametrize('win_length', [1000, 512])
+def test_spectrogram_tflite_correctness(
+    n_fft, hop_length, n_ch, data_format, batch_size, win_length
+):
+    def _get_stft_model(following_layer=None, tflite_compatible=False):
+        # compute with kapre
+        stft_model = tensorflow.keras.models.Sequential()
+        if tflite_compatible:
+            stft_model.add(
+                STFTTflite(
+                    n_fft=n_fft,
+                    win_length=win_length,
+                    hop_length=hop_length,
+                    window_name=None,
+                    pad_end=False,
+                    input_data_format=data_format,
+                    output_data_format=data_format,
+                    input_shape=input_shape,
+                    name='stft',
+                )
+            )
+        else:
+            stft_model.add(
+                STFT(
+                    n_fft=n_fft,
+                    win_length=win_length,
+                    hop_length=hop_length,
+                    window_name=None,
+                    pad_end=False,
+                    input_data_format=data_format,
+                    output_data_format=data_format,
+                    input_shape=input_shape,
+                    name='stft',
+                )
+            )
+        if following_layer is not None:
+            stft_model.add(following_layer)
+        return stft_model
+
+    src_mono, batch_src, input_shape = get_audio(
+        data_format=data_format, n_ch=n_ch, batch_size=batch_size
+    )
+    # tflite requires a known batch size
+    batch_size = batch_src.shape[0]
+
+    stft_model_tflite = _get_stft_model(tflite_compatible=True)
+    stft_model = _get_stft_model(tflite_compatible=False)
+
+    # test STFT()
+    S_complex_tflite = predict_using_tflite(stft_model_tflite, batch_src)  # predict using tflite
+    # (batch, time, freq, chan, re/imag) - convert to complex number:
+    S_complex_tflite = tf.complex(
+        S_complex_tflite[..., 0], S_complex_tflite[..., 1]
+    )  # (batch,time,freq,chan)
+    S_complex = stft_model.predict(batch_src)  # predict using tf model
+    allclose_complex_numbers(S_complex, S_complex_tflite)
+
+    # test Magnitude()
+    stft_mag_model_tflite = _get_stft_model(MagnitudeTflite(), tflite_compatible=True)
+    stft_mag_model = _get_stft_model(Magnitude(), tflite_compatible=False)
+    S_lite = predict_using_tflite(stft_mag_model_tflite, batch_src)  # predict using tflite
+    S = stft_mag_model.predict(batch_src)  # predict using tf model
+    np.testing.assert_allclose(S, S_lite, atol=1e-4)
+
+    # # test approx Phase() same for tflite and non-tflite
+    stft_approx_phase_model_lite = _get_stft_model(
+        PhaseTflite(approx_atan_accuracy=500), tflite_compatible=True
+    )
+    stft_approx_phase_model = _get_stft_model(
+        Phase(approx_atan_accuracy=500), tflite_compatible=False
+    )
+    S_approx_phase_lite = predict_using_tflite(
+        stft_approx_phase_model_lite, batch_src
+    )  # predict using tflite
+    S_approx_phase = stft_approx_phase_model.predict(
+        batch_src, batch_size=batch_size
+    )  # predict using tf model
+    assert_approx_phase(S_approx_phase_lite, S_approx_phase, atol=1e-2, acceptable_fail_ratio=0.01)
+
+    # # test accuracy of approx Phase()
+    stft_phase_model = _get_stft_model(Phase(), tflite_compatible=False)
+    S_phase = stft_phase_model.predict(batch_src, batch_size=batch_size)  # predict using tf model
+    assert_approx_phase(S_approx_phase_lite, S_phase, atol=1e-2, acceptable_fail_ratio=0.01)
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
