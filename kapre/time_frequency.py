@@ -139,10 +139,10 @@ class STFT(Layer):
 
         Return:
             (complex `Tensor`): A STFT representation of x in a 2D batch shape.
-            `complex64` if `x` is `float32`. `complex128` if `x` is `float64`.
+            `complex64` if `x` is `float32`, `complex128` if `x` is `float64`.
             Its shape is (batch, time, freq, ch) or (batch. ch, time, freq) depending on `output_data_format` and
-                `time` is the number of frames, which is `((len_src + (win_length - hop_length) / hop_length) // win_length )` if `pad_end` is `True`.
-                `freq` is the number of fft unique bins, which is `n_fft // 2 + 1` (the unique components of the FFT).
+            `time` is the number of frames, which is `((len_src + (win_length - hop_length) / hop_length) // win_length )` if `pad_end` is `True`.
+            `freq` is the number of fft unique bins, which is `n_fft // 2 + 1` (the unique components of the FFT).
         """
         waveforms = x  # (batch, ch, time) if input_data_format == 'channels_first'.
         # (batch, time, ch) if input_data_format == 'channels_last'.
@@ -349,6 +349,7 @@ class Phase(Layer):
 
     Example:
         ::
+
             input_shape = (2048, 1)  # mono signal
             model = Sequential()
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
