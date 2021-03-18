@@ -49,7 +49,9 @@ class ChannelSwap(Layer):
     """
 
     def __init__(
-        self, data_format='default', **kwargs,
+        self,
+        data_format='default',
+        **kwargs,
     ):
         backend.validate_data_format_str(data_format)
 
@@ -94,6 +96,8 @@ class ChannelSwap(Layer):
     def get_config(self):
         config = super(ChannelSwap, self).get_config()
         config.update(
-            {'data_format': self.data_format,}
+            {
+                'data_format': self.data_format,
+            }
         )
         return config

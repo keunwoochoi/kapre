@@ -19,11 +19,12 @@ Note:
 
 """
 import tensorflow as tf
-from tensorflow.keras.layers import Layer, Conv2D
-from . import backend
 from tensorflow.keras import backend as K
-from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
+from tensorflow.keras.layers import Layer
 
+from . import backend
+from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
+from .tflite_compatible_stft import atan2_tflite
 
 __all__ = [
     'STFT',
@@ -138,10 +139,10 @@ class STFT(Layer):
 
         Return:
             (complex `Tensor`): A STFT representation of x in a 2D batch shape.
-            `complex64` if `x` is `float32`. `complex128` if `x` is `float64`.
+            `complex64` if `x` is `float32`, `complex128` if `x` is `float64`.
             Its shape is (batch, time, freq, ch) or (batch. ch, time, freq) depending on `output_data_format` and
-                `time` is the number of frames, which is `((len_src + (win_length - hop_length) / hop_length) // win_length )` if `pad_end` is `True`.
-                `freq` is the number of fft unique bins, which is `n_fft // 2 + 1` (the unique components of the FFT).
+            `time` is the number of frames, which is `((len_src + (win_length - hop_length) / hop_length) // win_length )` if `pad_end` is `True`.
+            `freq` is the number of fft unique bins, which is `n_fft // 2 + 1` (the unique components of the FFT).
         """
         waveforms = x  # (batch, ch, time) if input_data_format == 'channels_first'.
         # (batch, time, ch) if input_data_format == 'channels_last'.
@@ -335,6 +336,17 @@ class Magnitude(Layer):
 class Phase(Layer):
     """Compute the phase of the complex input in radian, resulting in a float tensor
 
+    Includes option to use approximate phase algorithm this will return the same
+    results as the PhaseTflite layer (the tflite compatible layer).
+
+    Args:
+        approx_atan_accuracy (`int`): if `None` will use tf.math.angle() to
+            calculate the phase accurately. If an `int` this is the number of
+            iterations to calculate the approximate atan() using a tflite compatible
+            method. the higher the number the more accurate e.g.
+            approx_atan_accuracy=29000. You may want to experiment with adjusting
+            this number: trading off accuracy with inference speed.
+
     Example:
         ::
 
@@ -343,8 +355,11 @@ class Phase(Layer):
             model.add(kapre.STFT(n_fft=1024, hop_length=512, input_shape=input_shape))
             model.add(Phase())
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1) and dtype is float
-
     """
+
+    def __init__(self, approx_atan_accuracy=None, **kwargs):
+        super(Phase, self).__init__(**kwargs)
+        self.approx_atan_accuracy = approx_atan_accuracy
 
     def call(self, x):
         """
@@ -354,7 +369,19 @@ class Phase(Layer):
         Returns:
             (float `Tensor`): phase of `x` (Radian)
         """
+        if self.approx_atan_accuracy:
+            return atan2_tflite(tf.math.imag(x), tf.math.real(x), n=self.approx_atan_accuracy)
+
         return tf.math.angle(x)
+
+    def get_config(self):
+        config = super(Phase, self).get_config()
+        config.update(
+            {
+                'tflite_phase_accuracy': self.approx_atan_accuracy,
+            }
+        )
+        return config
 
 
 class MagnitudeToDecibel(Layer):
@@ -401,7 +428,11 @@ class MagnitudeToDecibel(Layer):
     def get_config(self):
         config = super(MagnitudeToDecibel, self).get_config()
         config.update(
-            {'amin': self.amin, 'dynamic_range': self.dynamic_range, 'ref_value': self.ref_value,}
+            {
+                'amin': self.amin,
+                'dynamic_range': self.dynamic_range,
+                'ref_value': self.ref_value,
+            }
         )
         return config
 
@@ -439,7 +470,11 @@ class ApplyFilterbank(Layer):
     """
 
     def __init__(
-        self, type, filterbank_kwargs, data_format='default', **kwargs,
+        self,
+        type,
+        filterbank_kwargs,
+        data_format='default',
+        **kwargs,
     ):
 
         backend.validate_data_format_str(data_format)
@@ -659,6 +694,8 @@ class ConcatenateFrequencyMap(Layer):
     def get_config(self):
         config = super(ConcatenateFrequencyMap, self).get_config()
         config.update(
-            {'data_format': self.data_format,}
+            {
+                'data_format': self.data_format,
+            }
         )
         return config

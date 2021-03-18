@@ -1,6 +1,10 @@
 Release Note
 ^^^^^^^^^^^^
 
+* 18 March 2021
+  - 0.3.5
+    - Add `kapre.time_frequency_tflite` which uses tflite for a faster CPU inference.
+
 * 29 Sep 2020
   - 0.3.4
     - Fix a bug in `kapre.backend.get_window_fn()`. Previously, it only correctly worked with `None` input and an error was raised when non-default value was set for `window_name` in any layer.

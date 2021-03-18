@@ -110,6 +110,7 @@ def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
     if amin is None:
         amin = 1e-5
 
+    amin = tf.cast(amin, dtype=x.dtype)
     log_spec = 10.0 * _log10(tf.math.maximum(x, amin))
     log_spec = log_spec - 10.0 * _log10(tf.math.maximum(amin, ref_value))
 

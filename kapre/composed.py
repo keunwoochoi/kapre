@@ -13,6 +13,9 @@ Warnings:
 
 
 """
+from tensorflow import keras
+from tensorflow.keras import Sequential, Model
+
 from .time_frequency import (
     STFT,
     InverseSTFT,
@@ -23,9 +26,6 @@ from .time_frequency import (
     ConcatenateFrequencyMap,
 )
 from . import backend
-
-from tensorflow import keras
-from tensorflow.keras import Sequential, Model
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 

@@ -12,10 +12,13 @@ TOL = 1e-5
 
 
 @pytest.mark.parametrize('dynamic_range', [80.0, 120.0])
-def test_magnitude_to_decibel(dynamic_range):
+@pytest.mark.parametrize('dtype', ['float16', 'float32', 'float64'])
+def test_magnitude_to_decibel(dynamic_range, dtype: str):
     """test for backend_keras.magnitude_to_decibel"""
 
-    x = np.array([[1e-20, 1e-5, 1e-3, 5e-2], [0.3, 1.0, 20.5, 9999]])  # random positive numbers
+    x = np.array(
+        [[1e-20, 1e-5, 1e-3, 5e-2], [0.3, 1.0, 20.5, 9999]], dtype=dtype
+    )  # random positive numbers
 
     amin = 1e-5
     x_decibel_ref = np.stack(
@@ -30,8 +33,10 @@ def test_magnitude_to_decibel(dynamic_range):
     x_decibel_kapre = magnitude_to_decibel(
         x_var, ref_value=1.0, amin=amin, dynamic_range=dynamic_range
     )
-
-    np.testing.assert_allclose(K.eval(x_decibel_kapre), x_decibel_ref, atol=TOL)
+    if dtype == 'float16':
+        np.testing.assert_allclose(K.eval(x_decibel_kapre), x_decibel_ref, rtol=1e-3, atol=TOL)
+    else:
+        np.testing.assert_allclose(K.eval(x_decibel_kapre), x_decibel_ref, atol=TOL)
 
 
 @pytest.mark.parametrize('sample_rate', [44100, 22050])
