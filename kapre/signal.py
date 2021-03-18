@@ -5,8 +5,9 @@ This module includes Kapre layers that deal with audio signals (waveforms).
 """
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
-from . import backend
 from tensorflow.keras import backend as K
+
+from . import backend
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 
@@ -219,7 +220,9 @@ class MuLawEncoding(Layer):
     """
 
     def __init__(
-        self, quantization_channels, **kwargs,
+        self,
+        quantization_channels,
+        **kwargs,
     ):
         super(MuLawEncoding, self).__init__(**kwargs)
         self.quantization_channels = quantization_channels
@@ -238,7 +241,9 @@ class MuLawEncoding(Layer):
     def get_config(self):
         config = super(MuLawEncoding, self).get_config()
         config.update(
-            {'quantization_channels': self.quantization_channels,}
+            {
+                'quantization_channels': self.quantization_channels,
+            }
         )
 
         return config
@@ -263,7 +268,9 @@ class MuLawDecoding(Layer):
     """
 
     def __init__(
-        self, quantization_channels, **kwargs,
+        self,
+        quantization_channels,
+        **kwargs,
     ):
         super(MuLawDecoding, self).__init__(**kwargs)
         self.quantization_channels = quantization_channels
@@ -282,7 +289,9 @@ class MuLawDecoding(Layer):
     def get_config(self):
         config = super(MuLawDecoding, self).get_config()
         config.update(
-            {'quantization_channels': self.quantization_channels,}
+            {
+                'quantization_channels': self.quantization_channels,
+            }
         )
 
         return config

@@ -13,8 +13,10 @@ import numpy as np
 
 def _rdft_matrix(dft_length):
     """Return a precalculated DFT matrix for positive frequencies only
+
     Args:
         dft_length (int) - DFT length
+
     Returns
         rdft_mat (k x n tensor) - precalculated DFT matrix rows are frequencies
             columns are samples, k dimension is dft_length // 2 +1 bins long
@@ -38,11 +40,13 @@ def _rdft(signal, dft_length):
     """DFT for real signals.
     Calculates the onesided dft, assuming real signal implies complex congugaqe symetry,
     hence only onesided DFT is returned.
+
     Args:
         signal (tensor) signal to transform, assumes that the last dimension is the time dimension
             signal can be framed, e.g. (1, 40, 1024) for a single batch of 40 frames of
             length 1024
         dft_length (int) - DFT length
+
     Returns:
         spec_real (float32 tensor) - real part of spectrogram, e.g. (1, 40, 513) for a 1024 length dft
         spec_imag (float32 tensor) - imag part of spectrogram, e.g. (1, 40, 513) for a 1024 length dft
@@ -73,14 +77,17 @@ def _rdft(signal, dft_length):
 
 def fixed_frame(signal, frame_length, frame_step):
     """tflite-compatible tf.signal.frame for fixed-size input.
+
     Args:
         signal: Tensor containing signal(s).
         frame_length: Number of samples to put in each frame.
         frame_step: Sample advance between successive frames.
+
     Returns:
         A new tensor where the last axis (or first, if first_axis) of input
         signal has been replaced by a (num_frames, frame_length) array of individual
         frames where each frame is drawn frame_step samples after the previous one.
+
     Raises:
         ValueError: if signal has an undefined axis length.  This routine only
         supports framing of signals whose shape is fixed at graph-build time.
@@ -151,6 +158,7 @@ def stft_tflite(signal, frame_length, frame_step, fft_length, window_fn, pad_end
     applied.
     Since fixed (precomputed) framing must be used, signal.shape[-1] must be a
     specific value (so "?"/None is not supported).
+
     Args:
         signal: 1D tensor containing the time-domain waveform to be transformed.
         frame_length: int, the number of points in each Fourier frame.
@@ -159,6 +167,7 @@ def stft_tflite(signal, frame_length, frame_step, fft_length, window_fn, pad_end
         window_fn: tf.signal.window, the return of backend.get_window_fn(window_name)
         pad_end: bool, if true pads the end with zeros so that signal contains
             an integer number of frames
+
     Returns:
         spectrogram: Two (num_frames, fft_length) tensors containing the real and
             imaginary parts of the short-time Fourier transform of the input signal.
@@ -190,10 +199,12 @@ def continued_fraction_arctan(x, n=100, dtype=tf.float32):
         op (or a flex op). n is the number of iterations, the high the more accurate.
         Accuracy is poor when the argument is large.
         https://functions.wolfram.com/ElementaryFunctions/ArcTan/10/
+
     Args:
         x (tensor) - argument tensor to caclulate arctan of
         n (int) - The number of iterations, large means arctan is more accurate
         dtype (tf.dtype) - tf.float32, or tf.float64
+
     Returns
         arctan(x) (tensor) - approx value of arctan(x)
     """
@@ -212,12 +223,14 @@ def atan2_tflite(y, x, n=100, dtype=tf.float32):
         atan is not a tflite supported op or flex op, thus this uses an Approximation
         Poor accuracy when either x is very small or y is very large.
         https://en.wikipedia.org/wiki/Atan2
+
     Args:
         y (tensor) - vertical component of tangent (or imaginary part of number for phase)
         x (tensor) - horizontal component of tanget (or real part of number for phase)
         n (int) - The number of iterations to use for atan approximations,
             larger means arctan is more accurate
         dtype (tf.dtype) - tf.float32, or tf.float64
+
     Returns
         atan2(x) (tensor) - approx value of atan2(x)
     """

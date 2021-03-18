@@ -92,6 +92,7 @@ Visit `github.com/keunwoochoi/kapre <https://github.com/keunwoochoi/kapre>`_ and
    signal
    composed
    backend
+   time_frequency_tflite
 
 .. toctree::
    :hidden:

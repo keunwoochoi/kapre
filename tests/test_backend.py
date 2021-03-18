@@ -16,7 +16,9 @@ TOL = 1e-5
 def test_magnitude_to_decibel(dynamic_range, dtype: str):
     """test for backend_keras.magnitude_to_decibel"""
 
-    x = np.array([[1e-20, 1e-5, 1e-3, 5e-2], [0.3, 1.0, 20.5, 9999]], dtype=dtype)  # random positive numbers
+    x = np.array(
+        [[1e-20, 1e-5, 1e-3, 5e-2], [0.3, 1.0, 20.5, 9999]], dtype=dtype
+    )  # random positive numbers
 
     amin = 1e-5
     x_decibel_ref = np.stack(

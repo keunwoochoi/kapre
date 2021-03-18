@@ -405,7 +405,11 @@ def test_mag_phase(data_format):
     mag_phase_ref = np.stack(
         librosa.magphase(
             librosa.stft(
-                src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False,
+                src_mono,
+                n_fft=n_fft,
+                hop_length=hop_length,
+                win_length=win_length,
+                center=False,
             ).T
         ),
         axis=ch_axis,
@@ -413,8 +417,20 @@ def test_mag_phase(data_format):
     np.testing.assert_equal(mag_phase_kapre.shape, mag_phase_ref.shape)
     # magnitude test
     np.testing.assert_allclose(
-        np.take(mag_phase_kapre, [0,], axis=ch_axis,),
-        np.take(mag_phase_ref, [0,], axis=ch_axis,),
+        np.take(
+            mag_phase_kapre,
+            [
+                0,
+            ],
+            axis=ch_axis,
+        ),
+        np.take(
+            mag_phase_ref,
+            [
+                0,
+            ],
+            axis=ch_axis,
+        ),
         atol=2e-4,
     )
     # phase test - todo - yeah..

@@ -9,10 +9,9 @@ process the resulting STFT; MagnitudeTflite and PhaseTflite are layers that
 calculate the magnitude and phase respectively from the output of STFTTflite.
 """
 import tensorflow as tf
-from . import backend
-from tensorflow.keras import backend as K
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 from .tflite_compatible_stft import stft_tflite, atan2_tflite
+
 # import non-tflite compatible layers to inheret from.
 from .time_frequency import STFT, InverseSTFT, Magnitude, Phase
 
@@ -23,6 +22,7 @@ __all__ = [
     'MagnitudeTflite',
     'PhaseTflite',
 ]
+
 
 class STFTTflite(STFT):
     """
@@ -68,7 +68,6 @@ class STFTTflite(STFT):
             # and the dtype is real
 
     """
-
 
     def call(self, x):
         """
