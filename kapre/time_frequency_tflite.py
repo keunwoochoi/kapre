@@ -61,9 +61,8 @@ class STFTTflite(STFT):
     Example:
         ::
 
-            # tflite compatible model
             input_shape = (2048, 1)  # mono signal
-            model = Sequential()
+            model = Sequential()  # tflite compatible model
             model.add(kapre.STFTTflite(n_fft=1024, hop_length=512, input_shape=input_shape))
             # now the shape is (batch, n_frame=3, n_freq=513, ch=1, re/im=2)
             # and the dtype is real
