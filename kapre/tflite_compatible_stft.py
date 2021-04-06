@@ -175,9 +175,10 @@ def stft_tflite(signal, frame_length, frame_step, fft_length, window_fn, pad_end
     signal = tf.cast(signal, tf.float32)
     if pad_end:
         # the number of whole frames
+        # (NOTE: kenders2000), padding is pre-calculated and thus fixed in graph
         length_samples = signal.shape[-1]
-        num_steps_round_up = tf.math.ceil(length_samples / frame_step)
-        pad_amount = int((num_steps_round_up * frame_step) - length_samples)
+        num_steps_round_up = int(np.ceil(length_samples / frame_step))
+        pad_amount = (num_steps_round_up * frame_step + frame_length-frame_step) - length_samples
         signal = tf.pad(signal, tf.constant([[0, 0], [0, 0], [0, pad_amount]]))
     # Make the window be shape (1, frame_length) instead of just frame_length
     # in an effort to help the tflite broadcast logic.
