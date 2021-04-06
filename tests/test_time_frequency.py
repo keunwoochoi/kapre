@@ -271,7 +271,7 @@ def test_melspectrogram_correctness(
 @pytest.mark.parametrize('win_length', [1000, 512])
 @pytest.mark.parametrize('pad_end', [False, True])
 def test_spectrogram_tflite_correctness(
-    n_fft, hop_length, n_ch, data_format, batch_size, win_length
+    n_fft, hop_length, n_ch, data_format, batch_size, win_length, pad_end
 ):
     def _get_stft_model(following_layer=None, tflite_compatible=False):
         # compute with kapre
