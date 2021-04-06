@@ -5,8 +5,9 @@ This module includes Kapre layers that deal with audio signals (waveforms).
 """
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
-from . import backend
 from tensorflow.keras import backend as K
+
+from . import backend
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
 
@@ -23,7 +24,7 @@ class Frame(Layer):
         pad_end (bool): whether to pad at the end of the signal of there would be a otherwise-discarded partial frame
         pad_value (int or float): value to use in the padding
         data_format (str): `channels_first`, `channels_last`, or `default`
-            **kwargs:
+        **kwargs: optional keyword args for `tf.keras.layers.Layer()`
 
     Example:
         ::
@@ -63,9 +64,8 @@ class Frame(Layer):
             x (`Tensor`): batch audio signal in the specified 1D format in initiation.
 
         Returns:
-            (`Tensor`): A framed tensor. The shape is
-                (batch, time (frames), frame_length, channel) if `channels_last` and
-                (batch, channel, time (frames), frame_length) if `channels_first`.
+            (`Tensor`): A framed tensor. The shape is (batch, time (frames), frame_length, channel) if `channels_last`,
+            or (batch, channel, time (frames), frame_length) if `channels_first`.
         """
         return tf.signal.frame(
             x,
@@ -104,7 +104,7 @@ class Energy(Layer):
         pad_end (bool): whether to pad at the end of the signal of there would be a otherwise-discarded partial frame
         pad_value (int or float): value to use in the padding
         data_format (str): `channels_first`, `channels_last`, or `default`
-        **kwargs:
+        **kwargs: optional keyword args for `tf.keras.layers.Layer()`
 
     Example:
         ::
@@ -154,9 +154,8 @@ class Energy(Layer):
             x (`Tensor`): batch audio signal in the specified 1D format in initiation.
 
         Returns:
-            (`Tensor`): A framed tensor. The shape is
-                (batch, time (frames), channel) if `channels_last`, and
-                (batch, channel, time (frames)) if `channels_first`.
+            (`Tensor`): A framed tensor. The shape is (batch, time (frames), channel) if `channels_last`, or
+            (batch, channel, time (frames)) if `channels_first`.
         """
         frames = tf.signal.frame(
             x,
@@ -200,6 +199,7 @@ class MuLawEncoding(Layer):
 
     Args:
         quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+        **kwargs: optional keyword args for `tf.keras.layers.Layer()`
 
     Note:
         Mu-law encoding was originally developed to increase signal-to-noise ratio of signal during transmission.
@@ -219,7 +219,9 @@ class MuLawEncoding(Layer):
     """
 
     def __init__(
-        self, quantization_channels, **kwargs,
+        self,
+        quantization_channels,
+        **kwargs,
     ):
         super(MuLawEncoding, self).__init__(**kwargs)
         self.quantization_channels = quantization_channels
@@ -238,7 +240,9 @@ class MuLawEncoding(Layer):
     def get_config(self):
         config = super(MuLawEncoding, self).get_config()
         config.update(
-            {'quantization_channels': self.quantization_channels,}
+            {
+                'quantization_channels': self.quantization_channels,
+            }
         )
 
         return config
@@ -251,6 +255,7 @@ class MuLawDecoding(Layer):
 
     Args:
         quantization_channels (positive int): Number of channels. For 8-bit encoding, use 256.
+        **kwargs: optional keyword args for `tf.keras.layers.Layer()`
 
     Example:
         ::
@@ -263,7 +268,9 @@ class MuLawDecoding(Layer):
     """
 
     def __init__(
-        self, quantization_channels, **kwargs,
+        self,
+        quantization_channels,
+        **kwargs,
     ):
         super(MuLawDecoding, self).__init__(**kwargs)
         self.quantization_channels = quantization_channels
@@ -282,7 +289,9 @@ class MuLawDecoding(Layer):
     def get_config(self):
         config = super(MuLawDecoding, self).get_config()
         config.update(
-            {'quantization_channels': self.quantization_channels,}
+            {
+                'quantization_channels': self.quantization_channels,
+            }
         )
 
         return config
@@ -302,6 +311,11 @@ class LogmelToMFCC(Layer):
 
         As long as all of your data in training / inference / deployment is consistent (i.e., do not
         mix librosa and kapre MFCC), it'll be fine!
+
+    Args:
+        n_mfccs (int): Number of MFCC
+        data_format (str): `channels_first`, `channels_last`, or `default`
+        **kwargs: optional keyword args for `tf.keras.layers.Layer()`
 
     Example:
         ::
@@ -336,8 +350,8 @@ class LogmelToMFCC(Layer):
                 and `(b, ch, time, mel)` if `channels_first`.
 
         Returns:
-            (float `Tensor`): MFCCs. `(batch, time, n_mfccs, ch)` if `channels_last`
-                and `(batch, ch, time, n_mfccs)` if `channels_first`.
+            (float `Tensor`):
+            MFCCs. `(batch, time, n_mfccs, ch)` if `channels_last`, `(batch, ch, time, n_mfccs)` if `channels_first`.
         """
         if self.permutation is not None:  # reshape so that last channel == mel
             log_melgrams = K.permute_dimensions(log_melgrams, pattern=self.permutation)

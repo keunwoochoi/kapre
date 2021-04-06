@@ -15,7 +15,11 @@ def test_channel_swap_correctness(n_ch, data_format, data_type):
     src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch, length=len_src)
 
     model = tf.keras.Sequential()
-    model.add(ChannelSwap(input_shape=input_shape,))
+    model.add(
+        ChannelSwap(
+            input_shape=input_shape,
+        )
+    )
     # consistent during inference
     kapre_ref = model.predict(batch_src)
     for _ in range(100):

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='kapre',
-    version='0.3.4',
+    version='0.3.5',
     description='Kapre: Keras Audio Preprocessors. Tensorflow.Keras layers for audio pre-processing in deep learning',
     author='Keunwoo Choi',
     url='http://github.com/keunwoochoi/kapre/',
@@ -18,6 +18,10 @@ setup(
     install_requires=[
         'numpy >= 1.18.5',
         'librosa >= 0.7.2',
+<<<<<<< HEAD
+=======
+        'tensorflow >= 2.0.0'
+>>>>>>> upstream/master
     ],
     extras_require={
         'tf': ['tensorflow>=2.0.0'],

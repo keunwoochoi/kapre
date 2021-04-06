@@ -15,6 +15,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
 import sphinx_rtd_theme
+
 autodoc_mock_imports = ['tensorflow', 'librosa', 'numpy']
 autodoc_member_order = 'bysource'
 
@@ -40,7 +41,17 @@ extensions = [
     "sphinx.ext.napoleon",
     # "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",  # source linkage
+    "sphinxcontrib.inlinesyntaxhighlight"  # inline code highlight
 ]
+
+# https://stackoverflow.com/questions/21591107/sphinx-inline-code-highlight
+# use language set by highlight directive if no language is set by role
+inline_highlight_respect_highlight = True
+# use language set by highlight directive if no role is set
+inline_highlight_literals = True
+
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = "sphinx"
 
 # autosummary_generate = True
 
@@ -68,4 +79,14 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+html_css_files = [
+    'css/custom.css',
+]
+
+
+def setup(app):
+    app.add_stylesheet("css/custom.css")
+
+
 master_doc = 'index'
+
