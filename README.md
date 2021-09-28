@@ -1,6 +1,6 @@
 # Kapre
 Keras Audio Preprocessors - compute STFT, ISTFT, Melspectrogram, and others on GPU real-time.
-
+ 
 Tested on Python 3.6 and 3.7
 
 ## Why Kapre?
@@ -31,7 +31,7 @@ Tested on Python 3.6 and 3.7
 5. When deploying the final model, all you need to remember is the sampling rate of the signal. No dependency or preprocessing!
 
 ## Installation
-
+ 
 ```sh
 pip install kapre
 ```
@@ -62,7 +62,7 @@ model.add(MagnitudeToDecibel())  # these three layers can be replaced with get_s
 # Alternatively, you may want to use a melspectrogram layer
 # melgram_layer = get_melspectrogram_layer()
 # or log-frequency layer
-# log_stft_layer = get_log_frequency_spectrogram_layer()
+# log_stft_layer = get_log_frequency_spectrogram_layer() 
 
 # add more layers as you want
 model.add(Conv2D(32, (3, 3), strides=(2, 2)))
@@ -99,3 +99,4 @@ Please cite this paper if you use Kapre for your work.
   organization={ICML}
 }
 ```
+
