@@ -35,7 +35,9 @@ class STFTTflite(STFT):
     `MagnitudeTflite`, and `PhaseTflite` are versions of the `Magnitude` and `Phase`
     layers that account for this extra dimensionality. Currently this layer is
     restricted to a batch size of one, for training use the `STFT` layer, and
-    once complete transfer the weights to a new model, the `STFT` layer with the `STFTTflite` layer.
+    once complete transfer the weights to a new model, replacing the `STFT` layer
+    with the `STFTTflite` layer and `Magnitude` and `Phase` layers with
+    `MagnitudeTflite` and `PhaseTflite` layers.
 
     Additionally, it reshapes the output to be a proper 2D batch.
 
