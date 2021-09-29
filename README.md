@@ -86,6 +86,35 @@ model.fit(x, y)
 
 * See the Jupyter notebook at the [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
+# Tflite compatbility
+
+The `STFT` layer is not tflite compatible (due to `tf.signal.stft`). To create a tflite
+compatible model, first train using the normal `kapre` layers then create a new
+model replacing `STFT` and `Magnitude` withn `STFTTflite`, `MagnitudeTflite`.
+Tflite compatible layers are restricted to a batch size of 1 which prevents use
+of them during training.
+
+```python
+from kapre import STFTTflite, MagnitudeTflite
+model_tflite = Sequential()
+
+model_tflite.add(STFTTflite(n_fft=2048, win_length=2018, hop_length=1024,
+               window_name=None, pad_end=False,
+               input_data_format='channels_last', output_data_format='channels_last',
+               input_shape=input_shape))
+model_tflite.add(MagnitudeTflite())
+model_tflite.add(MagnitudeToDecibel())  
+model_tflite.add(Conv2D(32, (3, 3), strides=(2, 2)))
+model_tflite.add(BatchNormalization())
+model_tflite.add(ReLU())
+model_tflite.add(GlobalAveragePooling2D())
+model_tflite.add(Dense(10))
+model_tflite.add(Softmax())
+
+# load the trained weights into the tflite compatible model.
+model_tflite.set_weights(model.get_weights())
+```
+
 # Citation
 
 Please cite this paper if you use Kapre for your work.
