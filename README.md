@@ -90,7 +90,7 @@ model.fit(x, y)
 
 The `STFT` layer is not tflite compatible (due to `tf.signal.stft`). To create a tflite
 compatible model, first train using the normal `kapre` layers then create a new
-model replacing `STFT` and `Magnitude` withn `STFTTflite`, `MagnitudeTflite`.
+model replacing `STFT` and `Magnitude` with `STFTTflite`, `MagnitudeTflite`.
 Tflite compatible layers are restricted to a batch size of 1 which prevents use
 of them during training.
 
