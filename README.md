@@ -86,7 +86,7 @@ model.fit(x, y)
 
 * See the Jupyter notebook at the [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
-# Tflite compatbility
+## Tflite compatbility
 
 The `STFT` layer is not tflite compatible (due to `tf.signal.stft`). To create a tflite
 compatible model, first train using the normal `kapre` layers then create a new
@@ -95,6 +95,7 @@ Tflite compatible layers are restricted to a batch size of 1 which prevents use
 of them during training.
 
 ```python
+# assumes you have run the one-shot example above.
 from kapre import STFTTflite, MagnitudeTflite
 model_tflite = Sequential()
 
