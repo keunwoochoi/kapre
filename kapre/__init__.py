@@ -1,4 +1,4 @@
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 VERSION = __version__
 
 from . import composed
