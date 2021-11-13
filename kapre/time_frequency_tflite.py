@@ -31,7 +31,13 @@ class STFTTflite(STFT):
     Ues `stft_tflite` from tflite_compatible_stft.py, this contains a tflite
     compatible stft (using a rdft), and `fixed_frame()` to window the audio.
     Tflite does not cope with comple types so real and imaginary parts are stored in extra dim.
-    Ouput shape is now: (batch, channel, time, re/im) or (batch, time, channel, re/im)
+    Ouput shape is now: (batch, channel, time, re/im) or (batch, time, channel, re/im).
+    `MagnitudeTflite`, and `PhaseTflite` are versions of the `Magnitude` and `Phase`
+    layers that account for this extra dimensionality. Currently this layer is
+    restricted to a batch size of one, for training use the `STFT` layer, and
+    once complete transfer the weights to a new model, replacing the `STFT` layer
+    with the `STFTTflite` layer and `Magnitude` and `Phase` layers with
+    `MagnitudeTflite` and `PhaseTflite` layers.
 
     Additionally, it reshapes the output to be a proper 2D batch.
 
