@@ -71,7 +71,7 @@ def magnitude_to_decibel(x, ref_value=1.0, amin=1e-5, dynamic_range=80.0):
     """A function that converts magnitude to decibel scaling.
     In essence, it runs `10 * log10(x)`, but with some other utility operations.
 
-    Similar to `librosa.amplitude_to_db` with `ref=1.0` and `top_db=dynamic_range`
+    Similar to `librosa.power_to_db` with `ref=1.0` and `top_db=dynamic_range`
 
     Args:
         x (`Tensor`): float tensor. Can be batch or not. Something like magnitude of STFT.
