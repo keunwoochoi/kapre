@@ -68,7 +68,7 @@ class STFT(Layer):
     Args:
         n_fft (int): Number of FFTs. Defaults to `2048`
         win_length (int or None): Window length in sample. Defaults to `n_fft`.
-        hop_length (int or None): Hop length in sample between analysis windows. Defaults to `n_fft // 4` following Librosa.
+        hop_length (int or None): Hop length in sample between analysis windows. Defaults to `win_length // 4` following Librosa.
         window_name (str or None): *Name* of `tf.signal` function that returns a 1D tensor window that is used in analysis.
             Defaults to `hann_window` which uses `tf.signal.hann_window`.
             Window availability depends on Tensorflow version. More details are at `kapre.backend.get_window()`.
