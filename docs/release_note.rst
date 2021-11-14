@@ -1,6 +1,10 @@
 Release Note
 ^^^^^^^^^^^^
 
+* 13 Nov 2021
+  - 0.3.6
+    - bugfix/pad end tflite #131
+
 * 18 March 2021
   - 0.3.5
     - Add `kapre.time_frequency_tflite` which uses tflite for a faster CPU inference.
