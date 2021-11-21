@@ -101,3 +101,171 @@ class ChannelSwap(Layer):
             }
         )
         return config
+
+
+class SpecAugment(Layer):
+    """
+    Apply SpecAugment to a Spectrogram as described in this paper:
+
+    Args:
+        freq_mask_param (`int`): Frequency Mask Parameter (F in the paper)
+        time_mask_param (ìnt`): Time Mask Parameter (T in the paper)
+        n_freq_mask (`int`): Number of frequency masks to apply (mF in the paper). By default is 1.
+        n_time_mask (`int`): Number of time masks to apply (mT in the paper). By default is 1.
+        mask_value (`float`): Value of the applied masks. By default is 0.
+        data_format (`str`): specifies the data format of batch input/output
+        **kwargs: Keyword args for the parent keras layer (e.g., `name`)
+
+    Example:
+        ::
+
+            input_shape = (2048, 2)  # stereo signal
+
+            melgram = kapre.composed.get_melspectrogram_layer(input_shape=input_shape,
+                                                  n_fft=1024,
+                                                  return_decibel=True,
+                                                  n_mels=256,
+                                                  input_data_format='channels_last',
+                                                  output_data_format='channels_last')
+
+
+            # Now we define the SpecAugment layer
+            spec_augment = SpecAugment(freq_mask_param=5,
+                                       time_mask_param=10,
+                                       n_freq_masks=5,
+                                       n_time_masks=3)
+
+            model = Sequential()
+            model.add(melgram)
+            # Add the spec_augment layer for augmentation
+            model.add(spec_augment)
+        ::
+    """
+
+    def __init__(self,
+                 freq_mask_param,
+                 time_mask_param,
+                 n_freq_masks=1,
+                 n_time_masks=1,
+                 mask_value=0.,
+                 data_format='default',
+                 **kwargs
+                 ):
+
+        backend.validate_data_format_str(data_format)
+
+        super(SpecAugment, self).__init__(**kwargs)
+
+        self.freq_mask_param = freq_mask_param
+        self.time_mask_param = time_mask_param
+        self.n_freq_masks = n_freq_masks
+        self.n_time_masks = n_time_masks
+        self.mask_value = mask_value
+
+        self.data_format = K.image_data_format() if data_format == _CH_DEFAULT_STR else data_format
+
+    @staticmethod
+    def _generate_axis_mask(inputs):
+        """
+        Args:
+            inputs:
+
+        Returns:
+
+        """
+        x, axis, mask_param = inputs
+
+        axis_limit = tf.shape(x)[axis]
+        axis_indices = tf.range(axis_limit)
+
+        if axis == 0:
+            axis_indices = tf.reshape(axis_indices, (-1, 1, 1))
+        elif axis == 1:
+            axis_indices = tf.reshape(axis_indices, (1, -1, 1))
+        else:
+            axis_indices = tf.reshape(axis_indices, (1, 1, -1))
+
+        mask_width = tf.random.uniform(shape=(), maxval=mask_param, dtype=tf.int32)
+        mask_start = tf.random.uniform(shape=(), maxval=axis_limit - mask_width, dtype=tf.int32)
+
+        return tf.logical_and(axis_indices >= mask_start, axis_indices <= mask_start + mask_width)
+
+    def _apply_masks_to_axis(self, x, axis, mask_param, n_masks):
+        """
+        Args:
+            x:
+            axis:
+            mask_param:
+            n_masks:
+
+        Returns:
+
+        """
+        x_repeated = tf.repeat(tf.expand_dims(x, 0), n_masks, axis=0)
+        axis_repeated = tf.repeat(axis, n_masks, axis=0)
+        mask_param_repeated = tf.repeat(mask_param, n_masks, axis=0)
+
+        masks = tf.map_fn(elems=(x_repeated, axis_repeated, mask_param_repeated),
+                          fn=self._generate_axis_mask,
+                          dtype=(tf.float32, tf.int32, tf.int32),
+                          fn_output_signature=tf.bool)
+
+        mask = tf.math.reduce_any(masks, 0)
+        return tf.where(mask, self.mask_value, x)
+
+    def _apply_spec_augment(self, x):
+        """
+        Args:
+            x:
+
+        Returns:
+
+        """
+        if self.data_format == _CH_LAST_STR:
+            time_axis, freq_axis = 0, 1
+        else:
+            time_axis, freq_axis = 1, 2
+
+        if self.n_time_masks >= 1:
+            x = self._apply_masks_to_axis(x,
+                                          axis=time_axis,
+                                          mask_param=self.time_mask_param,
+                                          n_masks=self.n_time_masks)
+        if self.n_freq_masks >= 1:
+            x = self._apply_masks_to_axis(x,
+                                          axis=freq_axis,
+                                          mask_param=self.freq_mask_param,
+                                          n_masks=self.n_freq_masks)
+        return x
+
+    def call(self, x, training=None, **kwargs):
+        if training in (None, False):
+            return x
+
+        if K.ndim(x) != 4:
+            raise ValueError(
+                'ndim of input tensor x should be 4 (batch spectrogram),'
+                'but it is %d' % K.ndim(x)
+            )
+
+        ch_axis = 1 if self.data_format == 'channels_first' else 3
+
+        if K.int_shape(x)[ch_axis] != 1:
+            raise RuntimeError('SpecAugment does not support spectrograms with depth greater than 1')
+
+        return tf.map_fn(elems=x, fn=self._apply_spec_augment)
+
+    def get_config(self):
+        config = super(SpecAugment, self).get_config()
+        config.update(
+            {
+                'freq_mask_param': self.freq_mask_param,
+                'time_mask_param': self.time_mask_param,
+                'n_freq_masks': self.n_freq_masks,
+                'n_time_masks': self.n_time_masks,
+                'mask_value': self.mask_value,
+                'data_format': self.data_format
+            }
+        )
+        return config
+

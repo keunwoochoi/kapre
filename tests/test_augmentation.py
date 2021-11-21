@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 import tensorflow as tf
-from kapre.augmentation import ChannelSwap
+from kapre.augmentation import ChannelSwap, SpecAugment
 from kapre.backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 
-from utils import get_audio, save_load_compare
+from utils import get_audio, get_spectrogram, save_load_compare
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
@@ -37,8 +37,54 @@ def test_channel_swap_correctness(n_ch, data_format, data_type):
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+def test_spec_augment_shape_correctness(data_format):
+    """
+    Checks that shapes are correct depending on each data_format
+    """
+
+    batch_src, input_shape = get_spectrogram(data_format)
+
+    model = tf.keras.Sequential()
+    spec_augment = SpecAugment(
+                               input_shape=input_shape,
+                               freq_mask_param=5,
+                               time_mask_param=10,
+                               n_freq_masks=4,
+                               n_time_masks=3,
+                               mask_value=0.,
+                               data_format=data_format)
+
+    model.add(spec_augment)
+
+    # We must force training to True to test properly if SpecAugment works as expected
+    spec_augmented = model(batch_src, training=True)[0]
+
+    np.testing.assert_equal(model.layers[0].output_shape[1:], spec_augmented.shape)
+
+
+def test_spec_augment_exception():
+    """
+    Checks that SpecAugments fails if Spectrogram has depth greater than 1.
+    """
+
+    data_format = "default"
+    with pytest.raises(RuntimeError):
+
+        batch_src, input_shape = get_spectrogram(data_format=data_format, n_ch=4)
+
+        model = tf.keras.Sequential()
+        spec_augment = SpecAugment(
+            input_shape=input_shape,
+            freq_mask_param=5,
+            time_mask_param=10,
+            data_format=data_format)
+        model.add(spec_augment)
+        _ = model(batch_src, training=True)[0]
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
 @pytest.mark.parametrize('save_format', ['tf', 'h5'])
-def test_save_load(data_format, save_format):
+def test_save_load_channel_swap(data_format, save_format):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
 
     save_load_compare(
@@ -47,5 +93,20 @@ def test_save_load(data_format, save_format):
         np.testing.assert_allclose,
         save_format=save_format,
         layer_class=ChannelSwap,
+        training=None,
+    )
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('save_format', ['tf', 'h5'])
+def test_save_load_spec_augment(data_format, save_format):
+    batch_src, input_shape = get_spectrogram(data_format='channels_last', n_ch=1)
+
+    save_load_compare(
+        SpecAugment(input_shape=input_shape, freq_mask_param=3, time_mask_param=5),
+        batch_src,
+        np.testing.assert_allclose,
+        save_format=save_format,
+        layer_class=SpecAugment,
         training=None,
     )
