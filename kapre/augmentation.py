@@ -10,6 +10,11 @@ from . import backend
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 import numpy as np
 
+__all__ = [
+    'SpecAugment',
+    'ChannelSwap'
+]
+
 
 class ChannelSwap(Layer):
     """
