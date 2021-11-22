@@ -105,13 +105,14 @@ class ChannelSwap(Layer):
 
 class SpecAugment(Layer):
     """
-    Apply SpecAugment to a Spectrogram as described in this paper:
+    Apply SpecAugment to a Spectrogram. For more info, check the original paper at:
+    https://arxiv.org/abs/1904.08779
 
     Args:
         freq_mask_param (`int`): Frequency Mask Parameter (F in the paper)
         time_mask_param (ìnt`): Time Mask Parameter (T in the paper)
-        n_freq_mask (`int`): Number of frequency masks to apply (mF in the paper). By default is 1.
-        n_time_mask (`int`): Number of time masks to apply (mT in the paper). By default is 1.
+        n_freq_masks (`int`): Number of frequency masks to apply (mF in the paper). By default is 1.
+        n_time_masks (`int`): Number of time masks to apply (mT in the paper). By default is 1.
         mask_value (`float`): Value of the applied masks. By default is 0.
         data_format (`str`): specifies the data format of batch input/output
         **kwargs: Keyword args for the parent keras layer (e.g., `name`)
@@ -119,8 +120,9 @@ class SpecAugment(Layer):
     Example:
         ::
 
-            input_shape = (2048, 2)  # stereo signal
+            input_shape = (2048, 1)  # mono signal
 
+            # We compute the Mel Spectrogram of the input signal
             melgram = kapre.composed.get_melspectrogram_layer(input_shape=input_shape,
                                                   n_fft=1024,
                                                   return_decibel=True,
@@ -129,7 +131,9 @@ class SpecAugment(Layer):
                                                   output_data_format='channels_last')
 
 
-            # Now we define the SpecAugment layer
+            # Now we define the SpecAugment layer. It will apply 5 masks in the frequency axis,
+            # 3 masks in the time axis. The frequency mask param is 5 and the time mask param
+            # is 10.
             spec_augment = SpecAugment(freq_mask_param=5,
                                        time_mask_param=10,
                                        n_freq_masks=5,
@@ -137,6 +141,7 @@ class SpecAugment(Layer):
 
             model = Sequential()
             model.add(melgram)
+
             # Add the spec_augment layer for augmentation
             model.add(spec_augment)
         ::
@@ -167,11 +172,14 @@ class SpecAugment(Layer):
     @staticmethod
     def _generate_axis_mask(inputs):
         """
+        Generate a mask for the axis provided
         Args:
-            inputs:
-
+            inputs (`tuple`): A 3-tuple with the following structure:
+                inputs[0]: A spectrogram
+                inputs[1]: The axis where the mask will be applied
+                inputs[2]: The mask param as defined in the original paper
         Returns:
-
+            A mask represented as a boolean tensor
         """
         x, axis, mask_param = inputs
 
@@ -192,14 +200,16 @@ class SpecAugment(Layer):
 
     def _apply_masks_to_axis(self, x, axis, mask_param, n_masks):
         """
+        Applies a number of masks (defined by the parameter n_masks) to the spectrogram
+        by the axis provided.
         Args:
-            x:
-            axis:
-            mask_param:
-            n_masks:
+            x: The input spectrogram
+            axis: The axis where the masks will be applied
+            mask_param: The mask param as defined in the original paper
+            n_masks: The number of masks to be applied
 
         Returns:
-
+            The masked spectrogram
         """
         x_repeated = tf.repeat(tf.expand_dims(x, 0), n_masks, axis=0)
         axis_repeated = tf.repeat(axis, n_masks, axis=0)
@@ -215,11 +225,13 @@ class SpecAugment(Layer):
 
     def _apply_spec_augment(self, x):
         """
+        Main method that applies SpecAugment technique by both frequency and
+        time axis.
         Args:
-            x:
+            x: The input spectrogram
 
         Returns:
-
+            The masked spectrogram
         """
         if self.data_format == _CH_LAST_STR:
             time_axis, freq_axis = 0, 1
