@@ -200,11 +200,11 @@ class SpecAugment(Layer):
         elif axis == 2:
             axis_indices = tf.reshape(axis_indices, (1, 1, -1))
         else:
-            raise NotImplementedError("axis parameter must be one of the following: 0, 1, 2")
+            raise NotImplementedError(f"Axis parameter must be one of the following: 0, 1, 2")
 
         # Check if mask_width is greater than axis_limit
         if axis_limit < mask_param:
-            raise ValueError("time and freq axis shapes must be greater than time_mask_param "
+            raise ValueError("Time and freq axis shapes must be greater than time_mask_param "
                              "and freq_mask_param respectively")
 
         mask_width = tf.random.uniform(shape=(), maxval=mask_param, dtype=tf.int32)

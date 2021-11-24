@@ -104,8 +104,28 @@ def test_spec_augment_apply_masks_to_axis(data_format_and_axis, mask_param, n_ma
     np.testing.assert_equal(spec_masked.shape, input_shape)
 
 
+def test_spec_augment_depth_exception():
+    """
+    Checks that SpecAugments fails if Spectrogram has depth greater than 1.
+    """
+
+    data_format = "default"
+    with pytest.raises(RuntimeError):
+
+        batch_src, input_shape = get_spectrogram(data_format=data_format, n_ch=4)
+
+        model = tf.keras.Sequential()
+        spec_augment = SpecAugment(
+            input_shape=input_shape,
+            freq_mask_param=5,
+            time_mask_param=10,
+            data_format=data_format)
+        model.add(spec_augment)
+        _ = model(batch_src, training=True)[0]
+
+
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-def test_spec_augment_layer(data_format):
+def test_spec_augment_layer(data_format, atol=1e-4):
     """
     Tests the complete layer, checking if the parameter `training` has the expected behaviour.
     """
@@ -130,53 +150,42 @@ def test_spec_augment_layer(data_format):
 
     # Second, check that it doesn't change anything in default
     spec_augmented = model(batch_src)
-    np.testing.assert_allclose(spec_augmented, batch_src)
+    np.testing.assert_allclose(spec_augmented, batch_src, atol)
 
-# def test_spec_augment_depth_exception():
-#     """
-#     Checks that SpecAugments fails if Spectrogram has depth greater than 1.
-#     """
-#
-#     data_format = "default"
-#     with pytest.raises(RuntimeError):
-#
-#         batch_src, input_shape = get_spectrogram(data_format=data_format, n_ch=4)
-#
-#         model = tf.keras.Sequential()
-#         spec_augment = SpecAugment(
-#             input_shape=input_shape,
-#             freq_mask_param=5,
-#             time_mask_param=10,
-#             data_format=data_format)
-#         model.add(spec_augment)
-#         _ = model(batch_src, training=True)[0]
-#
-#
-# @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-# @pytest.mark.parametrize('save_format', ['tf', 'h5'])
-# def test_save_load_channel_swap(data_format, save_format):
-#     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
-#
-#     save_load_compare(
-#         ChannelSwap(input_shape=input_shape),
-#         batch_src,
-#         np.testing.assert_allclose,
-#         save_format=save_format,
-#         layer_class=ChannelSwap,
-#         training=None,
-#     )
-#
-#
-# @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-# @pytest.mark.parametrize('save_format', ['tf', 'h5'])
-# def test_save_load_spec_augment(data_format, save_format):
-#     batch_src, input_shape = get_spectrogram(data_format='channels_last', n_ch=1)
-#
-#     save_load_compare(
-#         SpecAugment(input_shape=input_shape, freq_mask_param=3, time_mask_param=5),
-#         batch_src,
-#         np.testing.assert_allclose,
-#         save_format=save_format,
-#         layer_class=SpecAugment,
-#         training=None,
-#     )
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('save_format', ['tf', 'h5'])
+def test_save_load_channel_swap(data_format, save_format):
+    src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
+
+    save_load_compare(
+        ChannelSwap(input_shape=input_shape),
+        batch_src,
+        np.testing.assert_allclose,
+        save_format=save_format,
+        layer_class=ChannelSwap,
+        training=None,
+    )
+
+
+@pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
+@pytest.mark.parametrize('save_format', ['h5'])
+def test_save_load_spec_augment(data_format, save_format):
+    batch_src, input_shape = get_spectrogram(data_format=data_format)
+
+    spec_augment = SpecAugment(
+                               input_shape=input_shape,
+                               freq_mask_param=5,
+                               time_mask_param=10,
+                               n_freq_masks=4,
+                               n_time_masks=3,
+                               mask_value=0.,
+                               data_format=data_format)
+    save_load_compare(
+        spec_augment,
+        batch_src,
+        np.testing.assert_allclose,
+        save_format=save_format,
+        layer_class=SpecAugment,
+        training=None,
+    )
