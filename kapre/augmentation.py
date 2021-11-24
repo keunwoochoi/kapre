@@ -202,14 +202,14 @@ class SpecAugment(Layer):
         else:
             raise NotImplementedError("axis parameter must be one of the following: 0, 1, 2")
 
-        mask_width = tf.random.uniform(shape=(), maxval=mask_param, dtype=tf.int32)
-
         # Check if mask_width is greater than axis_limit
-        if axis_limit < mask_width:
+        if axis_limit < mask_param:
             raise ValueError("time and freq axis shapes must be greater than time_mask_param "
                              "and freq_mask_param respectively")
 
+        mask_width = tf.random.uniform(shape=(), maxval=mask_param, dtype=tf.int32)
         mask_start = tf.random.uniform(shape=(), maxval=axis_limit - mask_width, dtype=tf.int32)
+
         return tf.logical_and(axis_indices >= mask_start, axis_indices <= mask_start + mask_width)
 
     def _apply_masks_to_axis(self, x, axis, mask_param, n_masks):
@@ -245,10 +245,11 @@ class SpecAugment(Layer):
         Main method that applies SpecAugment technique by both frequency and
         time axis.
         Args:
-            x: The input spectrogram
-
+            x (float `Tensor`) : A spectrogram. Its shape is (time, freq, ch) or (ch, time, freq)
+                    depending on data_format.
         Returns:
-            The masked spectrogram
+            (float `Tensor`): The spectrogram masked by time and frequency axis. Its shape is (time, freq, ch)
+                or (ch, time, freq) depending on x shape (that is, the input spectrogram).
         """
         if self.data_format == _CH_LAST_STR:
             time_axis, freq_axis = 0, 1
