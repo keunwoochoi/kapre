@@ -180,14 +180,16 @@ class SpecAugment(Layer):
         Generate a mask for the axis provided
         Args:
             inputs (`tuple`): A 3-tuple with the following structure:
-                inputs[0]: A spectrogram
-                inputs[1]: The axis where the mask will be applied
-                inputs[2]: The mask param as defined in the original paper
+                inputs[0] (float `Tensor`): A spectrogram. Its shape is (time, freq, ch) or (ch, time, freq)
+                    depending on data_format
+                inputs[1] (int): The axis where the mask will be applied
+                inputs[2] (int): The mask param as defined in the original paper, which is the max width of the mask
+                    applied to the specified axis.
         Returns:
-            A mask represented as a boolean tensor
+            (bool `Tensor`): A boolean tensor representing the mask. Its shape is (time, freq, ch) or (ch, time, freq)
+                depending on inputs[0] shape (that is, the input spectrogram).
         """
         x, axis, mask_param = inputs
-
         axis_limit = tf.shape(x)[axis]
         axis_indices = tf.range(axis_limit)
 
@@ -195,12 +197,19 @@ class SpecAugment(Layer):
             axis_indices = tf.reshape(axis_indices, (-1, 1, 1))
         elif axis == 1:
             axis_indices = tf.reshape(axis_indices, (1, -1, 1))
-        else:
+        elif axis == 2:
             axis_indices = tf.reshape(axis_indices, (1, 1, -1))
+        else:
+            raise NotImplementedError("axis parameter must be one of the following: 0, 1, 2")
 
         mask_width = tf.random.uniform(shape=(), maxval=mask_param, dtype=tf.int32)
-        mask_start = tf.random.uniform(shape=(), maxval=axis_limit - mask_width, dtype=tf.int32)
 
+        # Check if mask_width is greater than axis_limit
+        if axis_limit < mask_width:
+            raise ValueError("time and freq axis shapes must be greater than time_mask_param "
+                             "and freq_mask_param respectively")
+
+        mask_start = tf.random.uniform(shape=(), maxval=axis_limit - mask_width, dtype=tf.int32)
         return tf.logical_and(axis_indices >= mask_start, axis_indices <= mask_start + mask_width)
 
     def _apply_masks_to_axis(self, x, axis, mask_param, n_masks):
@@ -208,13 +217,16 @@ class SpecAugment(Layer):
         Applies a number of masks (defined by the parameter n_masks) to the spectrogram
         by the axis provided.
         Args:
-            x: The input spectrogram
-            axis: The axis where the masks will be applied
-            mask_param: The mask param as defined in the original paper
-            n_masks: The number of masks to be applied
+            x (float `Tensor`): A spectrogram. Its shape is (time, freq, ch) or (ch, time, freq)
+                    depending on data_format.
+            axis (int): The axis where the masks will be applied
+            mask_param (int): The mask param as defined in the original paper, which is the max width of the mask
+                    applied to the specified axis.
+            n_masks (int): The number of masks to be applied
 
         Returns:
-            The masked spectrogram
+            (float `Tensor`): The masked spectrogram. Its shape is (time, freq, ch) or (ch, time, freq)
+                depending on x shape (that is, the input spectrogram).
         """
         x_repeated = tf.repeat(tf.expand_dims(x, 0), n_masks, axis=0)
         axis_repeated = tf.repeat(axis, n_masks, axis=0)
