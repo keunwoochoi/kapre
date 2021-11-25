@@ -36,16 +36,17 @@ def test_channel_swap_correctness(n_ch, data_format, data_type):
     #     kapre_augs.append(model(batch_src, training=True))
 
 
-@pytest.mark.parametrize('inputs', [("default", 0, 5), ("default", 3, 5), ("default", 0, 500),
-                                    ("channels_last", 1, 5), ("channels_last", 3, 5), ("channels_last", 1, 500),
-                                    ("channels_first", 2, 5), ("channels_first", 3, 5), ("channels_first", 2, 500)])
-def test_spec_augment_generate_axis_mask(inputs):
+@pytest.mark.parametrize('inputs', [("default", 0, 5, 3), ("default", 3, 5, 3), ("default", 0, 500, 3),
+                                    ("channels_last", 1, 5, 2), ("channels_last", 3, 5, 2),
+                                    ("channels_last", 1, 500, 2), ("channels_first", 2, 5, 4),
+                                    ("channels_first", 3, 5, 4), ("channels_first", 2, 500, 4)])
+def test_spec_augment_apply_masks_to_axis(inputs):
     """
-    Tests the static method _generate_axis_mask to see if shape is kept and
+    Tests the method _apply_masks_to_axis to see if shape is kept and
     exceptions are caught
     """
 
-    data_format, axis, mask_param = inputs
+    data_format, axis, mask_param, n_masks = inputs
     batch_src, input_shape = get_spectrogram(data_format)
 
     spec_augment = SpecAugment(
@@ -62,46 +63,21 @@ def test_spec_augment_generate_axis_mask(inputs):
         # Check axis error
         with pytest.raises(NotImplementedError):
             # We use batch_src instead of batch_src[0] to simulate a 4D spectrogram
-            inputs = (batch_src, axis, mask_param)
-            spec_augment._generate_axis_mask(inputs)
+            inputs = (batch_src, axis, mask_param, n_masks)
+            spec_augment._apply_masks_to_axis(*inputs)
 
     # We force mask_params that will trigger the ValueError. If it is not triggered, then
     # inputs are ok, so we must only test if the shapes are kept during transformation
     elif mask_param != 5:
         # Check mask_param error
         with pytest.raises(ValueError):
-            inputs = (batch_src[0], axis, mask_param)
-            spec_augment._generate_axis_mask(inputs)
+            inputs = (batch_src[0], axis, mask_param, n_masks)
+            spec_augment._apply_masks_to_axis(*inputs)
     else:
         # Check that transformation keeps shape
-        inputs = (batch_src[0], axis, mask_param)
-        mask = spec_augment._generate_axis_mask(inputs)
+        inputs = (batch_src[0], axis, mask_param, n_masks)
+        mask = spec_augment._apply_masks_to_axis(*inputs)
         np.testing.assert_equal(mask.shape[axis], input_shape[axis])
-
-
-@pytest.mark.parametrize('data_format_and_axis', [('default', 0), ('channels_last', 1), ('channels_first', 2)])
-@pytest.mark.parametrize('mask_param', [10, 12, 20])
-@pytest.mark.parametrize('n_masks', [1, 5, 10])
-def test_spec_augment_apply_masks_to_axis(data_format_and_axis, mask_param, n_masks):
-    """
-    Tests method _apply_masks_to_axis, which applied a number of masks defined by
-    parameter n_masks to the axis provided
-    """
-
-    data_format, axis = data_format_and_axis
-    batch_src, input_shape = get_spectrogram(data_format)
-
-    spec_augment = SpecAugment(
-        input_shape=input_shape,
-        freq_mask_param=5,
-        time_mask_param=10,
-        n_freq_masks=4,
-        n_time_masks=3,
-        mask_value=0.,
-        data_format=data_format)
-
-    spec_masked = spec_augment._apply_masks_to_axis(batch_src[0], axis, mask_param, n_masks)
-    np.testing.assert_equal(spec_masked.shape, input_shape)
 
 
 def test_spec_augment_depth_exception():
@@ -169,7 +145,7 @@ def test_save_load_channel_swap(data_format, save_format):
 
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
-@pytest.mark.parametrize('save_format', ['h5'])
+@pytest.mark.parametrize('save_format', ['tf', 'h5'])
 def test_save_load_spec_augment(data_format, save_format):
     batch_src, input_shape = get_spectrogram(data_format=data_format)
 
