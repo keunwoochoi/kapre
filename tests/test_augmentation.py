@@ -36,10 +36,20 @@ def test_channel_swap_correctness(n_ch, data_format, data_type):
     #     kapre_augs.append(model(batch_src, training=True))
 
 
-@pytest.mark.parametrize('inputs', [("default", 0, 5, 3), ("default", 3, 5, 3), ("default", 0, 500, 3),
-                                    ("channels_last", 1, 5, 2), ("channels_last", 3, 5, 2),
-                                    ("channels_last", 1, 500, 2), ("channels_first", 2, 5, 4),
-                                    ("channels_first", 3, 5, 4), ("channels_first", 2, 500, 4)])
+@pytest.mark.parametrize(
+    'inputs',
+    [
+        ("default", 0, 5, 3),
+        ("default", 3, 5, 3),
+        ("default", 0, 500, 3),
+        ("channels_last", 1, 5, 2),
+        ("channels_last", 3, 5, 2),
+        ("channels_last", 1, 500, 2),
+        ("channels_first", 2, 5, 4),
+        ("channels_first", 3, 5, 4),
+        ("channels_first", 2, 500, 4),
+    ],
+)
 def test_spec_augment_apply_masks_to_axis(inputs):
     """
     Tests the method _apply_masks_to_axis to see if shape is kept and
@@ -55,8 +65,9 @@ def test_spec_augment_apply_masks_to_axis(inputs):
         time_mask_param=10,
         n_freq_masks=4,
         n_time_masks=3,
-        mask_value=0.,
-        data_format=data_format)
+        mask_value=0.0,
+        data_format=data_format,
+    )
 
     # We force axis that will trigger NotImplementedError
     if axis not in [0, 1, 2]:
@@ -92,10 +103,8 @@ def test_spec_augment_depth_exception():
 
         model = tf.keras.Sequential()
         spec_augment = SpecAugment(
-            input_shape=input_shape,
-            freq_mask_param=5,
-            time_mask_param=10,
-            data_format=data_format)
+            input_shape=input_shape, freq_mask_param=5, time_mask_param=10, data_format=data_format
+        )
         model.add(spec_augment)
         _ = model(batch_src, training=True)[0]
 
@@ -110,13 +119,14 @@ def test_spec_augment_layer(data_format, atol=1e-4):
 
     model = tf.keras.Sequential()
     spec_augment = SpecAugment(
-                               input_shape=input_shape,
-                               freq_mask_param=5,
-                               time_mask_param=10,
-                               n_freq_masks=4,
-                               n_time_masks=3,
-                               mask_value=0.,
-                               data_format=data_format)
+        input_shape=input_shape,
+        freq_mask_param=5,
+        time_mask_param=10,
+        n_freq_masks=4,
+        n_time_masks=3,
+        mask_value=0.0,
+        data_format=data_format,
+    )
 
     model.add(spec_augment)
 
@@ -150,13 +160,14 @@ def test_save_load_spec_augment(data_format, save_format):
     batch_src, input_shape = get_spectrogram(data_format=data_format)
 
     spec_augment = SpecAugment(
-                               input_shape=input_shape,
-                               freq_mask_param=5,
-                               time_mask_param=10,
-                               n_freq_masks=4,
-                               n_time_masks=3,
-                               mask_value=0.,
-                               data_format=data_format)
+        input_shape=input_shape,
+        freq_mask_param=5,
+        time_mask_param=10,
+        n_freq_masks=4,
+        n_time_masks=3,
+        mask_value=0.0,
+        data_format=data_format,
+    )
     save_load_compare(
         spec_augment,
         batch_src,

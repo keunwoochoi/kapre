@@ -10,10 +10,7 @@ from . import backend
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 import numpy as np
 
-__all__ = [
-    'SpecAugment',
-    'ChannelSwap'
-]
+__all__ = ['SpecAugment', 'ChannelSwap']
 
 
 class ChannelSwap(Layer):
@@ -152,15 +149,16 @@ class SpecAugment(Layer):
         ::
     """
 
-    def __init__(self,
-                 freq_mask_param,
-                 time_mask_param,
-                 n_freq_masks=1,
-                 n_time_masks=1,
-                 mask_value=0.,
-                 data_format='default',
-                 **kwargs
-                 ):
+    def __init__(
+        self,
+        freq_mask_param,
+        time_mask_param,
+        n_freq_masks=1,
+        n_time_masks=1,
+        mask_value=0.0,
+        data_format='default',
+        **kwargs,
+    ):
 
         backend.validate_data_format_str(data_format)
 
@@ -173,8 +171,10 @@ class SpecAugment(Layer):
         self.mask_value = mask_value
 
         if not self.freq_mask_param or not self.time_mask_param:
-            raise RuntimeError("Both freq_mask_param and time_mask_param must be defined and different "
-                               "than zero")
+            raise RuntimeError(
+                "Both freq_mask_param and time_mask_param must be defined and different "
+                "than zero"
+            )
 
         self.data_format = K.image_data_format() if data_format == _CH_DEFAULT_STR else data_format
 
@@ -233,18 +233,22 @@ class SpecAugment(Layer):
 
         # Check if mask_width is greater than axis_limit
         if axis_limit < mask_param:
-            raise ValueError("Time and freq axis shapes must be greater than time_mask_param "
-                             "and freq_mask_param respectively")
+            raise ValueError(
+                "Time and freq axis shapes must be greater than time_mask_param "
+                "and freq_mask_param respectively"
+            )
 
         x_repeated = tf.repeat(tf.expand_dims(x, 0), n_masks, axis=0)
         axis_limit_repeated = tf.repeat(axis_limit, n_masks, axis=0)
         axis_indices_repeated = tf.repeat(tf.expand_dims(axis_indices, 0), n_masks, axis=0)
         mask_param_repeated = tf.repeat(mask_param, n_masks, axis=0)
 
-        masks = tf.map_fn(elems=(x_repeated, axis_limit_repeated, axis_indices_repeated, mask_param_repeated),
-                          fn=self._generate_axis_mask,
-                          dtype=(tf.float32, tf.int32, tf.int32, tf.int32),
-                          fn_output_signature=tf.bool)
+        masks = tf.map_fn(
+            elems=(x_repeated, axis_limit_repeated, axis_indices_repeated, mask_param_repeated),
+            fn=self._generate_axis_mask,
+            dtype=(tf.float32, tf.int32, tf.int32, tf.int32),
+            fn_output_signature=tf.bool,
+        )
 
         mask = tf.math.reduce_any(masks, 0)
         return tf.where(mask, self.mask_value, x)
@@ -266,15 +270,13 @@ class SpecAugment(Layer):
             time_axis, freq_axis = 1, 2
 
         if self.n_time_masks >= 1:
-            x = self._apply_masks_to_axis(x,
-                                          axis=time_axis,
-                                          mask_param=self.time_mask_param,
-                                          n_masks=self.n_time_masks)
+            x = self._apply_masks_to_axis(
+                x, axis=time_axis, mask_param=self.time_mask_param, n_masks=self.n_time_masks
+            )
         if self.n_freq_masks >= 1:
-            x = self._apply_masks_to_axis(x,
-                                          axis=freq_axis,
-                                          mask_param=self.freq_mask_param,
-                                          n_masks=self.n_freq_masks)
+            x = self._apply_masks_to_axis(
+                x, axis=freq_axis, mask_param=self.freq_mask_param, n_masks=self.n_freq_masks
+            )
         return x
 
     def call(self, x, training=None, **kwargs):
@@ -283,19 +285,19 @@ class SpecAugment(Layer):
 
         if K.ndim(x) != 4:
             raise ValueError(
-                'ndim of input tensor x should be 4 (batch spectrogram),'
-                'but it is %d' % K.ndim(x)
+                'ndim of input tensor x should be 4 (batch spectrogram),' 'but it is %d' % K.ndim(x)
             )
 
         ch_axis = 1 if self.data_format == 'channels_first' else 3
 
         if K.int_shape(x)[ch_axis] != 1:
-            raise RuntimeError('SpecAugment does not support spectrograms with depth greater than 1')
+            raise RuntimeError(
+                'SpecAugment does not support spectrograms with depth greater than 1'
+            )
 
-        return tf.map_fn(elems=x,
-                         fn=self._apply_spec_augment,
-                         dtype=tf.float32,
-                         fn_output_signature=tf.float32)
+        return tf.map_fn(
+            elems=x, fn=self._apply_spec_augment, dtype=tf.float32, fn_output_signature=tf.float32
+        )
 
     def get_config(self):
         config = super(SpecAugment, self).get_config()
@@ -306,7 +308,7 @@ class SpecAugment(Layer):
                 'n_freq_masks': self.n_freq_masks,
                 'n_time_masks': self.n_time_masks,
                 'mask_value': self.mask_value,
-                'data_format': self.data_format
+                'data_format': self.data_format,
             }
         )
         return config
