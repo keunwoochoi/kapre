@@ -1,6 +1,10 @@
 Release Note
 ^^^^^^^^^^^^
 
+* 21 Jan 2022
+  - 0.3.7
+    - Add [SpecAugment](https://github.com/keunwoochoi/kapre/pull/135) layer
+
 * 13 Nov 2021
   - 0.3.6
     - bugfix/pad end tflite #131
