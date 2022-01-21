@@ -34,6 +34,27 @@ def get_audio(data_format, n_ch, length=8000, batch_size=1):
     return src_mono, batch_src, input_shape
 
 
+def get_spectrogram(data_format, n_ch=1, time_dimension=256, freq_dimension=128, batch_size=1):
+    src = np.random.uniform(low=-10, high=10, size=(time_dimension, freq_dimension))
+
+    src = np.expand_dims(src, axis=2)  # (time, freq, 1)
+    if n_ch != 1:
+        src = np.tile(src, [1, n_ch])  # (time, freq, ch))
+
+    if data_format == 'default':
+        data_format = K.image_data_format()
+
+    if data_format == 'channels_last':
+        input_shape = (time_dimension, freq_dimension, n_ch)
+    else:
+        src = np.transpose(src, (2, 0, 1))  # (ch, time, freq)
+        input_shape = (n_ch, time_dimension, freq_dimension)
+
+    batch_src = np.repeat([src], batch_size, axis=0)
+
+    return batch_src, input_shape
+
+
 def save_load_compare(
     layer, input_batch, allclose_func, save_format, layer_class=None, training=None, atol=1e-4
 ):
