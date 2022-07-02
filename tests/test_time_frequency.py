@@ -51,7 +51,7 @@ def allclose_phase(a, b, atol=1e-3):
 
 def assert_approx_phase(a, b, atol=1e-2, acceptable_fail_ratio=0.01):
     """Testing approximate phase.
-    Tflite phase is approximate, some values will allways have a large error
+    Tflite phase is approximate, some values will always have a large error
     So makes more sense to count the number that are within tolerance
     """
     count_failed = np.sum(np.abs(a - b) > atol)

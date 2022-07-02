@@ -126,7 +126,7 @@ def predict_using_tflite(model, batch_src):
     ############################################################################
     # Make sure we can load and infer on the TFLITE model
     interpreter = tf.lite.Interpreter(tflite_file.as_posix())
-    # infer on each input seperately and collect the predictions
+    # infer on each input separately and collect the predictions
     pred_tflite = []
 
     for x in batch_src:
