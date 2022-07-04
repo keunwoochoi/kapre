@@ -38,7 +38,7 @@ def _rdft_matrix(dft_length):
 @tf.function
 def _rdft(signal, dft_length):
     """DFT for real signals.
-    Calculates the onesided dft, assuming real signal implies complex congugaqe symetry,
+    Calculates the onesided dft, assuming real signal implies complex conjugate symetry,
     hence only onesided DFT is returned.
 
     Args:
@@ -67,7 +67,7 @@ def _rdft(signal, dft_length):
 
     signal_padded = tf.pad(signal, pad_values)
 
-    # matrix multiplying real and imag seperately is faster than using complex types.
+    # matrix multiplying real and imag separately is faster than using complex types.
     spec_real = tf.matmul(signal_padded, rdft_mat_real)
     spec_imag = tf.matmul(signal_padded, rdft_mat_imag)
     spectrogram = tf.stack([spec_real, spec_imag], axis=-1)
@@ -100,7 +100,7 @@ def fixed_frame(signal, frame_length, frame_step):
     # the number of whole frames
     num_frames = max(0, 1 + (length_samples - frame_length) // frame_step)
 
-    # define the output_shape, if we recieve a None dimension, replace with 1
+    # define the output_shape, if we receive a None dimension, replace with 1
     outer_dimensions = [dim if dim else 1 for dim in signal_shape[:-1]]
     # outer_dimensions = signal_shape[:-1]
     output_shape = outer_dimensions + [num_frames, frame_length]
@@ -202,7 +202,7 @@ def continued_fraction_arctan(x, n=100, dtype=tf.float32):
         https://functions.wolfram.com/ElementaryFunctions/ArcTan/10/
 
     Args:
-        x (tensor) - argument tensor to caclulate arctan of
+        x (tensor) - argument tensor to calculate arctan of
         n (int) - The number of iterations, large means arctan is more accurate
         dtype (tf.dtype) - tf.float32, or tf.float64
 
@@ -227,7 +227,7 @@ def atan2_tflite(y, x, n=100, dtype=tf.float32):
 
     Args:
         y (tensor) - vertical component of tangent (or imaginary part of number for phase)
-        x (tensor) - horizontal component of tanget (or real part of number for phase)
+        x (tensor) - horizontal component of tangent (or real part of number for phase)
         n (int) - The number of iterations to use for atan approximations,
             larger means arctan is more accurate
         dtype (tf.dtype) - tf.float32, or tf.float64
