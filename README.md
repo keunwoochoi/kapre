@@ -86,7 +86,7 @@ model.fit(x, y)
 
 * See the Jupyter notebook at the [example folder](https://github.com/keunwoochoi/kapre/tree/master/examples)
 
-## Tflite compatbility
+## Tflite compatibility
 
 The `STFT` layer is not tflite compatible (due to `tf.signal.stft`). To create a tflite
 compatible model, first train using the normal `kapre` layers then create a new
