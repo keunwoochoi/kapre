@@ -20,7 +20,7 @@ def get_audio(data_format, n_ch, length=8000, batch_size=1):
         src = np.tile(src, [1, n_ch])  # (time, ch))
 
     if data_format == 'default':
-        data_format = K.image_data_format()
+        data_format = backend._get_image_data_format()
 
     if data_format == 'channels_last':
         input_shape = (len_src, n_ch)
@@ -42,7 +42,7 @@ def get_spectrogram(data_format, n_ch=1, time_dimension=256, freq_dimension=128,
         src = np.tile(src, [1, n_ch])  # (time, freq, ch))
 
     if data_format == 'default':
-        data_format = K.image_data_format()
+        data_format = backend._get_image_data_format()
 
     if data_format == 'channels_last':
         input_shape = (time_dimension, freq_dimension, n_ch)

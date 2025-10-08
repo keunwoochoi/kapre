@@ -127,8 +127,8 @@ class STFT(Layer):
         self.pad_end = pad_end
 
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
-        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
+        self.output_data_format = backend._get_image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = backend._get_image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -258,8 +258,8 @@ class InverseSTFT(Layer):
         )
 
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
-        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
+        self.output_data_format = backend._get_image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = backend._get_image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -488,7 +488,7 @@ class ApplyFilterbank(Layer):
             self.filterbank = _mel_filterbank = backend.filterbank_mel(**filterbank_kwargs)
 
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = K.image_data_format()
+            self.data_format = backend._get_image_data_format()
         else:
             self.data_format = data_format
 
@@ -562,7 +562,7 @@ class Delta(Layer):
             )
 
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = K.image_data_format()
+            self.data_format = backend._get_image_data_format()
         else:
             self.data_format = data_format
 
@@ -586,7 +586,7 @@ class Delta(Layer):
         x = tf.pad(
             x, tf.constant([[0, 0], [self.n, self.n], [0, 0], [0, 0]]), mode=self.mode
         )  # pad over time
-        kernel = K.arange(-self.n, self.n + 1, 1, dtype=K.floatx())
+        kernel = K.arange(-self.n, self.n + 1, 1, dtype=backend._get_floatx())
         kernel = K.reshape(kernel, (-1, 1, 1, 1))  # time, freq, in_ch, out_ch
 
         x = K.conv2d(x, kernel, data_format=_CH_LAST_STR) / self.denom
@@ -648,7 +648,7 @@ class ConcatenateFrequencyMap(Layer):
         backend.validate_data_format_str(data_format)
 
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = K.image_data_format()
+            self.data_format = backend._get_image_data_format()
         else:
             self.data_format = data_format
 

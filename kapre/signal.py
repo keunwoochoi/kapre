@@ -3,6 +3,9 @@
 This module includes Kapre layers that deal with audio signals (waveforms).
 
 """
+from __future__ import annotations
+
+from typing import Optional, Tuple, Any, Union
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.keras import backend as K
@@ -37,11 +40,27 @@ class Frame(Layer):
     """
 
     def __init__(
-        self, frame_length, hop_length, pad_end=False, pad_value=0, data_format='default', **kwargs
-    ):
+        self,
+        frame_length: int,
+        hop_length: int,
+        pad_end: bool = False,
+        pad_value: Union[int, float] = 0,
+        data_format: str = 'default',
+        **kwargs: Any,
+    ) -> None:
         super(Frame, self).__init__(**kwargs)
 
         backend.validate_data_format_str(data_format)
+
+        # Input validation
+        if frame_length <= 0:
+            raise ValueError(f'frame_length must be positive, got: {frame_length}')
+        if hop_length <= 0:
+            raise ValueError(f'hop_length must be positive, got: {hop_length}')
+        if frame_length < hop_length:
+            raise ValueError(
+                f'frame_length ({frame_length}) must be >= hop_length ({hop_length})'
+            )
 
         self.frame_length = frame_length
         self.hop_length = hop_length
@@ -49,7 +68,7 @@ class Frame(Layer):
         self.pad_value = pad_value
 
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = K.image_data_format()
+            self.data_format = backend._get_image_data_format()
         else:
             self.data_format = data_format
 
@@ -58,13 +77,14 @@ class Frame(Layer):
         else:
             self.time_axis = 1  # batch, time, ch
 
-    def call(self, x):
-        """
+    def call(self, x: tf.Tensor) -> tf.Tensor:
+        """Compute framed audio signal.
+
         Args:
-            x (`Tensor`): batch audio signal in the specified 1D format in initiation.
+            x: Batch audio signal in the specified 1D format.
 
         Returns:
-            (`Tensor`): A framed tensor. The shape is (batch, time (frames), frame_length, channel) if `channels_last`,
+            A framed tensor. The shape is (batch, time (frames), frame_length, channel) if `channels_last`,
             or (batch, channel, time (frames), frame_length) if `channels_first`.
         """
         return tf.signal.frame(
@@ -76,7 +96,12 @@ class Frame(Layer):
             axis=self.time_axis,
         )
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
+        """Get layer configuration.
+
+        Returns:
+            Layer configuration dictionary.
+        """
         config = super(Frame, self).get_config()
         config.update(
             {
@@ -118,15 +143,15 @@ class Energy(Layer):
 
     def __init__(
         self,
-        sample_rate=22050,
-        ref_duration=0.1,
-        frame_length=2205,
-        hop_length=1102,
-        pad_end=False,
-        pad_value=0,
-        data_format='default',
-        **kwargs,
-    ):
+        sample_rate: int = 22050,
+        ref_duration: float = 0.1,
+        frame_length: int = 2205,
+        hop_length: int = 1102,
+        pad_end: bool = False,
+        pad_value: Union[int, float] = 0,
+        data_format: str = 'default',
+        **kwargs: Any,
+    ) -> None:
         super(Energy, self).__init__(**kwargs)
 
         backend.validate_data_format_str(data_format)
@@ -139,7 +164,7 @@ class Energy(Layer):
         self.pad_value = pad_value
 
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = K.image_data_format()
+            self.data_format = backend._get_image_data_format()
         else:
             self.data_format = data_format
 
@@ -148,13 +173,14 @@ class Energy(Layer):
         else:
             self.time_axis = 1  # batch, time, ch
 
-    def call(self, x):
-        """
+    def call(self, x: tf.Tensor) -> tf.Tensor:
+        """Compute energy of each frame.
+
         Args:
-            x (`Tensor`): batch audio signal in the specified 1D format in initiation.
+            x: Batch audio signal in the specified 1D format.
 
         Returns:
-            (`Tensor`): A framed tensor. The shape is (batch, time (frames), channel) if `channels_last`, or
+            A tensor with frame energies. The shape is (batch, time (frames), channel) if `channels_last`, or
             (batch, channel, time (frames)) if `channels_first`.
         """
         frames = tf.signal.frame(
@@ -177,10 +203,17 @@ class Energy(Layer):
 
         return nor_coeff * energies
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
+        """Get layer configuration.
+
+        Returns:
+            Layer configuration dictionary.
+        """
         config = super(Energy, self).get_config()
         config.update(
             {
+                'sample_rate': self.sample_rate,
+                'ref_duration': self.ref_duration,
                 'frame_length': self.frame_length,
                 'hop_length': self.hop_length,
                 'pad_end': self.pad_end,
@@ -220,24 +253,40 @@ class MuLawEncoding(Layer):
 
     def __init__(
         self,
-        quantization_channels,
-        **kwargs,
-    ):
+        quantization_channels: int,
+        **kwargs: Any,
+    ) -> None:
         super(MuLawEncoding, self).__init__(**kwargs)
+
+        # Input validation
+        if quantization_channels < 2:
+            raise ValueError(
+                f'quantization_channels must be at least 2, got: {quantization_channels}'
+            )
+        if quantization_channels > 65536:  # Reasonable upper bound
+            raise ValueError(
+                f'quantization_channels must be <= 65536, got: {quantization_channels}'
+            )
+
         self.quantization_channels = quantization_channels
 
-    def call(self, x):
-        """
+    def call(self, x: tf.Tensor) -> tf.Tensor:
+        """Encode signal using mu-law companding.
 
         Args:
-            x (float `Tensor`): audio signal to encode. Shape doesn't matter.
+            x: Audio signal to encode. Shape doesn't matter.
 
         Returns:
-            (int `Tensor`): mu-law encoded x. Shape doesn't change.
+            Mu-law encoded signal. Shape doesn't change.
         """
         return backend.mu_law_encoding(x, self.quantization_channels)
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
+        """Get layer configuration.
+
+        Returns:
+            Layer configuration dictionary.
+        """
         config = super(MuLawEncoding, self).get_config()
         config.update(
             {
@@ -269,24 +318,29 @@ class MuLawDecoding(Layer):
 
     def __init__(
         self,
-        quantization_channels,
-        **kwargs,
-    ):
+        quantization_channels: int,
+        **kwargs: Any,
+    ) -> None:
         super(MuLawDecoding, self).__init__(**kwargs)
         self.quantization_channels = quantization_channels
 
-    def call(self, x):
-        """
+    def call(self, x: tf.Tensor) -> tf.Tensor:
+        """Decode mu-law encoded signal.
 
         Args:
-            x (int `Tensor`): audio signal to decode. Shape doesn't matter.
+            x: Mu-law encoded signal to decode. Shape doesn't matter.
 
         Returns:
-            (float `Tensor`): mu-law encoded x. Shape doesn't change.
+            Decoded audio signal. Shape doesn't change.
         """
         return backend.mu_law_decoding(x, self.quantization_channels)
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
+        """Get layer configuration.
+
+        Returns:
+            Layer configuration dictionary.
+        """
         config = super(MuLawDecoding, self).get_config()
         config.update(
             {
@@ -327,13 +381,19 @@ class LogmelToMFCC(Layer):
 
     """
 
-    def __init__(self, n_mfccs=20, data_format='default', **kwargs):
+    def __init__(
+        self,
+        n_mfccs: int = 20,
+        data_format: str = 'default',
+        **kwargs: Any,
+    ) -> None:
         super(LogmelToMFCC, self).__init__(**kwargs)
         backend.validate_data_format_str(data_format)
 
         self.n_mfccs = n_mfccs
+        self.permutation: Optional[Tuple[int, ...]] = None
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = K.image_data_format()
+            self.data_format = backend._get_image_data_format()
         else:
             self.data_format = data_format
 
@@ -342,15 +402,14 @@ class LogmelToMFCC(Layer):
         else:
             self.permutation = None
 
-    def call(self, log_melgrams):
-        """
+    def call(self, log_melgrams: tf.Tensor) -> tf.Tensor:
+        """Compute MFCCs from log-melspectrogram.
 
         Args:
-            log_melgrams (float `Tensor`): a batch of log_melgrams. `(b, time, mel, ch)` if `channels_last`
+            log_melgrams: A batch of log-melgrams. `(b, time, mel, ch)` if `channels_last`
                 and `(b, ch, time, mel)` if `channels_first`.
 
         Returns:
-            (float `Tensor`):
             MFCCs. `(batch, time, n_mfccs, ch)` if `channels_last`, `(batch, ch, time, n_mfccs)` if `channels_first`.
         """
         if self.permutation is not None:  # reshape so that last channel == mel
@@ -364,7 +423,12 @@ class LogmelToMFCC(Layer):
 
         return mfccs
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
+        """Get layer configuration.
+
+        Returns:
+            Layer configuration dictionary.
+        """
         config = super(LogmelToMFCC, self).get_config()
         config.update({'n_mfccs': self.n_mfccs, 'data_format': self.data_format})
 

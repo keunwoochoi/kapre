@@ -58,7 +58,7 @@ class ChannelSwap(Layer):
         backend.validate_data_format_str(data_format)
 
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = K.image_data_format()
+            self.data_format = backend._get_image_data_format()
         else:
             self.data_format = data_format
 
