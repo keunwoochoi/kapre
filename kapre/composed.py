@@ -6,7 +6,7 @@ Warnings:
     file format). Or, you can decompose the returned layers and add it to your model manually. E.g.,
     ::
 
-        your_model = keras.Sequentual()
+        your_model = keras.Sequential()
         composed_melgram_layer = kapre.composed.get_melspectrogram_layer(input_shape=(44100, 1))
         for layer in composed_melgram_layer.layers:
             your_model.add(layer)

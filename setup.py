@@ -15,10 +15,11 @@ setup(
         ]
     },
     include_package_data=True,
+    python_requires='>=3.8',
     install_requires=[
         'numpy >= 1.18.5',
-        'librosa >= 0.7.2',
-        'tensorflow >= 2.0.0'
+        'librosa >= 0.7.2, < 1.0.0',
+        'tensorflow >= 2.0.0, < 2.17.0'
     ],
     keywords='audio music speech sound deep learning keras tensorflow',
     zip_safe=False,
