@@ -9,6 +9,7 @@ from typing import Optional, Tuple, Any, Union
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.keras import backend as K
+from tensorflow.keras.utils import register_keras_serializable
 
 from . import backend
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
@@ -17,6 +18,7 @@ from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 __all__ = ['Frame', 'Energy', 'MuLawEncoding', 'MuLawDecoding', 'LogmelToMFCC']
 
 
+@register_keras_serializable(package='Kapre')
 class Frame(Layer):
     """
     Frame input audio signal. It is a wrapper of `tf.signal.frame`.
@@ -67,12 +69,13 @@ class Frame(Layer):
         self.pad_end = pad_end
         self.pad_value = pad_value
 
-        if data_format == _CH_DEFAULT_STR:
-            self.data_format = backend._get_image_data_format()
+        self.data_format_str = data_format
+        if self.data_format_str == _CH_DEFAULT_STR:
+            self.data_format = K.image_data_format()
         else:
-            self.data_format = data_format
+            self.data_format = self.data_format_str
 
-        if data_format == _CH_FIRST_STR:
+        if self.data_format == _CH_FIRST_STR:
             self.time_axis = 2  # batch, ch, time
         else:
             self.time_axis = 1  # batch, time, ch
@@ -109,13 +112,14 @@ class Frame(Layer):
                 'hop_length': self.hop_length,
                 'pad_end': self.pad_end,
                 'pad_value': self.pad_value,
-                'data_format': self.data_format,
+                'data_format': self.data_format_str,
             }
         )
 
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class Energy(Layer):
     """
     Compute energy of each frame. The energy computed for each frame then is normalized so that the values would
@@ -163,12 +167,13 @@ class Energy(Layer):
         self.pad_end = pad_end
         self.pad_value = pad_value
 
-        if data_format == _CH_DEFAULT_STR:
-            self.data_format = backend._get_image_data_format()
+        self.data_format_str = data_format
+        if self.data_format_str == _CH_DEFAULT_STR:
+            self.data_format = K.image_data_format()
         else:
-            self.data_format = data_format
+            self.data_format = self.data_format_str
 
-        if data_format == _CH_FIRST_STR:
+        if self.data_format == _CH_FIRST_STR:
             self.time_axis = 2  # batch, ch, time
         else:
             self.time_axis = 1  # batch, time, ch
@@ -183,6 +188,7 @@ class Energy(Layer):
             A tensor with frame energies. The shape is (batch, time (frames), channel) if `channels_last`, or
             (batch, channel, time (frames)) if `channels_first`.
         """
+        tf.print("Input shape to Energy.call:", tf.shape(x))
         frames = tf.signal.frame(
             x,
             frame_length=self.frame_length,
@@ -191,12 +197,14 @@ class Energy(Layer):
             pad_value=self.pad_value,
             axis=self.time_axis,
         )
+        tf.print("Frames shape in Energy.call:", tf.shape(frames))
         frames = tf.math.square(frames)  # batch, ndim=4
 
         frame_axis = 2 if self.data_format == _CH_LAST_STR else 3
         energies = tf.math.reduce_sum(
             frames, axis=frame_axis
         )  # batch, ndim=3. (b, t, ch) or (b, ch, t)
+        tf.print("Energies shape in Energy.call:", tf.shape(energies))
 
         # normalize it to self.ref_duration
         nor_coeff = self.ref_duration / (self.frame_length / self.sample_rate)
@@ -218,13 +226,14 @@ class Energy(Layer):
                 'hop_length': self.hop_length,
                 'pad_end': self.pad_end,
                 'pad_value': self.pad_value,
-                'data_format': self.data_format,
+                'data_format': self.data_format_str,
             }
         )
 
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class MuLawEncoding(Layer):
     """
     Mu-law encoding (compression) of audio signal, in [-1, 1], to [0, quantization_channels - 1].
@@ -297,6 +306,7 @@ class MuLawEncoding(Layer):
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class MuLawDecoding(Layer):
     """
     Mu-law decoding (expansion) of mu-law encoded audio signal to [-1, 1].
@@ -351,6 +361,7 @@ class MuLawDecoding(Layer):
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class LogmelToMFCC(Layer):
     """
     Compute MFCC from log-melspectrogram.
@@ -392,10 +403,11 @@ class LogmelToMFCC(Layer):
 
         self.n_mfccs = n_mfccs
         self.permutation: Optional[Tuple[int, ...]] = None
-        if data_format == _CH_DEFAULT_STR:
-            self.data_format = backend._get_image_data_format()
+        self.data_format_str = data_format
+        if self.data_format_str == _CH_DEFAULT_STR:
+            self.data_format = K.image_data_format()
         else:
-            self.data_format = data_format
+            self.data_format = self.data_format_str
 
         if self.data_format == _CH_LAST_STR:
             self.permutation = (0, 1, 3, 2)
@@ -430,6 +442,6 @@ class LogmelToMFCC(Layer):
             Layer configuration dictionary.
         """
         config = super(LogmelToMFCC, self).get_config()
-        config.update({'n_mfccs': self.n_mfccs, 'data_format': self.data_format})
+        config.update({'n_mfccs': self.n_mfccs, 'data_format': self.data_format_str})
 
         return config

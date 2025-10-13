@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 import tempfile
 from tensorflow.keras import backend as K
+from kapre import backend
 
 SRC = np.load('tests/speech_test_file.npz')['audio_data'].astype(np.float32)
 
@@ -20,7 +21,7 @@ def get_audio(data_format, n_ch, length=8000, batch_size=1):
         src = np.tile(src, [1, n_ch])  # (time, ch))
 
     if data_format == 'default':
-        data_format = backend._get_image_data_format()
+        data_format = K.image_data_format()
 
     if data_format == 'channels_last':
         input_shape = (len_src, n_ch)
@@ -42,7 +43,7 @@ def get_spectrogram(data_format, n_ch=1, time_dimension=256, freq_dimension=128,
         src = np.tile(src, [1, n_ch])  # (time, freq, ch))
 
     if data_format == 'default':
-        data_format = backend._get_image_data_format()
+        data_format = K.image_data_format()
 
     if data_format == 'channels_last':
         input_shape = (time_dimension, freq_dimension, n_ch)
@@ -56,27 +57,42 @@ def get_spectrogram(data_format, n_ch=1, time_dimension=256, freq_dimension=128,
 
 
 def save_load_compare(
-    layer, input_batch, allclose_func, save_format, layer_class=None, training=None, atol=1e-4
+    layer,
+    input_batch,
+    assertion_callback,
+    save_format='tf',
+    layer_class=None,
+    training=None,
+    input_shape=None,
 ):
-    """test a model with `layer` with the given `input_batch`.
+    """
+    Save a model with `layer` and load it back, and compare the outputs.
     The model prediction result is compared using `allclose_func` which may depend on the
     data type of the model output (e.g., float or complex).
     """
-    model = tf.keras.models.Sequential()
-    model.add(layer)
+    if not isinstance(layer, tf.keras.Model):
+        model = tf.keras.Sequential()
+        if input_shape is not None:
+            model.add(tf.keras.Input(shape=input_shape))
+        model.add(layer)
+    else:
+        model = layer
 
-    result_ref = model(input_batch, training=training)
+    if training is None:
+        result_original = model.predict(input_batch)
+    else:
+        result_original = model(input_batch, training=training)
 
     os_temp_dir = tempfile.gettempdir()
     model_temp_dir = tempfile.TemporaryDirectory(dir=os_temp_dir)
 
     if save_format == 'tf':
-        model_path = model_temp_dir.name
+        model_path = os.path.join(model_temp_dir.name, 'model.keras')
     elif save_format == 'h5':
         model_path = os.path.join(model_temp_dir.name, 'model.h5')
     else:
         raise ValueError
-    model.save(filepath=model_path, save_format=save_format)
+    model.save(model_path)
     # if save_format == 'h5':
     #     import ipdb; ipdb.set_trace()
 
@@ -87,8 +103,12 @@ def save_load_compare(
     else:
         new_model = tf.keras.models.load_model(model_path)
 
-    result_new = new_model(input_batch)
-    allclose_func(result_ref, result_new, atol)
+    if training is None:
+        result_new = new_model.predict(input_batch)
+    else:
+        result_new = new_model(input_batch, training=training)
+
+    assertion_callback(result_original, result_new)
 
     model_temp_dir.cleanup()
 

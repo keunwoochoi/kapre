@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras
 import librosa
+from tensorflow.keras import backend as K
+from kapre.backend import _CH_FIRST_STR, _CH_LAST_STR
 from kapre import (
     STFT,
     Magnitude,
@@ -76,6 +78,7 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format, batch_siz
     def _get_stft_model(following_layer=None):
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
+        stft_model.add(tf.keras.Input(shape=input_shape))
         stft_model.add(
             STFT(
                 n_fft=n_fft,
@@ -85,7 +88,6 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format, batch_siz
                 pad_end=False,
                 input_data_format=data_format,
                 output_data_format=data_format,
-                input_shape=input_shape,
                 name='stft',
             )
         )
@@ -99,7 +101,7 @@ def test_spectrogram_correctness(n_fft, hop_length, n_ch, data_format, batch_siz
     win_length = n_fft  # test with x2
     # compute with librosa
     S_ref = librosa.core.stft(
-        src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False
+        y=src_mono, n_fft=n_fft, hop_length=hop_length, win_length=win_length, center=False
     ).T  # (time, freq)
 
     S_ref = np.expand_dims(S_ref, axis=2)  # time, freq, ch=1
@@ -129,6 +131,7 @@ def test_spectrogram_correctness_more(data_format, window_name):
     def _get_stft_model(following_layer=None):
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
+        stft_model.add(tf.keras.Input(shape=input_shape))
         stft_model.add(
             STFT(
                 n_fft=n_fft,
@@ -138,7 +141,6 @@ def test_spectrogram_correctness_more(data_format, window_name):
                 pad_end=False,
                 input_data_format=data_format,
                 output_data_format=data_format,
-                input_shape=input_shape,
                 name='stft',
             )
         )
@@ -154,7 +156,7 @@ def test_spectrogram_correctness_more(data_format, window_name):
     win_length = n_fft  # test with x2
     # compute with librosa
     S_ref = librosa.core.stft(
-        src_mono,
+        y=src_mono,
         n_fft=n_fft,
         hop_length=hop_length,
         win_length=win_length,
@@ -202,7 +204,7 @@ def test_melspectrogram_correctness(
 
     """
 
-    def _get_melgram_model(return_decibel, amin, dynamic_range, input_shape=None):
+    def _get_melgram_model(return_decibel, amin, dynamic_range):
         # compute with kapre
         melgram_model = get_melspectrogram_layer(
             n_fft=n_fft,
@@ -215,18 +217,20 @@ def test_melspectrogram_correctness(
             input_data_format=data_format,
             output_data_format=data_format,
             return_decibel=return_decibel,
-            input_shape=input_shape,
             db_amin=amin,
             db_dynamic_range=dynamic_range,
         )
-        return melgram_model
+        model = tf.keras.Sequential()
+        model.add(tf.keras.Input(shape=input_shape))
+        model.add(melgram_model)
+        return model
 
     src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch)
 
     win_length = n_fft  # test with x2
     # compute with librosa
     S_ref = librosa.feature.melspectrogram(
-        src_mono,
+        y=src_mono,
         sr=sr,
         n_fft=n_fft,
         hop_length=hop_length,
@@ -246,14 +250,14 @@ def test_melspectrogram_correctness(
 
     # melgram
     melgram_model = _get_melgram_model(
-        return_decibel=False, input_shape=input_shape, amin=None, dynamic_range=120.0
+        return_decibel=False, amin=None, dynamic_range=120.0
     )
     S = melgram_model.predict(batch_src)[0]  # 3d representation
     np.testing.assert_allclose(S_ref, S, atol=1e-4)
 
     # log melgram
     melgram_model = _get_melgram_model(
-        return_decibel=True, input_shape=input_shape, amin=amin, dynamic_range=dynamic_range
+        return_decibel=True, amin=amin, dynamic_range=dynamic_range
     )
     S = melgram_model.predict(batch_src)[0]  # 3d representation
     S_ref_db = librosa.power_to_db(S_ref, ref=1.0, amin=amin, top_db=dynamic_range)
@@ -276,6 +280,7 @@ def test_spectrogram_tflite_correctness(
     def _get_stft_model(following_layer=None, tflite_compatible=False):
         # compute with kapre
         stft_model = tensorflow.keras.models.Sequential()
+        stft_model.add(tf.keras.Input(shape=input_shape))
         if tflite_compatible:
             stft_model.add(
                 STFTTflite(
@@ -286,7 +291,6 @@ def test_spectrogram_tflite_correctness(
                     pad_end=pad_end,
                     input_data_format=data_format,
                     output_data_format=data_format,
-                    input_shape=input_shape,
                     name='stft',
                 )
             )
@@ -300,7 +304,6 @@ def test_spectrogram_tflite_correctness(
                     pad_end=pad_end,
                     input_data_format=data_format,
                     output_data_format=data_format,
-                    input_shape=input_shape,
                     name='stft',
                 )
             )
@@ -374,7 +377,8 @@ def test_delta():
     specgrams = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
     specgrams = np.reshape(specgrams, (1, -1, 1, 1))  # (b, t, f, ch)
     delta_model = tensorflow.keras.models.Sequential()
-    delta_model.add(Delta(win_length=3, input_shape=(4, 1, 1), data_format='channels_last'))
+    delta_model.add(tf.keras.Input(shape=(4, 1, 1)))
+    delta_model.add(Delta(win_length=3, data_format='channels_last'))
 
     delta_kapre = delta_model(specgrams)
     delta_ref = np.array([0.5, 1.0, 1.0, 0.5], dtype=np.float32)
@@ -399,14 +403,17 @@ def test_mag_phase(data_format):
         output_data_format=data_format,
     )
     model = tensorflow.keras.models.Sequential()
+    model.add(tf.keras.Input(shape=input_shape))
     model.add(mag_phase_layer)
     mag_phase_kapre = model(batch_src)[0]  # a 2d image shape
 
     ch_axis = 0 if data_format == 'channels_first' else 2  # non-batch
+    if data_format == 'default':
+        ch_axis = 0 if K.image_data_format() == 'channels_first' else 2
     mag_phase_ref = np.stack(
         librosa.magphase(
             librosa.stft(
-                src_mono,
+                y=src_mono,
                 n_fft=n_fft,
                 hop_length=hop_length,
                 win_length=win_length,
@@ -443,7 +450,13 @@ def test_mag_phase(data_format):
 def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_format, hop_ratio):
     n_ch = 1
     src_mono, batch_src, input_shape = get_audio(data_format=waveform_data_format, n_ch=n_ch)
-    time_axis = 1 if waveform_data_format == 'channels_first' else 0  # non-batch!
+    if waveform_data_format == 'default':
+        _waveform_data_format = K.image_data_format()
+    else:
+        _waveform_data_format = waveform_data_format
+
+    time_axis = 1 if _waveform_data_format == 'channels_first' else 0
+
     len_src = input_shape[time_axis]
 
     n_fft = 2048
@@ -451,20 +464,21 @@ def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_for
     n_added_frames = int(1 / hop_ratio) - 1
 
     stft, istft = get_perfectly_reconstructing_stft_istft(
-        stft_input_shape=input_shape,
         n_fft=n_fft,
         hop_length=hop_length,
         waveform_data_format=waveform_data_format,
         stft_data_format=stft_data_format,
     )
     # Test - [STFT -> ISTFT]
-    model = tf.keras.models.Sequential([stft, istft])
+    model = tf.keras.models.Sequential(
+        [tf.keras.Input(shape=input_shape, dtype=batch_src.dtype), stft, istft]
+    )
 
     recon_waveform = model(batch_src)
 
     # trim off the pad_begin part
     len_pad_begin = n_fft - hop_length
-    if waveform_data_format == 'channels_first':
+    if _waveform_data_format == 'channels_first':
         recon_waveform = recon_waveform[:, :, len_pad_begin : len_pad_begin + len_src]
     else:
         recon_waveform = recon_waveform[:, len_pad_begin : len_pad_begin + len_src, :]
@@ -472,26 +486,49 @@ def test_perfectly_reconstructing_stft_istft(waveform_data_format, stft_data_for
     np.testing.assert_allclose(batch_src, recon_waveform, atol=1e-5)
 
     # Test - [ISTFT -> STFT]
-    S = librosa.stft(src_mono, n_fft=n_fft, hop_length=hop_length).T.astype(
+    S = librosa.stft(y=src_mono, n_fft=n_fft, hop_length=hop_length).T.astype(
         np.complex64
     )  # (time, freq)
 
-    ch_axis = 1 if stft_data_format == 'channels_first' else 3  # batch shape
-    S = np.expand_dims(S, (0, ch_axis))
-    model = tf.keras.models.Sequential([istft, stft])
+    if stft_data_format == 'default':
+        _stft_data_format = K.image_data_format()
+    else:
+        _stft_data_format = stft_data_format
+
+    if _stft_data_format == 'channels_first':
+        S = np.expand_dims(S, (0, 1))
+    else:
+        S = np.expand_dims(S, (0, -1))
+
+    model = tf.keras.models.Sequential(
+        [tf.keras.Input(shape=S.shape[1:], dtype=S.dtype), istft, stft]
+    )
     recon_S = model(S)
 
     # trim off the frames coming from zero-pad result
     n = n_added_frames
+    if n > 0:
+        if stft_data_format == 'channels_first':
+                S = S[:, :, n:-n, :]
+        elif stft_data_format == 'channels_last':
+                S = S[:, n:-n, :, :]
+        else:  # default
+            if K.image_data_format() == 'channels_first':
+                    S = S[:, :, n:-n, :]
+            else:
+                    S = S[:, n:-n, :, :]
+
     n_added_frames += n
-    if stft_data_format == 'channels_first':
-        if n != 0:
-            S = S[:, :, n:-n, :]
-        recon_S = recon_S[:, :, n_added_frames:-n_added_frames, :]
-    else:
-        if n != 0:
-            S = S[:, n:-n, :, :]
-        recon_S = recon_S[:, n_added_frames:-n_added_frames, :, :]
+    if n_added_frames > 0:
+        if stft_data_format == 'channels_first':
+            recon_S = recon_S[:, :, n_added_frames:-n_added_frames, :]
+        elif stft_data_format == 'channels_last':
+            recon_S = recon_S[:, n_added_frames:-n_added_frames, :, :]
+        else:  # default
+            if K.image_data_format() == 'channels_first':
+                recon_S = recon_S[:, :, n_added_frames:-n_added_frames, :]
+            else:
+                recon_S = recon_S[:, n_added_frames:-n_added_frames, :, :]
 
     np.testing.assert_equal(S.shape, recon_S.shape)
     allclose_complex_numbers(S, recon_S)
@@ -504,21 +541,23 @@ def test_save_load(save_format):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
     # test STFT save/load
     save_load_compare(
-        STFT(input_shape=input_shape, pad_begin=True),
+        STFT(pad_begin=True),
         batch_src,
         allclose_complex_numbers,
         save_format,
         STFT,
+        input_shape=input_shape,
     )
 
     # test ConcatenateFrequencyMap
     specs_batch = np.random.randn(2, 3, 5, 4).astype(np.float32)
     save_load_compare(
-        ConcatenateFrequencyMap(input_shape=specs_batch.shape[1:]),
+        ConcatenateFrequencyMap(),
         specs_batch,
         np.testing.assert_allclose,
         save_format,
         ConcatenateFrequencyMap,
+        input_shape=specs_batch.shape[1:],
     )
 
     if save_format == 'tf':
@@ -554,12 +593,22 @@ def test_save_load(save_format):
 
 @pytest.mark.parametrize('data_format', ['default', 'channels_first', 'channels_last'])
 def test_concatenate_frequency_map(data_format):
+    if data_format == 'default':
+        data_format = K.image_data_format()
     shape = (4, 10, 5, 3)
 
     time_axis, freq_axis, ch_axis = (
-        (1, 2, 3) if data_format == 'channels_last' else (2, 3, 1)
+        (2, 3, 1) if data_format == 'channels_first' else (1, 2, 3)
     )  # todo - replace it with CH_LAST_STR
-    batch_size, n_freq, n_time, n_ch = shape[0], shape[freq_axis], shape[time_axis], shape[ch_axis]
+    if data_format == 'channels_first':
+        shape = (shape[0], shape[3], shape[1], shape[2])
+
+    batch_size, n_time, n_freq, n_ch = (
+        shape[0],
+        shape[time_axis],
+        shape[freq_axis],
+        shape[ch_axis],
+    )
 
     x = tf.random.normal(shape, dtype=tf.float32)
     concat_freq_map = ConcatenateFrequencyMap(data_format=data_format)
@@ -570,11 +619,11 @@ def test_concatenate_frequency_map(data_format):
     new_shape[ch_axis] += 1
     np.testing.assert_equal(tuple(new_shape), x_concat.shape)
     # test freq map
-    freq_map = x_concat[0, 0, :, -1] if data_format == 'channels_last' else x_concat[0, -1, 0, :]
+    freq_map = x_concat[0, -1, 0, :] if data_format == 'channels_first' else x_concat[0, 0, :, -1]
     np.testing.assert_allclose(freq_map, np.linspace(0, 1, num=n_freq))
     # test original input
     other_channels = (
-        x_concat[:, :, :, :-1] if data_format == 'channels_last' else x_concat[:, :-1, :, :]
+        x_concat[:, :-1, :, :] if data_format == 'channels_first' else x_concat[:, :, :, :-1]
     )
     np.testing.assert_equal(x, other_channels)
 

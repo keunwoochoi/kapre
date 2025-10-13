@@ -217,6 +217,8 @@ def filterbank_mel(
     Returns:
         Mel filterbanks. Shape=(n_freq, n_mels)
     """
+    import librosa
+
     filterbank = librosa.filters.mel(  # type: ignore
         sr=sample_rate,
         n_fft=(n_freq - 1) * 2,
@@ -256,6 +258,7 @@ def filterbank_log(
         The code is originally from `logfrequency` in librosa 0.4 (deprecated) and copy-and-pasted.
         `tuning` parameter was removed and we use `n_freq` instead of `n_fft`.
     """
+    import librosa
 
     if f_min is None:
         f_min = 32.70319566
@@ -278,7 +281,7 @@ def filterbank_log(
     basis = np.zeros((n_bins, n_freq))
 
     # Get log frequencies of bins
-    log_freqs = np.log2(librosa.fft_frequencies(sample_rate, (n_freq - 1) * 2)[1:])
+    log_freqs = np.log2(librosa.fft_frequencies(sr=sample_rate, n_fft=(n_freq - 1) * 2)[1:])
 
     for i in range(n_bins):
         # What's the center (median) frequency of this filter?

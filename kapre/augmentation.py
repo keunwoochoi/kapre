@@ -9,10 +9,12 @@ from tensorflow.keras import backend as K
 from . import backend
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
 import numpy as np
+from tensorflow.keras.utils import register_keras_serializable
 
 __all__ = ['SpecAugment', 'ChannelSwap']
 
 
+@register_keras_serializable(package='Kapre')
 class ChannelSwap(Layer):
     """
     Randomly swap the channel
@@ -55,14 +57,17 @@ class ChannelSwap(Layer):
         data_format='default',
         **kwargs,
     ):
+        super(ChannelSwap, self).__init__(**kwargs)
         backend.validate_data_format_str(data_format)
 
+        if isinstance(data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            data_format = data_format['config']
+
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = backend._get_image_data_format()
+            self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
-
-        super(ChannelSwap, self).__init__(**kwargs)
 
     def call(self, x, training=None):
         """
@@ -99,12 +104,15 @@ class ChannelSwap(Layer):
         config = super(ChannelSwap, self).get_config()
         config.update(
             {
-                'data_format': self.data_format,
+                'data_format': self.data_format
+                if self.data_format in (_CH_FIRST_STR, _CH_LAST_STR)
+                else 'default',
             }
         )
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class SpecAugment(Layer):
     """
     Apply SpecAugment to a Spectrogram. For more info, check the original paper at:
@@ -159,10 +167,12 @@ class SpecAugment(Layer):
         data_format='default',
         **kwargs,
     ):
-
+        super(SpecAugment, self).__init__(**kwargs)
         backend.validate_data_format_str(data_format)
 
-        super(SpecAugment, self).__init__(**kwargs)
+        if isinstance(data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            data_format = data_format['config']
 
         self.freq_mask_param = freq_mask_param
         self.time_mask_param = time_mask_param
@@ -308,7 +318,9 @@ class SpecAugment(Layer):
                 'n_freq_masks': self.n_freq_masks,
                 'n_time_masks': self.n_time_masks,
                 'mask_value': self.mask_value,
-                'data_format': self.data_format,
+                'data_format': self.data_format
+                if self.data_format in (_CH_FIRST_STR, _CH_LAST_STR)
+                else 'default',
             }
         )
         return config

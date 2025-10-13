@@ -21,6 +21,7 @@ Note:
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Layer
+from tensorflow.keras.utils import register_keras_serializable
 
 from . import backend
 from .backend import _CH_FIRST_STR, _CH_LAST_STR, _CH_DEFAULT_STR
@@ -56,6 +57,7 @@ def _shape_spectrum_output(spectrums, data_format):
     return spectrums
 
 
+@register_keras_serializable(package='Kapre')
 class STFT(Layer):
     """
     A Short-time Fourier transform layer.
@@ -110,8 +112,16 @@ class STFT(Layer):
     ):
         super(STFT, self).__init__(**kwargs)
 
-        backend.validate_data_format_str(input_data_format)
-        backend.validate_data_format_str(output_data_format)
+        for data_format in (input_data_format, output_data_format):
+            backend.validate_data_format_str(data_format)
+
+        if isinstance(input_data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            input_data_format = input_data_format['config']
+
+        if isinstance(output_data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            output_data_format = output_data_format['config']
 
         if win_length is None:
             win_length = n_fft
@@ -126,9 +136,12 @@ class STFT(Layer):
         self.pad_begin = pad_begin
         self.pad_end = pad_end
 
+        self.input_data_format_original = input_data_format
+        self.output_data_format_original = output_data_format
+
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = backend._get_image_data_format() if odt == _CH_DEFAULT_STR else odt
-        self.input_data_format = backend._get_image_data_format() if idt == _CH_DEFAULT_STR else idt
+        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -183,13 +196,14 @@ class STFT(Layer):
                 'window_name': self.window_name,
                 'pad_begin': self.pad_begin,
                 'pad_end': self.pad_end,
-                'input_data_format': self.input_data_format,
-                'output_data_format': self.output_data_format,
+                'input_data_format': self.input_data_format_original,
+                'output_data_format': self.output_data_format_original,
             }
         )
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class InverseSTFT(Layer):
     """An inverse-STFT layer.
 
@@ -241,8 +255,16 @@ class InverseSTFT(Layer):
     ):
         super(InverseSTFT, self).__init__(**kwargs)
 
-        backend.validate_data_format_str(input_data_format)
-        backend.validate_data_format_str(output_data_format)
+        for data_format in (input_data_format, output_data_format):
+            backend.validate_data_format_str(data_format)
+
+        if isinstance(input_data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            input_data_format = input_data_format['config']
+
+        if isinstance(output_data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            output_data_format = output_data_format['config']
 
         if win_length is None:
             win_length = n_fft
@@ -257,9 +279,12 @@ class InverseSTFT(Layer):
             frame_step=hop_length, forward_window_fn=backend.get_window_fn(forward_window_name)
         )
 
+        self.input_data_format_original = input_data_format
+        self.output_data_format_original = output_data_format
+
         idt, odt = input_data_format, output_data_format
-        self.output_data_format = backend._get_image_data_format() if odt == _CH_DEFAULT_STR else odt
-        self.input_data_format = backend._get_image_data_format() if idt == _CH_DEFAULT_STR else idt
+        self.output_data_format = K.image_data_format() if odt == _CH_DEFAULT_STR else odt
+        self.input_data_format = K.image_data_format() if idt == _CH_DEFAULT_STR else idt
 
     def call(self, x):
         """
@@ -301,13 +326,14 @@ class InverseSTFT(Layer):
                 'win_length': self.win_length,
                 'hop_length': self.hop_length,
                 'forward_window_name': self.forward_window_name,
-                'input_data_format': self.input_data_format,
-                'output_data_format': self.output_data_format,
+                'input_data_format': self.input_data_format_original,
+                'output_data_format': self.output_data_format_original,
             }
         )
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class Magnitude(Layer):
     """Compute the magnitude of the complex input, resulting in a float tensor
 
@@ -333,6 +359,7 @@ class Magnitude(Layer):
         return tf.abs(x)
 
 
+@register_keras_serializable(package='Kapre')
 class Phase(Layer):
     """Compute the phase of the complex input in radian, resulting in a float tensor
 
@@ -378,12 +405,13 @@ class Phase(Layer):
         config = super(Phase, self).get_config()
         config.update(
             {
-                'tflite_phase_accuracy': self.approx_atan_accuracy,
+                'approx_atan_accuracy': self.approx_atan_accuracy,
             }
         )
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class MagnitudeToDecibel(Layer):
     """A class that wraps `backend.magnitude_to_decibel` to compute decibel of the input magnitude.
 
@@ -437,6 +465,7 @@ class MagnitudeToDecibel(Layer):
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class ApplyFilterbank(Layer):
     """
     Apply a filterbank to the input spectrograms.
@@ -477,7 +506,12 @@ class ApplyFilterbank(Layer):
         **kwargs,
     ):
 
+        super(ApplyFilterbank, self).__init__(**kwargs)
         backend.validate_data_format_str(data_format)
+
+        if isinstance(data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            data_format = data_format['config']
 
         self.type = type
         self.filterbank_kwargs = filterbank_kwargs
@@ -487,8 +521,9 @@ class ApplyFilterbank(Layer):
         elif type == 'mel':
             self.filterbank = _mel_filterbank = backend.filterbank_mel(**filterbank_kwargs)
 
+        self.data_format_original = data_format
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = backend._get_image_data_format()
+            self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
 
@@ -496,7 +531,6 @@ class ApplyFilterbank(Layer):
             self.freq_axis = 3
         else:
             self.freq_axis = 2
-        super(ApplyFilterbank, self).__init__(**kwargs)
 
     def call(self, x):
         """
@@ -519,12 +553,13 @@ class ApplyFilterbank(Layer):
             {
                 'type': self.type,
                 'filterbank_kwargs': self.filterbank_kwargs,
-                'data_format': self.data_format,
+                'data_format': self.data_format_original,
             }
         )
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class Delta(Layer):
     """Calculates delta, a local estimate of the derivative along time axis.
     See torchaudio.functional.compute_deltas or librosa.feature.delta for more details.
@@ -547,7 +582,12 @@ class Delta(Layer):
     """
 
     def __init__(self, win_length=5, mode='symmetric', data_format='default', **kwargs):
+        super(Delta, self).__init__(**kwargs)
         backend.validate_data_format_str(data_format)
+
+        if isinstance(data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            data_format = data_format['config']
 
         if not win_length >= 3:
             raise ValueError(
@@ -561,8 +601,9 @@ class Delta(Layer):
                 + 'but it is {}'.format(mode)
             )
 
+        self.data_format_original = data_format
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = backend._get_image_data_format()
+            self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
 
@@ -570,7 +611,6 @@ class Delta(Layer):
         self.mode = mode
         self.n = (self.win_length - 1) // 2  # half window length
         self.denom = 2 * sum([_n ** 2 for _n in range(1, self.n + 1, 1)])  # denominator
-        super(Delta, self).__init__(**kwargs)
 
     def call(self, x):
         """
@@ -598,12 +638,13 @@ class Delta(Layer):
     def get_config(self):
         config = super(Delta, self).get_config()
         config.update(
-            {'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format}
+            {'win_length': self.win_length, 'mode': self.mode, 'data_format': self.data_format_original}
         )
 
         return config
 
 
+@register_keras_serializable(package='Kapre')
 class ConcatenateFrequencyMap(Layer):
     """Addes a frequency information channel to spectrograms.
 
@@ -645,16 +686,18 @@ class ConcatenateFrequencyMap(Layer):
     """
 
     def __init__(self, data_format='default', **kwargs):
+        super(ConcatenateFrequencyMap, self).__init__(**kwargs)
         backend.validate_data_format_str(data_format)
 
+        if isinstance(data_format, dict):
+            # workaround for a bug in tf.keras.saving.deserialize_keras_object
+            data_format = data_format['config']
+
+        self.data_format_original = data_format
         if data_format == _CH_DEFAULT_STR:
-            self.data_format = backend._get_image_data_format()
+            self.data_format = K.image_data_format()
         else:
             self.data_format = data_format
-
-        self.data_format = data_format
-
-        super(ConcatenateFrequencyMap, self).__init__(**kwargs)
 
     def call(self, x):
         """
@@ -695,7 +738,7 @@ class ConcatenateFrequencyMap(Layer):
         config = super(ConcatenateFrequencyMap, self).get_config()
         config.update(
             {
-                'data_format': self.data_format,
+                'data_format': self.data_format_original,
             }
         )
         return config

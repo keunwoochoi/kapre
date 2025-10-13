@@ -26,7 +26,7 @@ def test_frame_correctness(frame_length, data_format):
         )
     )
 
-    frames_ref = librosa.util.frame(src_mono, frame_length, hop_length).T  # (time, frame_length)
+    frames_ref = librosa.util.frame(src_mono, frame_length=frame_length, hop_length=hop_length).T  # (time, frame_length)
 
     if data_format in (_CH_DEFAULT_STR, _CH_LAST_STR):
         frames_ref = np.expand_dims(frames_ref, axis=2)
@@ -64,7 +64,7 @@ def test_energy_correctness(data_format):
 
     energies_kapre = model.predict(batch_src)[0]
 
-    frames_ref = librosa.util.frame(src_mono, frame_length, hop_length).T  # (time, frame_length)
+    frames_ref = librosa.util.frame(src_mono, frame_length=frame_length, hop_length=hop_length).T  # (time, frame_length)
     nor_coeff = ref_duration / (frame_length / sr)
     energies_ref = nor_coeff * np.sum(frames_ref ** 2, axis=1)  # (time, )
 
@@ -81,7 +81,7 @@ def test_energy_correctness(data_format):
 @pytest.mark.parametrize('n_mfccs', [1, 20, 40])
 def test_mfcc_correctness(data_format, n_mfccs):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
-    melgram = librosa.power_to_db(librosa.feature.melspectrogram(src_mono))  # mel, time
+    melgram = librosa.power_to_db(librosa.feature.melspectrogram(y=src_mono))  # mel, time
 
     mfcc_ref = librosa.feature.mfcc(
         S=melgram, n_mfcc=n_mfccs, norm='ortho'
@@ -145,7 +145,7 @@ def test_save_load(data_format, save_format):
     expand_dim = (0, 3) if data_format in (_CH_LAST_STR, _CH_DEFAULT_STR) else (0, 1)
     save_load_compare(
         LogmelToMFCC(n_mfccs=10),
-        np.expand_dims(librosa.power_to_db(librosa.feature.melspectrogram(src_mono).T), expand_dim),
+        np.expand_dims(librosa.power_to_db(librosa.feature.melspectrogram(y=src_mono).T), expand_dim),
         np.testing.assert_allclose,
         save_format,
         LogmelToMFCC,

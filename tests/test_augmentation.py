@@ -14,11 +14,11 @@ def test_channel_swap_correctness(n_ch, data_format, data_type):
     len_src = 256
     src_mono, batch_src, input_shape = get_audio(data_format=data_format, n_ch=n_ch, length=len_src)
 
-    model = tf.keras.Sequential()
-    model.add(
-        ChannelSwap(
-            input_shape=input_shape,
-        )
+    model = tf.keras.Sequential(
+        [
+            tf.keras.Input(shape=input_shape),
+            ChannelSwap(),
+        ]
     )
     # consistent during inference
     kapre_ref = model.predict(batch_src)
@@ -60,7 +60,6 @@ def test_spec_augment_apply_masks_to_axis(inputs):
     batch_src, input_shape = get_spectrogram(data_format)
 
     spec_augment = SpecAugment(
-        input_shape=input_shape,
         freq_mask_param=5,
         time_mask_param=10,
         n_freq_masks=4,
@@ -102,8 +101,9 @@ def test_spec_augment_depth_exception():
         batch_src, input_shape = get_spectrogram(data_format=data_format, n_ch=4)
 
         model = tf.keras.Sequential()
+        model.add(tf.keras.Input(shape=input_shape))
         spec_augment = SpecAugment(
-            input_shape=input_shape, freq_mask_param=5, time_mask_param=10, data_format=data_format
+            freq_mask_param=5, time_mask_param=10, data_format=data_format
         )
         model.add(spec_augment)
         _ = model(batch_src, training=True)[0]
@@ -118,21 +118,21 @@ def test_spec_augment_layer(data_format, atol=1e-4):
     batch_src, input_shape = get_spectrogram(data_format)
 
     model = tf.keras.Sequential()
-    spec_augment = SpecAugment(
-        input_shape=input_shape,
-        freq_mask_param=5,
-        time_mask_param=10,
-        n_freq_masks=4,
-        n_time_masks=3,
-        mask_value=0.0,
-        data_format=data_format,
+    model.add(tf.keras.Input(shape=input_shape))
+    model.add(
+        SpecAugment(
+            freq_mask_param=5,
+            time_mask_param=10,
+            n_freq_masks=4,
+            n_time_masks=3,
+            mask_value=0.0,
+            data_format=data_format,
+        )
     )
-
-    model.add(spec_augment)
 
     # Fist, enforce training to True and check the shapes
     spec_augmented = model(batch_src, training=True)
-    np.testing.assert_equal(model.layers[0].output_shape[1:], spec_augmented[0].shape)
+    np.testing.assert_equal(model.output_shape[1:], spec_augmented[0].shape)
 
     # Second, check that it doesn't change anything in default
     spec_augmented = model(batch_src)
@@ -145,12 +145,13 @@ def test_save_load_channel_swap(data_format, save_format):
     src_mono, batch_src, input_shape = get_audio(data_format='channels_last', n_ch=1)
 
     save_load_compare(
-        ChannelSwap(input_shape=input_shape),
+        ChannelSwap(),
         batch_src,
         np.testing.assert_allclose,
         save_format=save_format,
         layer_class=ChannelSwap,
         training=None,
+        input_shape=input_shape,
     )
 
 
@@ -160,7 +161,6 @@ def test_save_load_spec_augment(data_format, save_format):
     batch_src, input_shape = get_spectrogram(data_format=data_format)
 
     spec_augment = SpecAugment(
-        input_shape=input_shape,
         freq_mask_param=5,
         time_mask_param=10,
         n_freq_masks=4,
@@ -175,4 +175,5 @@ def test_save_load_spec_augment(data_format, save_format):
         save_format=save_format,
         layer_class=SpecAugment,
         training=None,
+        input_shape=input_shape,
     )
