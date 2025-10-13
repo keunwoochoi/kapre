@@ -1,0 +1,37 @@
+{
+  "include": [
+    "kapre/"
+  ],
+  "exclude": [
+    "kapre/__pycache__",
+    "tests/__pycache__",
+    "docs/",
+    "examples/",
+    "scripts/"
+  ],
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.8",
+  "typeCheckingMode": "basic",
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownArgumentType": false,
+  "reportUnknownLambdaType": false,
+  "reportUnknownParameterType": false,
+  "reportMissingParameterType": false,
+  "reportMissingTypeArgument": false,
+  "reportInvalidTypeVarUse": false,
+  "reportCallInDefaultInitializer": false,
+  "reportUnnecessaryIsInstance": false,
+  "reportUnnecessaryCast": false,
+  "reportUnnecessaryComparison": false,
+  "reportAssertAlwaysTrue": false,
+  "reportSelfClsParameterName": false,
+  "reportImplicitStringConcatenation": false,
+  "reportUndefinedVariable": true,
+  "reportUnboundVariable": true,
+  "reportInvalidStubStatement": false,
+  "reportIncompleteStub": false,
+  "reportUnsupportedDunderAll": false,
+  "reportUnusedCoroutine": false
+}

@@ -1,7 +1,7 @@
 # Kapre
 Keras Audio Preprocessors - compute STFT, ISTFT, Melspectrogram, and others on GPU real-time.
  
-Tested on Python 3.6 and 3.7
+Tested on Python 3.8+, with type hints for better development experience
 
 ## Why Kapre?
 
@@ -31,9 +31,52 @@ Tested on Python 3.6 and 3.7
 5. When deploying the final model, all you need to remember is the sampling rate of the signal. No dependency or preprocessing!
 
 ## Installation
- 
+
 ```sh
 pip install kapre
+```
+
+## Development
+
+Kapre includes comprehensive type hints for better IDE support and development experience.
+
+### Type Checking
+
+Run type checking with our included script:
+
+```sh
+python scripts/check_types.py
+```
+
+Or use your preferred type checker:
+
+```sh
+# With mypy
+pip install mypy
+mypy kapre/
+
+# With pyright
+pip install pyright
+pyright kapre/
+```
+
+### Development Setup
+
+```sh
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest tests/
+
+# Run type checking
+python scripts/check_types.py
+
+# Format code
+black kapre/ tests/
+
+# Lint code
+flake8 kapre/ tests/
 ```
 
 ## API Documentation
