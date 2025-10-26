@@ -1,8 +1,14 @@
+import re
+import os
 from setuptools import setup
+
+def get_version():
+    with open(os.path.join('kapre', '__init__.py'), 'r') as f:
+        return re.search(r"__version__ = ['\"]([^'\"]+)['\"]", f.read()).group(1)
 
 setup(
     name='kapre',
-    version='0.3.7',
+    version=get_version(),
     description='Kapre: Keras Audio Preprocessors. Tensorflow.Keras layers for audio pre-processing in deep learning',
     author='Keunwoo Choi',
     url='http://github.com/keunwoochoi/kapre/',
